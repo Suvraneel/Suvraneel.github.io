@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Raleway:wght@200;300;400&display=swap');
+
+#navbar{
+  color: black;
+  position: fixed;
+  margin: 5px;
+  top: 0px;
+  right: 0px;
+  padding: 0 ;
+  background-color: #040916;
+  font-family: 'Raleway', sans-serif;
+  font-weight: 200;
+  font-size: 1.15vw;
+  z-index: 3;
+}
+
+#navbar ul{
+  width: 20vw;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  list-style-type: none;
+}
+#navbar a{
+  color: white;
+  text-decoration: none;
+}
+
+#welcome-section{
+  height: 100vh;
+  text-align: center;
+  color: white;
+  font-size: 1.8vw;
+  font-family: 'Raleway', perpetua, serif;
+}
+
+h1{
+  font-weight: 400;
+  position:relative;
+  top: 30vh;
+}
+
+.name{
+  font-size: 120%;
+  color: rgb(255, 0, 60);
+  font-family: 'Playfair Display', perpetua, serif;
+  font-weight: 400;
+}
+.name:hover{
+  color: cyan;
+}
+
+body{
+  background-color: #171e33;
+}
+.heading{
+  color: white;
+  font-size: 2vw;
+  font-family: 'Raleway', perpetua, serif;
+  line-height: 1.2vw;
+  border-style: solid;
+  border-width: 0 0 0.3vw 0;
+  width: 12vw;
+  margin: 1em;
+}
+
+#projects{
+  display: flex;
+  justify-content: space-evenly;
+  font-family: 'Raleway', sans-serif;
+  font-weight: 200;
+  color: white;
+}
+
+#projects ul{
+  list-style-type: circle;
+}
+
+#projects header{
+  font-weight: 400;
+  font-size: 1.05em;
+  line-height: 1.8vw;
+}
+
+#projects a{
+  color: white;
+  text-decoration: none;
+}
+
+.project-tile{
+  display: flex;
+  width: 30vw;
+  height: auto;
+  background-color: #040916 ;
+  opacity: 95%;
+  border-radius: 10px;
+}
+
+#web-design{
+  background-image: url('https://raw.githubusercontent.com/Suvraneel/web-design/main/resources/orsrc44518.png');
+  background-size: 100%;
+  background-position: 70px -260px;
+}
+#web-design a:hover{
+  color: cyan;
+}
+
+#app-dev img{
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  filter: invert(1);
+  z-index: 1;
+}
+#app-dev img:hover {
+  filter: invert(0);
+}
+#coding{
+  background-image: url('https://raw.githubusercontent.com/Suvraneel/web-design/main/resources/IMG_20201106_134502.jpg');
+  background-size: 100% auto;
+}
+#coding a:hover{
+  color: cyan;
+}
+#overlap{
+  position:absolute;
+  z-index: 2;
+  padding: 1vw 0 0 1vw;
+}
+
+.sub-heading{
+  color: white;
+  font-size: 1.6vw;
+  font-family: 'Raleway', perpetua, serif;
+  line-height: 0vw;
+  margin: 1em;
+}
+
+
+fieldset{
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 55vw;
+  height: 40vw;
+  padding: 0 1em 0 1em;
+  font-size: 0.8em;
+  margin-left: 2%;
+  background-color: #0f1321;
+  border: none;
+  border-radius: 7px;
+}
+
+.form-content {
+  font-family: 'Raleway', sans-serif;
+  color: white;
+  padding: 15px 0 0 0;
+  font-size: 1.2vw;
+  white-space:pre;
+  margin-left: 10%;
+  position: relative;
+  top:20px;
+}
+
+.input-box{
+  padding: 0.5vw 1vw 0.5vw 1vw;
+  font-size: 1.2vw;
+  font-family: 'Raleway', sans-serif;
+  color: white;
+  border-radius: 4px;
+  opacity: 1;
+  background-color: rgb(0,0,15);
+  margin: 0 10% 0 10%;
+  border: none;
+}
+ 
+button{
+  font-size: 16px;
+  font-family: sans-serif;
+  padding: 10px 20px 10px 10px;
+  color: white;
+  border-radius: 4px;
+  margin: 0 10% 0 10%;
+  background-color: #0f1321;
+}
+
+button:hover {
+  animation-name: butt;
+  animation-duration:420ms;
+  animation-fill-mode: forwards;
+}
+@keyframes butt{
+  100%{
+    background-color: #001f4d;
+    font-size: 16.4px;
+    margin: 0 10.2% 0 10.2%;
+    color: cyan;
+  }
+}
+
+.social{
+  width: 50px;
+}
+
+#social{
+  display: flex;
+  flex-direction: row;
+  width: 30vw;
+  justify-content: space-evenly;
+  position: absolute;  
+  right: 2vw;
+  filter: invert(1);
+  padding:5px;
+}
+
+#social img:hover{
+width: 65px;
+}
+
+#discord .tooltiptext {
+  visibility: hidden;
+  font-family: 'Raleway', sans-serif;
+}
+#discord:hover  .tooltiptext {
+    visibility: visible;
+  }
+#copyright{
+  color: white;
+  font-family: 'Raleway', perpetua, serif;
+  font-size: 1em;
+  margin-left: 2%;
+  font-weight: 200;
+}
+
+#navbar a:hover {
+  color: cyan;
+}
+
+@media (max-width: 600px){
+  #social{
+    width: 95%;
+    position: relative;
+    top: 2vw;
+  } 
+  
+  .social{
+  width: 6.5vw;
+}
+  #social img:hover{
+width: 7vw;
+}
+  #discord .tooltiptext {
+  font-size: 3vw;  
+  }
+  
+  fieldset{
+  width: 85vw; 
+    height: 100vh;
+  }
+  .sub-heading{
+     font-size: 3.3vw;
+     margin: 0;
+    padding: 0;
+  }
+  .form-content {
+    font-size: 4.5vw;
+    margin: 0 1vw 0 1vw;
+    position: relative;
+    top: 10vw;
+  }
+  .input-box{
+    font-size: 4vw;
+    width: 95%;
+    margin: 0 1vw 0 1vw;
+  }
+  .mobile{
+    padding: 0 0 2vw 0;
+    line-height: 2px;
+    }
+  
+  #welcome-section{
+    font-size: 6vw;
+  }
+  #navbar{
+    width: 80vw;
+    }
+  #navbar ul{
+    width: 80%;
+    font-size: 4vw;
+    justify-content: space-between;
+  }
+  #projects{
+    flex-direction: column;
+    width: 100%;
+    padding: 5vw 0 10vw 0;
+    height: 150vh
+  }
+  
+  .project-tile{
+    width: 100%;
+    height: 75vw;
+  }
+  
+  .heading{
+    width: 30vw;
+    font-size: 5vw;
+  }
+  #overlap{
+    line-height: 15vh;
+  }
+}
+
+</style>
+
+<header>
+<nav id="navbar">
+  <ul>
+    <li><a href="#projects">Projects </a></li>
+    <li><a href="#welcome-section"> About Me </a></li>
+    <li><a href="#contact_me"> Contact </a></li>
+  </ul>
+  </nav>
+ 
+<section id="welcome-section">
+  <h1>Hey there, I'm <text class="name" id="name">Suvraneel Bhuin</text>.</h1>
+  <h1>Feel free to have a look around...</h1>
+    </section>
+   </header> 
+
+<body>
+  <header class="heading mobile">My Projects :<br><br></header><br>
+<section id="projects">
+  <div class="project-tile" id="web-design">
+    <ul><header class="mobile">Web Design</header>
+      <li><a href="https://codepen.io/suvraneel/full/ZEOrEae" target="_blank">Sample Survey form</a></li>
+      <li><a href="https://codepen.io/suvraneel/full/GRqmVQP" target="_blank">Sample Tribute Page</a></li>
+      <li><a href="https://codepen.io/suvraneel/full/ZEOxvpJ" target="_blank">Sample technical Documentation</a></li>
+      <li><a href="https://codepen.io/suvraneel/full/eYzVwrg" target="_blank">Sample Product Landing Page</a></li>
+    </ul>
+  </div>
+  <div class="project-tile" id="app-dev"><a href="https://codepen.io/suvraneel/full/eYzVwrg" target="_blank">
+    <header id="overlap">App<br class="mobile"><br class="mobile">Development</header>
+    <img src="https://raw.githubusercontent.com/Suvraneel/web-design/main/resources/DiabloMusicPreview.png" alt="Diablo Music">
+    </a></div>
+  <div class="project-tile" id="coding">
+    <ul><header class="mobile">Coding</header> 
+      <li><a href="https://www.hackerrank.com/bsuvraneel?hr_r=1" target="_blank">HackerRank</a></li>
+      <li><a href="https://www.freecodecamp.org/suvraneel" target="_blank">FCC</a></li>
+      <li><a id="profile-link" href="https://github.com/Suvraneel" target="_blank">Github</a></li>
+      <li><a id="profile-link" href="#" target="_blank">CodeChef</a></li>
+    </ul>
+      </div>
+</section>
+</body><br><br><br><br>
+<footer><div><br><br><br><br>
+  <header class="heading mobile">Contact Me :<br><br></header>
+  
+  <section id="contact_me">
+  <fieldset>
+    <legend class="form-content"><header class="sub-heading">Have a question/suggestion or wanna work together ?!<br></header>  </legend>
+    
+  <label for="name" class="form-content" id="name-label">Name *</label><br><br>
+    <input class="input-box" type="text" placeholder="Enter your name" name="name" id="yo-name" required>
+   
+      <label for="email" class="form-content" id="email-label">Email *</label><br><br>
+    <input class="input-box" type="email" placeholder="Enter your email" name="email" id="email" required>
+    
+    <label for="comments" class="form-content">Comments/Suggestions (optional)</label><br><br>
+    <textarea id="comments" class="input-box" placeholder="Enter your comments here (250 characters max)" name="comments" style="padding-bottom:70px;" maxlength="250"></textarea><br><br><br>
+    
+      <button type="submit" id="submit">Submit</button><br><br><br><br>
+  </fieldset>
+
+   <div id="social">
+  <a href="https://github.com/Suvraneel" target="_blank"><img class="social" src="https://raw.githubusercontent.com/Suvraneel/web-design/68e589594c8d0df4a222d3a994daeecaeb5286fc/resources/Social-Dark-icons/github.svg"></a>
+     
+  <a href="https://www.linkedin.com/in/suvraneel-bhuin" target="_blank"><img class="social" src="https://raw.githubusercontent.com/Suvraneel/web-design/68e589594c8d0df4a222d3a994daeecaeb5286fc/resources/Social-Dark-icons/linkedin.svg"></a>
+     
+  <a href="https://www.instagram.com/el_diablo_suvraneel" target="_blank"><img class="social" src="https://raw.githubusercontent.com/Suvraneel/web-design/68e589594c8d0df4a222d3a994daeecaeb5286fc/resources/Social-Dark-icons/instagram.svg"></a>
+     
+  <a href="https://www.facebook.com/suvraneel.bhuin" target="_blank"><img class="social" src="https://raw.githubusercontent.com/Suvraneel/web-design/68e589594c8d0df4a222d3a994daeecaeb5286fc/resources/Social-Dark-icons/facebook.svg"></a>
+     
+ <a id="discord"><img class="social" src="https://raw.githubusercontent.com/Suvraneel/web-design/68e589594c8d0df4a222d3a994daeecaeb5286fc/resources/Social-Dark-icons/discord.svg"><br><span class="tooltiptext">Diablo<br>#6079</span></a>
+     
+  <a href="mailto: bsuvraneel@gmail.com" target="_blank"><img class="social" src="https://raw.githubusercontent.com/Suvraneel/web-design/68e589594c8d0df4a222d3a994daeecaeb5286fc/resources/Social-Dark-icons/google-plus.svg"></a>
+</div><br><br><br>   </section></div>
+  <h5 id="copyright"><text class="name">Suvraneel Bhuin</text> ©2020</h5>
+</footer>
+
+</html>
