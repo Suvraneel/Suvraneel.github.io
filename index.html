@@ -1,4 +1,5 @@
 <!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--[if lte IE 9]>
 <html lang="en" class="oldie">
 <![endif]-->
@@ -149,6 +150,9 @@ body{
 #app-dev img:hover {
 	animation: rotate-ver 0.25s linear both;
 }
+.mobile{
+    display:none;
+    }
 #coding{
   background-image: url('https://raw.githubusercontent.com/Suvraneel/web-design/main/resources/IMG_20201106_134502.jpg');
   background-size: 100% auto;
@@ -325,6 +329,7 @@ width: 7vw;
     margin: 0 1vw 0 1vw;
   }
   .mobile{
+    display:initial;
     padding: 0 0 2vw 0;
     line-height: 2px;
     }
@@ -404,7 +409,7 @@ width: 7vw;
     </ul>
   </div>
   <div class="project-tile" id="app-dev"><a href="https://suvraneel.github.io/product_landing_page_diablo_music.html" target="_blank">
-    <header id="overlap">App<br class="mobile"><br class="mobile">Development</header>
+    <header id="overlap">App<br><br class="mobile"><br class="mobile">Development</header>
     <img src="https://raw.githubusercontent.com/Suvraneel/web-design/main/resources/DiabloMusicPreview.png" alt="Diablo Music">
     </a></div>
   <div class="project-tile" id="coding">
