@@ -79,6 +79,7 @@ body{
 
 #projects{
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-evenly;
   font-family: 'Raleway', sans-serif;
   font-weight: 200;
@@ -146,7 +147,7 @@ body{
     }
 #coding{
   background-image: url('https://raw.githubusercontent.com/Suvraneel/Suvraneel.github.io/main/resources/IMG_20201106_134502.jpg');
-  background-size: 100% auto;
+  background-size: 100%;
 }
 #coding:hover{
   animation: kenburns-bottom 0.1s ease-out both;
@@ -154,6 +155,106 @@ body{
 #coding a:hover{
   color: cyan;
 }
+
+.row2{
+  margin: 2em 0 0 0;
+}
+
+#opensrc{
+  background-image: url('https://raw.githubusercontent.com/Suvraneel/Suvraneel.github.io/main/resources/opensrc_woods.jpg');
+  background-size: 150% auto;
+  background-position: 0 -180px;
+}
+
+#opensrc:hover{
+  animation: kenburns-bottom 0.1s ease-out both;
+}
+
+.heartbeat {
+	-webkit-animation: heartbeat 1.5s ease-in-out infinite both;
+	        animation: heartbeat 1.5s ease-in-out infinite both;
+}
+
+@-webkit-keyframes heartbeat {
+  from {
+    -webkit-transform: scale(1);
+            transform: scale(1);
+    -webkit-transform-origin: center center;
+            transform-origin: center center;
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+  10% {
+    -webkit-transform: scale(0.91);
+            transform: scale(0.91);
+    -webkit-animation-timing-function: ease-in;
+            animation-timing-function: ease-in;
+  }
+  17% {
+    -webkit-transform: scale(0.98);
+            transform: scale(0.98);
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+  33% {
+    -webkit-transform: scale(0.87);
+            transform: scale(0.87);
+    -webkit-animation-timing-function: ease-in;
+            animation-timing-function: ease-in;
+  }
+  45% {
+    -webkit-transform: scale(1);
+            transform: scale(1);
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+}
+@keyframes heartbeat {
+  from {
+    -webkit-transform: scale(1);
+            transform: scale(1);
+    -webkit-transform-origin: center center;
+            transform-origin: center center;
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+  10% {
+    -webkit-transform: scale(0.91);
+            transform: scale(0.91);
+    -webkit-animation-timing-function: ease-in;
+            animation-timing-function: ease-in;
+  }
+  17% {
+    -webkit-transform: scale(0.98);
+            transform: scale(0.98);
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+  33% {
+    -webkit-transform: scale(0.87);
+            transform: scale(0.87);
+    -webkit-animation-timing-function: ease-in;
+            animation-timing-function: ease-in;
+  }
+  45% {
+    -webkit-transform: scale(1);
+            transform: scale(1);
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+  }
+}
+
+#opensrc ul{
+  display:flex;
+  flex-direction: column;
+}
+
+#opensrc ul img:hover{
+  -webkit-animation: heartbeat 1s ease-in-out infinite both;
+	        animation: heartbeat 1s ease-in-out infinite both;
+}
+
+
 #overlap{
   position:absolute;
   z-index: 2;
@@ -247,7 +348,8 @@ button:hover {
 }
 
 #social img:hover{
-width: 65px;
+  width: 69px;
+  animation: kenburns-bottom 0.1s ease-out both;
 }
 
 #discord .tooltiptext {
