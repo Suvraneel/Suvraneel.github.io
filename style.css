@@ -36,10 +36,13 @@
 
 h1{
  animation: tracking-in-expand 1.6s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
+  animation-delay: 3.9s;
   font-weight: 400;
   position:relative;
   top: 30vh;
 }
+
+/* Intro Animation*/
 @keyframes tracking-in-expand {
   0% {
     letter-spacing: -0.5em;
@@ -53,12 +56,18 @@ h1{
   }
 }
 
+.heartbeat {
+	-webkit-animation: heartbeat 1.5s ease-in-out infinite both;
+	 animation: heartbeat 1.5s ease-in-out infinite both;
+}
+
 .name{
   font-size: 120%;
   color: rgb(255, 0, 60);
   font-family: 'Playfair Display', perpetua, serif;
   font-weight: 400;
 }
+
 .name:hover{
   color: cyan;
 }
@@ -168,11 +177,6 @@ body{
 
 #opensrc:hover{
   animation: kenburns-bottom 0.1s ease-out both;
-}
-
-.heartbeat {
-	-webkit-animation: heartbeat 1.5s ease-in-out infinite both;
-	        animation: heartbeat 1.5s ease-in-out infinite both;
 }
 
 @-webkit-keyframes heartbeat {
@@ -309,7 +313,7 @@ fieldset{
  
 button{
   font-size: 16px;
-  font-family: sans-serif;
+  font-family: 'Raleway', sans-serif;
   padding: 10px 20px 10px 10px;
   color: white;
   border-radius: 4px;
@@ -385,6 +389,92 @@ button:hover {
   100% {
     transform: scale(1) rotateY(360deg);
     filter: invert(0);
+  }
+}
+
+/* Spinkit Loading */
+.sk-cube-grid {
+  width: 60px;
+  height: 60px;
+  margin: 100px auto;
+}
+
+.sk-cube-grid .sk-cube {
+  width: 33%;
+  height: 33%;
+  background-color: #e60000;
+  float: left;
+  -webkit-animation: sk-cubeGridScaleDelay 1.3s infinite ease-in-out;
+          animation: sk-cubeGridScaleDelay 1.3s infinite ease-in-out; 
+}
+.sk-cube-grid .sk-cube1 {
+  -webkit-animation-delay: 0.2s;
+          animation-delay: 0.2s; }
+.sk-cube-grid .sk-cube2 {
+  -webkit-animation-delay: 0.3s;
+          animation-delay: 0.3s; }
+.sk-cube-grid .sk-cube3 {
+  -webkit-animation-delay: 0.4s;
+          animation-delay: 0.4s; }
+.sk-cube-grid .sk-cube4 {
+  -webkit-animation-delay: 0.1s;
+          animation-delay: 0.1s; }
+.sk-cube-grid .sk-cube5 {
+  -webkit-animation-delay: 0.2s;
+          animation-delay: 0.2s; }
+.sk-cube-grid .sk-cube6 {
+  -webkit-animation-delay: 0.3s;
+          animation-delay: 0.3s; }
+.sk-cube-grid .sk-cube7 {
+  -webkit-animation-delay: 0s;
+          animation-delay: 0s; }
+.sk-cube-grid .sk-cube8 {
+  -webkit-animation-delay: 0.1s;
+          animation-delay: 0.1s; }
+.sk-cube-grid .sk-cube9 {
+  -webkit-animation-delay: 0.2s;
+          animation-delay: 0.2s; }
+
+@-webkit-keyframes sk-cubeGridScaleDelay {
+  0%, 70%, 100% {
+    -webkit-transform: scale3D(1, 1, 1);
+            transform: scale3D(1, 1, 1);
+  } 35% {
+    -webkit-transform: scale3D(0, 0, 1);
+            transform: scale3D(0, 0, 1); 
+  }
+}
+
+@keyframes sk-cubeGridScaleDelay {
+  0%, 70%, 100% {
+    -webkit-transform: scale3D(1, 1, 1);
+            transform: scale3D(1, 1, 1);
+  } 35% {
+    -webkit-transform: scale3D(0, 0, 1);
+            transform: scale3D(0, 0, 1);
+  } 
+}
+
+.loaded {
+  animation-name: loader;
+  animation-duration:4s;
+  animation-fill-mode: forwards;
+}
+
+@keyframes loader{
+  0% {
+    opacity : 100%;
+    margin: 80% auto;
+  }
+
+  95% {
+    opacity : 100%;
+    margin : 0 auto;
+  }
+  
+  100% {
+    opacity:0;
+    margin : 0 auto;
   }
 }
 
@@ -477,4 +567,7 @@ button:hover {
 
   2. Icons:
   * www.flaticons.com
+
+  3. Minimalistic Website Loading Animation
+  * https://tobiasahlin.com/spinkit/
  * ---------------------------------------------- */
