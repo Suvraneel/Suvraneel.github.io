@@ -27,7 +27,9 @@
 }
 
 #welcome-section{
-  height: 100vh;
+  position:relative;
+  top: 25vh;
+  z-axis : 2;
   text-align: center;
   color: white;
   font-size: 1.8vw;
@@ -57,8 +59,8 @@ h1{
 }
 
 .heartbeat {
-	-webkit-animation: heartbeat 1.5s ease-in-out infinite both;
-	 animation: heartbeat 1.5s ease-in-out infinite both;
+  -webkit-animation: heartbeat 1.5s ease-in-out infinite both;
+   animation: heartbeat 1.5s ease-in-out infinite both;
 }
 
 .name{
@@ -149,7 +151,7 @@ body{
   z-index: 1;
 }
 #app-dev img:hover {
-	animation: rotate-ver 0.25s linear both;
+  animation: rotate-ver 0.25s linear both;
 }
  .mobile{
     display: none;
@@ -255,7 +257,7 @@ body{
 
 #opensrc ul img:hover{
   -webkit-animation: heartbeat 1s ease-in-out infinite both;
-	        animation: heartbeat 1s ease-in-out infinite both;
+          animation: heartbeat 1s ease-in-out infinite both;
 }
 
 
@@ -574,3 +576,12 @@ button:hover {
   3. Minimalistic Website Loading Animation:
   * https://tobiasahlin.com/spinkit/
  * ---------------------------------------------- */
+
+#particles-js {
+  position: relative;
+  top: -25vh;
+  z-axis: 1;
+  width: 100%;
+  height: 100%;
+  background-image: url("");
+}
