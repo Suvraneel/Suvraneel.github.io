@@ -38,7 +38,7 @@
 
 h1{
  animation: tracking-in-expand 1.6s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
-  animation-delay: 1s;
+  animation-delay: 2s;
   font-weight: 400;
   position:relative;
   top: 30vh;
@@ -459,7 +459,7 @@ button:hover {
 
 .loaded {
   animation-name: loader;
-  animation-duration:4s;
+  animation-duration:1.9s;
   animation-fill-mode: forwards;
 }
 
@@ -561,6 +561,15 @@ button:hover {
   }
 }
 
+#particles-js {
+  position: relative;
+  top: -25vh;
+  z-axis: 1;
+  width: 100%;
+  height: 100%;
+  background-image: url("");
+}
+
 /* ----------------------------------------------
   Attributions:
   
@@ -575,13 +584,7 @@ button:hover {
 
   3. Minimalistic Website Loading Animation:
   * https://tobiasahlin.com/spinkit/
- * ---------------------------------------------- */
 
-#particles-js {
-  position: relative;
-  top: -25vh;
-  z-axis: 1;
-  width: 100%;
-  height: 100%;
-  background-image: url("");
-}
+  4. Particle Simulation
+  * https://vincentgarreau.com/particles.js/
+ * ---------------------------------------------- */
