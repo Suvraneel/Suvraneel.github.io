@@ -1,8 +1,5 @@
 name: Update GitHub Profile Page
-on:
-  schedule:
-    - cron: '*/30 * * * *'
-  workflow_dispatch:
+on: [push]
 
 jobs:
   gadpp_job:
@@ -18,6 +15,6 @@ jobs:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          github-username: 'Suvraneel'
-          user-email: 'bsuvraneel@gmail.com'
+          github-username: 'YOUR_GITHUB_USERNAME'
+          user-email: 'EMAIL_USED_ON_GITHUB'
 
