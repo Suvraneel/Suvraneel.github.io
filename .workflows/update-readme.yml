@@ -15,6 +15,6 @@ jobs:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          github-username: 'YOUR_GITHUB_USERNAME'
-          user-email: 'EMAIL_USED_ON_GITHUB'
+          github-username: 'Suvraneel'
+          user-email: 'bsuvraneel@gmail.com'
 
