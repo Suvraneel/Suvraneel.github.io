@@ -267,6 +267,22 @@ body{
   padding: 1vw 0 0 1vw;
 }
 
+#about_me{
+  display:flex;
+}
+
+#bio-text{
+  color: white;
+  font-family: 'Raleway', perpetua, serif;
+  font-size: 1.8em;
+  margin-left: 2%;
+  font-weight: 200;
+}
+
+#competencies{
+  padding: 0 5vw 0 5vw;
+}
+
 .sub-heading{
   color: white;
   font-size: 1.6vw;
