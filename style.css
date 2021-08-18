@@ -36,6 +36,15 @@
   font-family: 'Raleway', perpetua, serif;
 }
 
+#particles-js {
+  position: relative;
+  top: -25vh;
+  z-axis: 1;
+  width: 100%;
+  height: 100%;
+  background-image: url("");
+}
+
 h1{
  animation: tracking-in-expand 1.6s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
   animation-delay: 2s;
@@ -76,6 +85,8 @@ h1{
 
 body{
   background-color: #171e33;
+  width:100vw;
+  overflow-x:hidden;
 }
 .heading{
   color: white;
@@ -95,6 +106,7 @@ body{
   font-family: 'Raleway', sans-serif;
   font-weight: 200;
   color: white;
+  width:90vw;
 }
 
 #projects ul{
@@ -114,6 +126,7 @@ body{
 
 .project-tile{
   display: flex;
+  flex-wrap: wrap;
   width: 30vw;
   height: auto;
   background-color: #040916 ;
@@ -165,10 +178,6 @@ body{
 }
 #coding a:hover{
   color: cyan;
-}
-
-.row2{
-  margin: 2em 0 0 0;
 }
 
 #opensrc{
@@ -269,6 +278,8 @@ body{
 
 #about_me{
   display:flex;
+  justify-content: space-evenly;
+  width: 90vw;
 }
 
 #bio-text{
@@ -279,9 +290,6 @@ body{
   font-weight: 200;
 }
 
-#competencies{
-  padding: 0 5vw 0 5vw;
-}
 
 .sub-heading{
   color: white;
@@ -374,13 +382,6 @@ button:hover {
   animation: kenburns-bottom 0.1s ease-out both;
 }
 
-#discord .tooltiptext {
-  visibility: hidden;
-  font-family: 'Raleway', sans-serif;
-}
-#discord:hover  .tooltiptext {
-    visibility: visible;
-  }
 #copyright{
   color: white;
   font-family: 'Raleway', perpetua, serif;
@@ -391,10 +392,6 @@ button:hover {
 
 #navbar a:hover {
   color: cyan;
-}
-
-.invisible{
-  visibility: none;
 }
 
 @keyframes rotate-ver {
@@ -500,6 +497,46 @@ button:hover {
 }
 
 @media (max-width: 600px){
+  
+  #welcome-section{
+    font-size: 4.5vw;
+  }
+  #navbar{
+    width: 80vw;
+    left:0px;
+    }
+  #navbar ul{
+    width: 80%;
+    font-size: 4vw;
+    justify-content: space-between;
+  }
+  #projects{
+    flex-direction: column;
+    margin:2%;
+    width: 90%;
+    padding: 5vw 0 10vw 0;
+    height: 150vh
+  }
+  
+  .project-tile{
+    width: 100%;
+    height: 70vw;
+    flex-basis: 23.333333%;
+  }
+  
+  .heading{
+    width: 30vw;
+    font-size: 5vw;
+  }
+  #overlap{
+    line-height: 15vh;
+  }
+  
+  #particles-js {
+  height: 100vh;
+   width: 100vw;
+}
+  
   #social{
     width: 95%;
     position: relative;
@@ -512,9 +549,6 @@ button:hover {
   #social img:hover{
   width: 12vw;
 }
-  #discord .tooltiptext {
-  font-size: 3vw;  
-  }
   
   fieldset{
   width: 85vw; 
@@ -542,48 +576,42 @@ button:hover {
     line-height: 2px;
     }
   
-  #welcome-section{
-    font-size: 6vw;
-  }
-  #navbar{
-    width: 80vw;
-    }
-  #navbar ul{
-    width: 80%;
-    font-size: 4vw;
-    justify-content: space-between;
-  }
-  #projects{
-    flex-direction: column;
-    width: 100%;
-    padding: 5vw 0 10vw 0;
-    height: 150vh
+  #about_me{
+    z-index:1;
+    display:flex;
+    flex-direction:column;
+  justify-content: space-between;
+    flex-wrap:wrap;
+    flex-basis:100%;
+    font-size: 2vw;
+    margin: 2%;
+    width: 90%;
   }
   
-  .project-tile{
-    width: 100%;
-    height: 75vw;
+  table{
+    position:absolute;
+    left:0px;
   }
   
-  .heading{
-    width: 30vw;
-    font-size: 5vw;
+  table td {
+    display: flex;
+    flex-wrap:wrap;
   }
-  #overlap{
-    line-height: 15vh;
+  
+  table td::before {
+    content: attr(label);
+    font-weight: bold;
+    width: 100vw;
+    min-width: 100vw;
+    font-size:5vw;
   }
+  #contact_me{
+    z-index:1;
+  }
+  
   .invisible{
-  visibility: visible;
+  visibility: hidden;
   }
-}
-
-#particles-js {
-  position: relative;
-  top: -25vh;
-  z-axis: 1;
-  width: 100%;
-  height: 100%;
-  background-image: url("");
 }
 
 /* ----------------------------------------------
