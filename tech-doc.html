@@ -1,36 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
- <head>
- <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
- <title> Technical Documentation </title>
- </head>
-
-	  <link rel="stylesheet" href="https://suvraneel.github.io/tech_doc_style.css">
-
-
-  <header id="header">
-    <ul id="nav-ul">
-      <nav id="navbar">
-        <header id="nav-head">JS Documentation</header><br>
-        <li class="nav-li"><a href="#Introduction" class="nav-link">Introduction</a></li>
-        <li class="nav-li"><a class="nav-link" href="#What_you_should_already_know">What you should already know</a></li>
-        <li class="nav-li"><a class="nav-link" href="#JavaScript_and_Java">JavaScript and Java</a></li>
-        <li class="nav-li"><a class="nav-link" href="#Hello_world">Hello world</a></li>
-        <li class="nav-li"><a class="nav-link" href="#Variables">Variables</a></li>
-        <li class="nav-li"><a class="nav-link" href="#Declaring_variables">Declaring variables</a></li>
-        <li class="nav-li"><a class="nav-link" href="#Variable_scope">Variable scope</a></li>
-        <li class="nav-li"><a class="nav-link" href="#Global_variables">Global variables</a></li>
-        <li class="nav-li"><a class="nav-link" href="#Constants">Constants</a></li>
-        <li class="nav-li"><a class="nav-link" href="#Data_types">Data types</a></li>
-        <li class="nav-li"><a class="nav-link" href="#if...else_statement">if...else statement</a></li>
-        <li class="nav-li"><a class="nav-link" href="#while_statement">while statement</a></li>
-        <li class="nav-li"><a class="nav-link" href="#Function_declarations">Function declarations</a></li>
-        <li class="nav-li"><a class="nav-link" href="#Reference">Reference</a></li>
-        
+ <head id="header">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title> Technical Documentation </title>
+   <h1></h1>
+   <nav id="navbar">
+   	<ul id="nav-ul">
+	<header id="nav-head">JS Documentation</header><br>
+	<li class="nav-li"><a href="#Introduction" class="nav-link">Introduction</a></li>
+	<li class="nav-li"><a class="nav-link" href="#What_you_should_already_know">What you should already know</a></li>
+	<li class="nav-li"><a class="nav-link" href="#JavaScript_and_Java">JavaScript and Java</a></li>
+	<li class="nav-li"><a class="nav-link" href="#Hello_world">Hello world</a></li>
+	<li class="nav-li"><a class="nav-link" href="#Variables">Variables</a></li>
+	<li class="nav-li"><a class="nav-link" href="#Declaring_variables">Declaring variables</a></li>
+	<li class="nav-li"><a class="nav-link" href="#Variable_scope">Variable scope</a></li>
+	<li class="nav-li"><a class="nav-link" href="#Global_variables">Global variables</a></li>
+	<li class="nav-li"><a class="nav-link" href="#Constants">Constants</a></li>
+	<li class="nav-li"><a class="nav-link" href="#Data_types">Data types</a></li>
+	<li class="nav-li"><a class="nav-link" href="#if...else_statement">if...else statement</a></li>
+	<li class="nav-li"><a class="nav-link" href="#while_statement">while statement</a></li>
+	<li class="nav-li"><a class="nav-link" href="#Function_declarations">Function declarations</a></li>
+	<li class="nav-li"><a class="nav-link" href="#Reference">Reference</a></li>
         </ul>
     </nav>
-  </header>
+  </head>
   
+  <body>
   <main id="main-doc">
     <section class="main-section" id="Introduction"><header>Introduction</header>
     <p>
@@ -104,7 +99,7 @@ By simply assigning it a value. For example, </p>
 <p>This syntax can be used to declare a block scope local variable. See Variable scope below. </p>
 </section>
     <section class="main-section" id="Variable_scope"><header>Variable scope</header>
-<p>
+      <p>
         When you declare a variable outside of any function, it is called a
         global variable, because it is available to any other code in the
         current document. When you declare a variable within a function, it is
@@ -120,9 +115,11 @@ By simply assigning it a value. For example, </p>
         context) within which x is declared, not the block, which in this case
         is an if statement.
       </p>
+	    
       <code> 
         if (true) { var x = 5; } console.log(x); // 5
       </code>
+	    
       <p>
         This behavior changes, when using the let declaration introduced in
         ECMAScript 2015.
@@ -162,6 +159,7 @@ By simply assigning it a value. For example, </p>
         document, you can refer to this variable from an iframe as
         parent.phoneNumber.
       </p>
+	
   </section>
  <section class=" main-section" id="Constants"><header>Constants</header>
       <p>
@@ -268,7 +266,7 @@ You may also compound the statements using else if to have multiple conditions t
 
 <p>The following while loop iterates as long as n is less than three:</p>
     <code> 
-  var n = 0; var x = 0; while (n < 3) { n++; x += n; }
+  var n = 0; var x = 0; while (n &lt; 3) { n++; x += n; }
     </code>
 <p>With each iteration, the loop increments n and adds that value to x. Therefore, x and n take on the following values: </p>
 <ul>
@@ -276,7 +274,7 @@ You may also compound the statements using else if to have multiple conditions t
     <li>After the second pass: n = 2 and x = 3</li>
     <li>After the third pass: n = 3 and x = 6</li>
 </ul>
-  <p>After completing the third pass, the condition n < 3 is no longer true, so the loop terminates. </p>
+  <p>After completing the third pass, the condition n &lt; 3 is no longer true, so the loop terminates. </p>
   </section>
     
   <section class="main-section" id="Function_declarations"><header>Function declarations</header>
@@ -307,4 +305,5 @@ You may also compound the statements using else if to have multiple conditions t
         </p>
 </section>
 </main>
+</body>
 </html>
