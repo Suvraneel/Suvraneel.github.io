@@ -85,7 +85,7 @@ h1{
 
 body{
   background-color: #171e33;
-  width:100vw;
+  width:98vw;
   overflow-x:hidden;
 }
 .heading{
@@ -106,7 +106,6 @@ body{
   font-family: 'Raleway', sans-serif;
   font-weight: 200;
   color: white;
-  width:90vw;
 }
 
 #projects ul{
@@ -278,6 +277,7 @@ body{
 
 #about_me{
   display:flex;
+  flex-direction:row;
   justify-content: space-evenly;
   width: 90vw;
 }
@@ -501,21 +501,33 @@ button:hover {
   #welcome-section{
     font-size: 4.5vw;
   }
+  
+    body{
+    overflow-x:hidden;
+    width:95vw;
+  }
+  
   #navbar{
-    width: 80vw;
-    left:0px;
+    margin:2%;
+    width: 95vw;
     }
+  
   #navbar ul{
-    width: 80%;
+    padding: 0 2% 0 2%;
+    width: 100%;
     font-size: 4vw;
     justify-content: space-between;
   }
+  
+  #navbar a{
+    padding:7vw;
+  }
+  
   #projects{
     flex-direction: column;
     margin:2%;
-    width: 90%;
-    padding: 5vw 0 10vw 0;
-    height: 150vh
+    padding: 5vw 0 5vw 0;
+    height: 150vh;
   }
   
   .project-tile{
@@ -533,25 +545,25 @@ button:hover {
   }
   
   #particles-js {
-  height: 100vh;
-   width: 100vw;
+    height: 100vh;
+    width: 100vw;
 }
   
   #social{
-    width: 95%;
+    width: 100%;
     position: relative;
     top: 2vw;
   } 
   
   .social{
-  width: 6.5vw;
+    width: 6.5vw;
 }
   #social img:hover{
   width: 12vw;
 }
   
   fieldset{
-  width: 85vw; 
+    width: 85vw; 
     height: 100vh;
   }
   .sub-heading{
@@ -577,23 +589,20 @@ button:hover {
     }
   
   #about_me{
-    z-index:1;
-    display:flex;
     flex-direction:column;
-  justify-content: space-between;
-    flex-wrap:wrap;
-    flex-basis:100%;
+    justify-content: space-evenly;
     font-size: 2vw;
     margin: 2%;
-    width: 90%;
+    width: 100%;
   }
   
   table{
-    position:absolute;
-    left:0px;
+    width: 80%;
+    margin:2vw;
   }
   
   table td {
+    width: 80%;
     display: flex;
     flex-wrap:wrap;
   }
@@ -605,12 +614,10 @@ button:hover {
     min-width: 100vw;
     font-size:5vw;
   }
-  #contact_me{
-    z-index:1;
-  }
   
-  .invisible{
-  visibility: hidden;
+  #canvas{
+    position:relative;
+    right:32vw;
   }
 }
 
