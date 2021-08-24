@@ -2,9 +2,9 @@ const canvas = document.getElementById('canvas');
 
 const texts = [
   'HTML5', 'Javascript', 'CSS3', 'Flutter', 'Dart',
-  'C++', 'Python', 'Java', 'PostgreSQL', 'MongoDB',
-  'Android', 'VHDL', 'C', 'React', 'GNUBash',
-  'NodeJS', 'Bootstrap', 'Git', 'Arduino',
+  'C++', 'Python', 'Java', 'MySQL', 'MongoDB',
+  'Android', 'VHDL', 'C', 'Shell', 'GNUBash',
+  'Swift', 'Objective-C', 'Git', 'Arduino',
 ];
 const counts = [1,2,4,5,4,2,1];
 
