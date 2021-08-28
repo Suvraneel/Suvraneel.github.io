@@ -1,39 +1,40 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Raleway:wght@200;300;400&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Raleway:wght@200;300;400&display=swap");
 
-#navbar{
+#navbar {
   color: black;
   position: fixed;
   margin: 5px;
   top: 0px;
   right: 0px;
-  padding: 0 ;
+  padding: 0;
   background-color: #040916;
-  font-family: 'Raleway', sans-serif;
+  font-family: "Raleway", sans-serif;
   font-weight: 200;
   font-size: 1.15vw;
   z-index: 3;
 }
 
-#navbar ul{
+#navbar ul {
   width: 20vw;
   display: flex;
   flex-direction: row;
   justify-content: space-evenly;
   list-style-type: none;
 }
-#navbar a{
+
+#navbar a {
   color: white;
   text-decoration: none;
 }
 
-#welcome-section{
-  position:relative;
+#welcome-section {
+  position: relative;
   top: 25vh;
-  z-axis : 2;
+  z-axis: 2;
   text-align: center;
   color: white;
   font-size: 1.8vw;
-  font-family: 'Raleway', perpetua, serif;
+  font-family: "Raleway", perpetua, serif;
 }
 
 #particles-js {
@@ -45,11 +46,11 @@
   background-image: url("");
 }
 
-h1{
- animation: tracking-in-expand 1.6s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
+h1 {
+  animation: tracking-in-expand 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) both;
   animation-delay: 2s;
   font-weight: 400;
-  position:relative;
+  position: relative;
   top: 30vh;
 }
 
@@ -69,29 +70,30 @@ h1{
 
 .heartbeat {
   -webkit-animation: heartbeat 1.5s ease-in-out infinite both;
-   animation: heartbeat 1.5s ease-in-out infinite both;
+  animation: heartbeat 1.5s ease-in-out infinite both;
 }
 
-.name{
+.name {
   font-size: 120%;
   color: rgb(255, 0, 60);
-  font-family: 'Playfair Display', perpetua, serif;
+  font-family: "Playfair Display", perpetua, serif;
   font-weight: 400;
 }
 
-.name:hover{
+.name:hover {
   color: cyan;
 }
 
-body{
+body {
   background-color: #171e33;
-  width:98vw;
-  overflow-x:hidden;
+  width: 98vw;
+  overflow-x: hidden;
 }
-.heading{
+
+.heading {
   color: white;
   font-size: 2vw;
-  font-family: 'Raleway', perpetua, serif;
+  font-family: "Raleway", perpetua, serif;
   line-height: 1.2vw;
   border-style: solid;
   border-width: 0 0 0.3vw 0;
@@ -99,208 +101,213 @@ body{
   margin: 1em;
 }
 
-#projects{
+#projects {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-evenly;
-  font-family: 'Raleway', sans-serif;
+  font-family: "Raleway", sans-serif;
   font-weight: 200;
   color: white;
 }
 
-#projects ul{
+#projects ul {
   list-style-type: circle;
 }
 
-#projects header{
+#projects header {
   font-weight: 400;
   font-size: 1.05em;
   line-height: 1.8vw;
 }
 
-#projects a{
+#projects a {
   color: white;
   text-decoration: none;
 }
 
-.project-tile{
+.project-tile {
   display: flex;
   flex-wrap: wrap;
   width: 30vw;
   height: auto;
-  background-color: #040916 ;
+  background-color: #040916;
   opacity: 95%;
   border-radius: 10px;
 }
 
-#web-design{
-  background-image: url('https://raw.githubusercontent.com/Suvraneel/Suvraneel.github.io/main/resources/orsrc44518.png');
+#web-design {
+  background-image: url("../resources/images/wd_legion_skull.png");
   background-size: 100%;
   background-position: 70px -260px;
 }
-#web-design:hover{
+
+#web-design:hover {
   animation: kenburns-bottom 0.1s ease-out both;
 }
+
 @keyframes kenburns-bottom {
   0% {
     transform: scale(1) translateY(0);
     transform-origin: 50% 84%;
   }
   100% {
-    transform: scale(1.10) translateY(15px);
+    transform: scale(1.1) translateY(15px);
     transform-origin: bottom;
   }
 }
-#web-design a:hover{
+
+#web-design a:hover {
   color: cyan;
 }
 
-#app-dev img{
+#app-dev img {
   width: 100%;
   height: 100%;
   border-radius: 10px;
   filter: invert(1);
   z-index: 1;
 }
+
 #app-dev img:hover {
   animation: rotate-ver 0.25s linear both;
 }
- .mobile{
-    display: none;
-    }
-#coding{
-  background-image: url('https://raw.githubusercontent.com/Suvraneel/Suvraneel.github.io/main/resources/IMG_20201106_134502.jpg');
+
+.mobile {
+  display: none;
+}
+
+#coding {
+  background-image: url("../resources/images/marcus_h.jpg");
   background-size: 100%;
 }
-#coding:hover{
+
+#coding:hover {
   animation: kenburns-bottom 0.1s ease-out both;
 }
-#coding a:hover{
+
+#coding a:hover {
   color: cyan;
 }
 
-#opensrc{
-  background-image: url('https://raw.githubusercontent.com/Suvraneel/Suvraneel.github.io/main/resources/opensrc_woods.jpg');
+#opensrc {
+  background-image: url("../resources/images/opensrc_woods.jpg");
   background-size: 150% auto;
   background-position: 0 -180px;
 }
 
-#opensrc:hover{
+#opensrc:hover {
   animation: kenburns-bottom 0.1s ease-out both;
 }
 
 @-webkit-keyframes heartbeat {
   from {
     -webkit-transform: scale(1);
-            transform: scale(1);
+    transform: scale(1);
     -webkit-transform-origin: center center;
-            transform-origin: center center;
+    transform-origin: center center;
     -webkit-animation-timing-function: ease-out;
-            animation-timing-function: ease-out;
+    animation-timing-function: ease-out;
   }
   10% {
     -webkit-transform: scale(0.91);
-            transform: scale(0.91);
+    transform: scale(0.91);
     -webkit-animation-timing-function: ease-in;
-            animation-timing-function: ease-in;
+    animation-timing-function: ease-in;
   }
   17% {
     -webkit-transform: scale(0.98);
-            transform: scale(0.98);
+    transform: scale(0.98);
     -webkit-animation-timing-function: ease-out;
-            animation-timing-function: ease-out;
+    animation-timing-function: ease-out;
   }
   33% {
     -webkit-transform: scale(0.87);
-            transform: scale(0.87);
+    transform: scale(0.87);
     -webkit-animation-timing-function: ease-in;
-            animation-timing-function: ease-in;
+    animation-timing-function: ease-in;
   }
   45% {
     -webkit-transform: scale(1);
-            transform: scale(1);
+    transform: scale(1);
     -webkit-animation-timing-function: ease-out;
-            animation-timing-function: ease-out;
+    animation-timing-function: ease-out;
   }
 }
 @keyframes heartbeat {
   from {
     -webkit-transform: scale(1);
-            transform: scale(1);
+    transform: scale(1);
     -webkit-transform-origin: center center;
-            transform-origin: center center;
+    transform-origin: center center;
     -webkit-animation-timing-function: ease-out;
-            animation-timing-function: ease-out;
+    animation-timing-function: ease-out;
   }
   10% {
     -webkit-transform: scale(0.91);
-            transform: scale(0.91);
+    transform: scale(0.91);
     -webkit-animation-timing-function: ease-in;
-            animation-timing-function: ease-in;
+    animation-timing-function: ease-in;
   }
   17% {
     -webkit-transform: scale(0.98);
-            transform: scale(0.98);
+    transform: scale(0.98);
     -webkit-animation-timing-function: ease-out;
-            animation-timing-function: ease-out;
+    animation-timing-function: ease-out;
   }
   33% {
     -webkit-transform: scale(0.87);
-            transform: scale(0.87);
+    transform: scale(0.87);
     -webkit-animation-timing-function: ease-in;
-            animation-timing-function: ease-in;
+    animation-timing-function: ease-in;
   }
   45% {
     -webkit-transform: scale(1);
-            transform: scale(1);
+    transform: scale(1);
     -webkit-animation-timing-function: ease-out;
-            animation-timing-function: ease-out;
+    animation-timing-function: ease-out;
   }
 }
 
-#opensrc ul{
-  display:flex;
+#opensrc ul {
+  display: flex;
   flex-direction: column;
 }
 
-#opensrc ul img:hover{
+#opensrc ul img:hover {
   -webkit-animation: heartbeat 1s ease-in-out infinite both;
-          animation: heartbeat 1s ease-in-out infinite both;
+  animation: heartbeat 1s ease-in-out infinite both;
 }
 
-
-#overlap{
-  position:absolute;
+#overlap {
+  position: absolute;
   z-index: 2;
   padding: 1vw 0 0 1vw;
 }
 
-#about_me{
-  display:flex;
-  flex-direction:row;
+#about_me {
+  display: flex;
+  flex-direction: row;
   justify-content: space-evenly;
   width: 90vw;
 }
 
-#bio-text{
+#bio-text {
   color: white;
-  font-family: 'Raleway', perpetua, serif;
+  font-family: "Raleway", perpetua, serif;
   font-size: 1.8em;
   margin-left: 2%;
   font-weight: 200;
 }
 
-
-.sub-heading{
+.sub-heading {
   color: white;
   font-size: 1.6vw;
-  font-family: 'Raleway', perpetua, serif;
+  font-family: "Raleway", perpetua, serif;
   line-height: 0vw;
   margin: 1em;
 }
 
-
-fieldset{
+fieldset {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -315,31 +322,31 @@ fieldset{
 }
 
 .form-content {
-  font-family: 'Raleway', sans-serif;
+  font-family: "Raleway", sans-serif;
   color: white;
   padding: 15px 0 0 0;
   font-size: 1.2vw;
-  white-space:pre;
+  white-space: pre;
   margin-left: 10%;
   position: relative;
-  top:20px;
+  top: 20px;
 }
 
-.input-box{
+.input-box {
   padding: 0.5vw 1vw 0.5vw 1vw;
   font-size: 1.2vw;
-  font-family: 'Raleway', sans-serif;
+  font-family: "Raleway", sans-serif;
   color: white;
   border-radius: 4px;
   opacity: 1;
-  background-color: rgb(0,0,15);
+  background-color: rgb(0, 0, 15);
   margin: 0 10% 0 10%;
   border: none;
 }
- 
-button{
+
+button {
   font-size: 16px;
-  font-family: 'Raleway', sans-serif;
+  font-family: "Raleway", sans-serif;
   padding: 10px 20px 10px 10px;
   color: white;
   border-radius: 4px;
@@ -349,12 +356,12 @@ button{
 
 button:hover {
   animation-name: butt;
-  animation-duration:220ms;
+  animation-duration: 220ms;
   animation-fill-mode: forwards;
 }
 
-@keyframes butt{
-  100%{
+@keyframes butt {
+  100% {
     background-color: #001f4d;
     font-size: 16.4px;
     margin: 0 10.2% 0 10.2%;
@@ -362,29 +369,29 @@ button:hover {
   }
 }
 
-.social{
+.social {
   width: 50px;
 }
 
-#social{
+#social {
   display: flex;
   flex-direction: row;
   width: 30vw;
   justify-content: space-evenly;
-  position: absolute;  
+  position: absolute;
   right: 2vw;
   filter: invert(1);
-  padding:5px;
+  padding: 5px;
 }
 
-#social img:hover{
+#social img:hover {
   width: 69px;
   animation: kenburns-bottom 0.1s ease-out both;
 }
 
-#copyright{
+#copyright {
   color: white;
-  font-family: 'Raleway', perpetua, serif;
+  font-family: "Raleway", perpetua, serif;
   font-size: 1em;
   margin-left: 2%;
   font-weight: 200;
@@ -420,155 +427,169 @@ button:hover {
   background-color: rgb(255, 0, 60);
   float: left;
   -webkit-animation: sk-cubeGridScaleDelay 1.3s infinite ease-in-out;
-          animation: sk-cubeGridScaleDelay 1.3s infinite ease-in-out; 
+  animation: sk-cubeGridScaleDelay 1.3s infinite ease-in-out;
 }
 .sk-cube-grid .sk-cube1 {
   -webkit-animation-delay: 0.2s;
-          animation-delay: 0.2s; }
+  animation-delay: 0.2s;
+}
 .sk-cube-grid .sk-cube2 {
   -webkit-animation-delay: 0.3s;
-          animation-delay: 0.3s; }
+  animation-delay: 0.3s;
+}
 .sk-cube-grid .sk-cube3 {
   -webkit-animation-delay: 0.4s;
-          animation-delay: 0.4s; }
+  animation-delay: 0.4s;
+}
 .sk-cube-grid .sk-cube4 {
   -webkit-animation-delay: 0.1s;
-          animation-delay: 0.1s; }
+  animation-delay: 0.1s;
+}
 .sk-cube-grid .sk-cube5 {
   -webkit-animation-delay: 0.2s;
-          animation-delay: 0.2s; }
+  animation-delay: 0.2s;
+}
 .sk-cube-grid .sk-cube6 {
   -webkit-animation-delay: 0.3s;
-          animation-delay: 0.3s; }
+  animation-delay: 0.3s;
+}
 .sk-cube-grid .sk-cube7 {
   -webkit-animation-delay: 0s;
-          animation-delay: 0s; }
+  animation-delay: 0s;
+}
 .sk-cube-grid .sk-cube8 {
   -webkit-animation-delay: 0.1s;
-          animation-delay: 0.1s; }
+  animation-delay: 0.1s;
+}
 .sk-cube-grid .sk-cube9 {
   -webkit-animation-delay: 0.2s;
-          animation-delay: 0.2s; }
+  animation-delay: 0.2s;
+}
 
 @-webkit-keyframes sk-cubeGridScaleDelay {
-  0%, 70%, 100% {
+  0%,
+  70%,
+  100% {
     -webkit-transform: scale3D(1, 1, 1);
-            transform: scale3D(1, 1, 1);
-  } 35% {
+    transform: scale3D(1, 1, 1);
+  }
+  35% {
     -webkit-transform: scale3D(0, 0, 1);
-            transform: scale3D(0, 0, 1); 
+    transform: scale3D(0, 0, 1);
   }
 }
 
 @keyframes sk-cubeGridScaleDelay {
-  0%, 70%, 100% {
+  0%,
+  70%,
+  100% {
     -webkit-transform: scale3D(1, 1, 1);
-            transform: scale3D(1, 1, 1);
-  } 35% {
+    transform: scale3D(1, 1, 1);
+  }
+  35% {
     -webkit-transform: scale3D(0, 0, 1);
-            transform: scale3D(0, 0, 1);
-  } 
+    transform: scale3D(0, 0, 1);
+  }
 }
 
 .loaded {
   animation-name: loader;
-  animation-duration:1.9s;
+  animation-duration: 1.9s;
   animation-fill-mode: forwards;
 }
 
-@keyframes loader{
+@keyframes loader {
   0% {
-    opacity : 100%;
+    opacity: 100%;
   }
 
   95% {
-    opacity : 100%;
+    opacity: 100%;
   }
-  
+
   99% {
     margin: 40vh auto;
-    opacity:0;
+    opacity: 0;
   }
-  
+
   100% {
     margin: 0 auto;
-    opacity:0;
+    opacity: 0;
   }
 }
 
-@media (max-width: 600px){
-  
-  #welcome-section{
+@media (max-width: 600px) {
+  #welcome-section {
     font-size: 4.5vw;
   }
-  
-    body{
-    overflow-x:hidden;
-    width:95vw;
-  }
-  
-  #navbar{
-    margin:2%;
+
+  body {
+    overflow-x: hidden;
     width: 95vw;
-    }
-  
-  #navbar ul{
+  }
+
+  #navbar {
+    margin: 2%;
+    width: 95vw;
+  }
+
+  #navbar ul {
     padding: 0 2% 0 2%;
     width: 100%;
     font-size: 4vw;
     justify-content: space-between;
   }
-  
-  #navbar a{
-    padding:7vw;
+
+  #navbar a {
+    padding: 7vw;
   }
-  
-  #projects{
+
+  #projects {
     flex-direction: column;
-    margin:2%;
+    margin: 2%;
     padding: 5vw 0 5vw 0;
     height: 150vh;
   }
-  
-  .project-tile{
+
+  .project-tile {
     width: 100%;
     height: 70vw;
     flex-basis: 23.333333%;
   }
-  
-  .heading{
+
+  .heading {
     width: 30vw;
     font-size: 5vw;
   }
-  #overlap{
+  #overlap {
     line-height: 15vh;
   }
-  
+
   #particles-js {
     height: 100vh;
     width: 100vw;
-}
-  
-  #social{
+  }
+
+  #social {
     width: 100%;
     position: relative;
     top: 2vw;
-  } 
-  
-  .social{
+  }
+
+  .social {
     width: 6.5vw;
-}
-  #social img:hover{
-  width: 12vw;
-}
-  
-  fieldset{
-    width: 85vw; 
+  }
+  #social img:hover {
+    width: 12vw;
+  }
+
+  fieldset {
+    width: 85vw;
     height: 100vh;
   }
-  .sub-heading{
-     font-size: 3.3vw;
-     margin: 0;
+  .sub-heading {
+    font-size: 3.3vw;
+    margin: 0;
     padding: 0;
   }
   .form-content {
@@ -577,47 +598,47 @@ button:hover {
     position: relative;
     top: 10vw;
   }
-  .input-box{
+  .input-box {
     font-size: 4vw;
     width: 95%;
     margin: 0 1vw 0 1vw;
   }
-  .mobile{
+  .mobile {
     display: initial;
     padding: 0 0 2vw 0;
     line-height: 2px;
-    }
-  
-  #about_me{
-    flex-direction:column;
+  }
+
+  #about_me {
+    flex-direction: column;
     justify-content: space-evenly;
     font-size: 2vw;
     margin: 2%;
     width: 100%;
   }
-  
-  table{
+
+  table {
     width: 80%;
-    margin:2vw;
+    margin: 2vw;
   }
-  
+
   table td {
     width: 80%;
     display: flex;
-    flex-wrap:wrap;
+    flex-wrap: wrap;
   }
-  
+
   table td::before {
     content: attr(label);
     font-weight: bold;
     width: 100vw;
     min-width: 100vw;
-    font-size:5vw;
+    font-size: 5vw;
   }
-  
-  #canvas{
-    position:relative;
-    right:32vw;
+
+  #canvas {
+    position: relative;
+    right: 32vw;
   }
 }
 
