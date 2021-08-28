@@ -89,7 +89,7 @@ button:hover {
   }
 }
 
-#options {
+.options {
   font-size: 1.2vw;
 }
 
@@ -126,7 +126,7 @@ button:hover {
     font-size: 2vw;
   }
 
-  #options {
+  .options {
     font-size: 2vw;
   }
   

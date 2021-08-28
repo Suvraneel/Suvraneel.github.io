@@ -5,8 +5,8 @@
     <title>
       Survey Form
     </title>
+    <link rel="stylesheet" href="../css-assets/survey-style.css" />
   </head>
-  <link rel="stylesheet" href="../css-assets/survey-style.css" />
   <div id="bg-image">
     <h1 class="text" id="title">Gaming Survey Form</h1>
     <p class="text" id="description">
@@ -51,16 +51,16 @@
           <br />
 
           <input class="form-content" type="radio" name="gender" value="male" />
-          <label for="male" class="form-content" id="options">Male </label>
+          <label for="male" class="form-content options">Male </label>
           <input
             class="form-content"
             type="radio"
             name="gender"
             value="female"
           />
-          <label for="female" class="form-content" id="options">Female </label>
+          <label for="female" class="form-content options">Female </label>
           <input class="form-content" type="radio" name="gender" value="nb" />
-          <label for="nb" class="form-content" id="options">Non-binary</label
+          <label for="nb" class="form-content options">Non-binary</label
           ><br /><br />
         </fieldset>
         <br /><br /><br /><br />
@@ -82,7 +82,7 @@
           <option value="bio">Brin' it On!</option></select
         ><br /><br /><br /><br />
 
-        <fieldset>
+        <fieldset id="options">
           <legend class="form-content">AAA titles you've played before</legend>
           <br />
 
@@ -92,29 +92,29 @@
             name="AAA"
             value="cp2077"
           />
-          <label for="cp2077" class="form-content" id="options"
+          <label for="cp2077" class="form-content options"
             >CyberPunk 2077</label
           ><br /><br />
 
           <input class="form-content" type="checkbox" name="AAA" value="wdl" />
-          <label for="wdl" class="form-content" id="options"
+          <label for="wdl" class="form-content options"
             >Watchdogs: Legion <sup>TM</sup></label
           ><br /><br />
 
           <input class="form-content" type="checkbox" name="AAA" value="wit3" />
-          <label for="wit3" class="form-content" id="options"
+          <label for="wit3" class="form-content options"
             >The Witcher 3</label
           >
           <br /><br />
 
           <input class="form-content" type="checkbox" name="AAA" value="acv" />
-          <label for="acv" class="form-content" id="options"
+          <label for="acv" class="form-content options"
             >Assassin Creed: Valhalla</label
           >
           <br /><br />
 
           <input class="form-content" type="checkbox" name="AAA" value="hit3" />
-          <label for="hit3" class="form-content" id="options">Hitman 3</label
+          <label for="hit3" class="form-content options">Hitman 3</label
           ><br /><br />
         </fieldset>
         <br /><br /><br /><br />
@@ -129,7 +129,6 @@
           name="rating"
           id="number"
           min="1"
-          pattern="\d+"
           max="10"
           required
         /><br /><br /><br />
