@@ -304,7 +304,7 @@ body {
   font-size: 1.6vw;
   font-family: "Raleway", perpetua, serif;
   line-height: 0vw;
-  margin: 1em;
+  padding: 15px 0 0 0;
 }
 
 fieldset {
