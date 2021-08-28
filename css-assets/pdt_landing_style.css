@@ -14,29 +14,28 @@
   opacity: 0.8;
 }
 
-
-.text{
+.text {
   font-family: perpetua, serif;
 }
 
-#title{
+#title {
   font-size: 5vw;
 }
 
-#description{
+#description {
   font-family: perpetua, monospace;
   font-style: italic;
   font-size: 2vw;
 }
 
-body{
-  background-color: rgb(220,220,220);
+body {
+  background-color: rgb(220, 220, 220);
 }
 
 nav {
   position: fixed;
   top: 0.8vw;
-  width:20%;
+  width: 20%;
   display: flex;
   padding: 0.5vw 2vw 0.5vw 70vw;
   flex-direction: row;
@@ -47,10 +46,10 @@ nav {
 .nav-link {
   font-size: 1.3vw;
   color: black;
-  font-family: georgia ,courier-new;
+  font-family: georgia, courier-new;
 }
 
-#form{
+#form {
   display: flex;
   padding: 1vw;
   flex-direction: column;
@@ -60,49 +59,49 @@ nav {
   padding: 2vw 40% 0 40%;
 }
 
-input{
+input {
   border-radius: 3px;
   font-size: 1.1vw;
   padding: 0.3vw;
 }
 
-.button{
+.button {
   border-radius: 5px;
   background-color: rgb(255, 197, 4);
   font-size: 1.2vw;
 }
 
-.button:hover{
+.button:hover {
   background-color: rgb(255, 150, 0);
   font-size: 1.15vw;
 }
 
-.feat-img{
+.feat-img {
   width: 5vw;
 }
-.feat-text{
+.feat-text {
   font-size: 1.6vw;
 }
 
-.feat{
+.feat {
   display: flex;
-  padding:2vw 23vw 0 23vw;
+  padding: 2vw 23vw 0 23vw;
   justify-content: space-evenly;
   line-height: 2vw;
 }
 
-iframe{
-      width: 20vw;
-padding: 0 40vw 0 40vw;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly;
+iframe {
+  width: 20vw;
+  padding: 0 40vw 0 40vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
 }
 
-@media (max-width:600px) {
-  iframe{
+@media (max-width: 600px) {
+  iframe {
     width: 78%;
-padding: 0 10vw 0 10vw;
+    padding: 0 10vw 0 10vw;
     display: flex;
     flex-direction: column;
     justify-content: space-evenly;

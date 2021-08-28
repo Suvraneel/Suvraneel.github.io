@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html lang="en">
+  <head>
+    <title>
+      Survey Form
+    </title>
+  </head>
+  <link rel="stylesheet" href="../css-assets/survey-style.css" />
+  <div id="bg-image">
+    <h1 class="text" id="title">Gaming Survey Form</h1>
+    <p class="text" id="description">
+      Thank you for taking the time to help us improve the platform
+    </p>
+    <br />
+    <div id="form-box">
+      <form id="survey-form">
+        <br /><br /><br />
+        <label for="name" class="form-content" id="name-label">Name *</label
+        ><br /><br />
+        <input
+          class="input-box"
+          type="text"
+          placeholder="Enter your name"
+          name="name"
+          id="name"
+          required
+        /><br /><br /><br /><br />
+
+        <label for="email" class="form-content" id="email-label">Email *</label
+        ><br /><br />
+        <input
+          class="input-box"
+          type="email"
+          placeholder="Enter your email"
+          name="email"
+          id="email"
+          required
+        /><br /><br /><br /><br />
+
+        <label for="dob" class="form-content">Date of Birth (optional)</label
+        ><br /><br />
+        <input
+          class="input-box"
+          type="date"
+          name="date"
+        /><br /><br /><br /><br />
+
+        <fieldset>
+          <legend class="form-content">Select your gender</legend>
+          <br />
+
+          <input class="form-content" type="radio" name="gender" value="male" />
+          <label for="male" class="form-content" id="options">Male </label>
+          <input
+            class="form-content"
+            type="radio"
+            name="gender"
+            value="female"
+          />
+          <label for="female" class="form-content" id="options">Female </label>
+          <input class="form-content" type="radio" name="gender" value="nb" />
+          <label for="nb" class="form-content" id="options">Non-binary</label
+          ><br /><br />
+        </fieldset>
+        <br /><br /><br /><br />
+
+        <label for="level" class="form-content"
+          >How do you rate yourself as a gamer</label
+        ><br /><br />
+        <select
+          class="input-box"
+          id="dropdown"
+          name="level"
+          style="width: 99.5%"
+        >
+          <option selected="selected" disabled="true">Select your Role</option>
+          <option value="rookie">Rookie</option>
+          <option value="novice">Novice</option>
+          <option value="pro">Pro</option>
+          <option value="ace">Ace</option>
+          <option value="bio">Brin' it On!</option></select
+        ><br /><br /><br /><br />
+
+        <fieldset>
+          <legend class="form-content">AAA titles you've played before</legend>
+          <br />
+
+          <input
+            class="form-content"
+            type="checkbox"
+            name="AAA"
+            value="cp2077"
+          />
+          <label for="cp2077" class="form-content" id="options"
+            >CyberPunk 2077</label
+          ><br /><br />
+
+          <input class="form-content" type="checkbox" name="AAA" value="wdl" />
+          <label for="wdl" class="form-content" id="options"
+            >Watchdogs: Legion <sup>TM</sup></label
+          ><br /><br />
+
+          <input class="form-content" type="checkbox" name="AAA" value="wit3" />
+          <label for="wit3" class="form-content" id="options"
+            >The Witcher 3</label
+          >
+          <br /><br />
+
+          <input class="form-content" type="checkbox" name="AAA" value="acv" />
+          <label for="acv" class="form-content" id="options"
+            >Assassin Creed: Valhalla</label
+          >
+          <br /><br />
+
+          <input class="form-content" type="checkbox" name="AAA" value="hit3" />
+          <label for="hit3" class="form-content" id="options">Hitman 3</label
+          ><br /><br />
+        </fieldset>
+        <br /><br /><br /><br />
+
+        <label for="name" class="form-content" id="number-label"
+          >Rate our website *</label
+        ><br /><br />
+        <input
+          class="input-box"
+          type="number"
+          placeholder="(on a scale of 1 to 10)"
+          name="rating"
+          id="number"
+          min="1"
+          pattern="\d+"
+          max="10"
+          required
+        /><br /><br /><br />
+
+        <label for="comments" class="form-content"
+          >Comments/Suggestions (optional)</label
+        ><br /><br />
+        <textarea
+          id="comments"
+          class="input-box"
+          placeholder="Enter your comments here (50 characters max)"
+          name="comments"
+          style="padding-bottom: 70px"
+          maxlength="50"
+        ></textarea
+        ><br /><br /><br />
+        <button type="submit" id="submit">Submit</button
+        ><br /><br /><br /><br />
+      </form>
+    </div>
+  </div>
+</html>

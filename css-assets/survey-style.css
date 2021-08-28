@@ -1,7 +1,7 @@
-  #bg-image {
+#bg-image {
   display: flex;
   flex-direction: column;
-  background-image: url("https://raw.githubusercontent.com/Suvraneel/Suvraneel.github.io/main/resources/orsrc44518.png");
+  background-image: url("../resources/images/wd_legion_skull.png");
   opacity: 0.94;
   background-color: black;
   background-position: center;
@@ -12,11 +12,11 @@
   padding: 5vw 3vw 0px 3vw;
 }
 
-h1{
-  line-height: 1px;  
+h1 {
+  line-height: 1px;
 }
 
-#form-box{
+#form-box {
   display: flex;
   flex-direction: column;
   align-self: center;
@@ -24,7 +24,7 @@ h1{
   background-color: rgb(22, 15, 15);
   opacity: 0.75;
   padding: 0 3.5vw 0 3.5vw;
-  border-radius:5px;
+  border-radius: 5px;
 }
 
 .text {
@@ -34,7 +34,7 @@ h1{
   font-family: perpetua, sans-serif;
 }
 
-#description{
+#description {
   font-size: 2vw;
   font-style: italic;
 }
@@ -44,10 +44,10 @@ h1{
   padding: 15px 0 0 0;
   font-size: 1.8vw;
   font-family: calibri, sans-serif;
-  white-space:pre;
+  white-space: pre;
 }
 
-.input-box{
+.input-box {
   width: 47.5vw;
   padding: 0.5vw 1vw 0.5vw 1vw;
   font-size: 1.2vw;
@@ -56,11 +56,11 @@ h1{
   opacity: 1;
 }
 
-sup{
+sup {
   font-size: 0.6vw;
 }
 
-fieldset{
+fieldset {
   width: 47vw;
   padding: 0.1vw 1.5vw 0.3vw 0.8vw;
   font-size: 1.2vw;
@@ -68,7 +68,7 @@ fieldset{
   border-radius: 4px;
 }
 
-button{
+button {
   font-size: 16px;
   font-family: sans-serif;
   width: 49.6vw;
@@ -80,49 +80,57 @@ button{
 
 button:hover {
   animation-name: butt;
-  animation-duration:500ms;
+  animation-duration: 500ms;
   animation-fill-mode: forwards;
 }
-@keyframes butt{
-  100%{
+@keyframes butt {
+  100% {
     background-color: #008080;
   }
 }
 
-#options{
-  font-size:1.2vw;
+#options {
+  font-size: 1.2vw;
 }
 
 /*for mobile devices*/
-@media (max-width: 600px){
-#bg-image{
-  line-height:40%;
-  padding: 3vw 3vw 0px 3vw;
+@media (max-width: 600px) {
+
+  #bg-image {
+    line-height: 40%;
+    padding: 3vw 3vw 0px 3vw;
   }
-  #form-box{
+
+  #form-box {
     width: 65vw;
     padding: 0 5vw 0 5vw;
   }
+
   .text {
     font-size: 4.5vw;
-  }  
-  .form-content{
+  }
+
+  .form-content {
     font-size: 3vw;
   }
-  .input-box{
+
+  .input-box {
     width: 61vw;
     padding: 0.5vw 1vw 0.5vw 1vw;
     font-size: 2vw;
   }
-  fieldset{
-  width: 60vw;
-  padding: 0.1vw 1.5vw 0.3vw 0.8vw;
-  font-size: 2vw;
+
+  fieldset {
+    width: 60vw;
+    padding: 0.1vw 1.5vw 0.3vw 0.8vw;
+    font-size: 2vw;
   }
-  #options{
-  font-size:2vw;
-}
-  button{
-    width:63.5vw;
+
+  #options {
+    font-size: 2vw;
+  }
+  
+  button {
+    width: 63.5vw;
   }
 }

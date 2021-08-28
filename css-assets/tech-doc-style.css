@@ -1,8 +1,8 @@
-#navbar{
+#navbar {
   position: fixed;
   top: 0px;
   left: 0px;
-  display:grid;
+  display: grid;
   grid-template-rows: repeat(14, 3vw);
   width: 25vw;
   border-right: solid;
@@ -11,55 +11,52 @@
   overflow-x: hidden;
   overflow-y: scroll;
 }
-.nav-link{
+
+.nav-link {
   color: black;
   font-family: perpetua, serif, sans-serif;
   font-size: 1.5vw;
   text-decoration: none;
 }
 
-#nav-ul{
+#nav-ul {
   padding: 0;
   list-style: none;
-  line-height:3vw;
+  line-height: 3vw;
 }
 
-.nav-li{
+.nav-li {
   border-top: 1px solid;
   padding-left: 4vw;
   cursor: pointer;
 }
 
-#nav-head{
+#nav-head {
   font-size: 2.5vw;
   padding: 1vw 1vw 1vw 4vw;
   font-family: serif, sans-serif;
 }
 
-#main-doc{
+#main-doc {
   margin-left: 29vw;
 }
 
-.main-section{
+.main-section {
   font-size: 1.5vw;
   font-family: perpetua, serif, sans-serif;
 }
 
-header{
-    font-size: 2.5vw;
+header {
+  font-size: 2.5vw;
 }
 
-code{
+code {
   display: block;
   white-space: pre;
   font-size: 1.2vw;
-  background-color: rgb(220,220,220)
+  background-color: rgb(220, 220, 220);
 }
 
-.sub-li{
+.sub-li {
   list-style: circle;
-}
-
-@media (max-width: 600px){
-<!--mobile view customization-->
 }
