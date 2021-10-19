@@ -90,8 +90,8 @@ input {
 }
 
 iframe {
-  width: 20vw;
-  padding: 0 40vw 0 40vw;
+  width: 25vw;
+  padding: 0 38vw 0 38vw;
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;
