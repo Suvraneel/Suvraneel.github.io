@@ -3,8 +3,8 @@ const canvas = document.getElementById('canvas');
 const texts = [
   'HTML5', 'Javascript', 'CSS3', 'Flutter', 'Dart',
   'C++', 'Python', 'Java', 'MySQL', 'MongoDB',
-  'Android', 'VHDL', 'C', 'Shell', 'GNUBash',
-  'Swift', 'Objective-C', 'Git', 'Arduino',
+  'Node.js', 'VHDL', 'Flutter', 'Next.js', 'GNUBash',
+  'React.js', 'JavaScript eXtended(JSX)', 'Git', 'Arduino',
 ];
 const counts = [1,2,4,5,4,2,1];
 
