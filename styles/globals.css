@@ -1,16 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
 html,
 body {
   padding: 0;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu,
+    Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  line-height: 1.6;
+  font-size: 18px;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+.dark {
+    /* Canvas */
+
+  position: absolute;
+  left: 0%;
+  right: 0%;
+  top: 0%;
+  bottom: 0%;
+
+  background: linear-gradient(208.86deg, #000000 19.35%, #006363 114.06%);
 }
 
 * {
   box-sizing: border-box;
+}
+
+a {
+  color: #0070f3;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.logo {
+/* Frame 3 */
+
+background: radial-gradient(79.04% 79.04% at 50% 50%, rgba(0, 0, 0, 0.53) 0%, rgba(0, 0, 0, 0.2) 100%);
+}
+
+.nav-dark {
+  /* Nav */
+  position: absolute;
+  left: 0px;
+  top: 0px;
+
+  background: linear-gradient(270deg, rgba(0, 0, 0, 0.36) 34.88%, rgba(255, 255, 255, 0.2088) 340.96%);
+}
+
+.nav-link-dark {
+  /* Nav>About */
+  box-sizing: border-box;
+
+  /* Auto layout */
+
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 10px;
+  gap: 10px;
+
+  background: linear-gradient(88.19deg, rgba(0, 255, 209, 0.77) -166.74%, rgba(0, 0, 0, 0) 108.72%);
+  mix-blend-mode: normal;
+  border-bottom: 1px solid #00FF94;
 }
