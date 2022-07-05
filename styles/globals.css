@@ -1,27 +1,23 @@
+/* Tailwind Directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Fonts - Google */
+/* @import url('https://fonts.googleapis.com/css2?family=Playfair+Display&display=swap');*/
+/* @import url('https://fonts.googleapis.com/css2?family=Raleway&display=swap');  */
 
 html,
 body {
   padding: 0;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu,
-    Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  font-family: 'Raleway', 'Playfair Display', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
   line-height: 1.6;
   font-size: 18px;
 }
 
 .dark {
-    /* Canvas */
-
-  position: absolute;
-  left: 0%;
-  right: 0%;
-  top: 0%;
-  bottom: 0%;
-
+  /* Canvas */
   background: linear-gradient(208.86deg, #000000 19.35%, #006363 114.06%);
 }
 
@@ -44,17 +40,17 @@ img {
 }
 
 .logo {
-/* Frame 3 */
+  /* Frame 3 */
 
-background: radial-gradient(79.04% 79.04% at 50% 50%, rgba(0, 0, 0, 0.53) 0%, rgba(0, 0, 0, 0.2) 100%);
+  background: radial-gradient(79.04% 79.04% at 50% 50%, rgba(0, 0, 0, 0.53) 0%, rgba(0, 0, 0, 0.2) 100%);
+}
+
+.nav{
+  width: 12em;
 }
 
 .nav-dark {
   /* Nav */
-  position: absolute;
-  left: 0px;
-  top: 0px;
-
   background: linear-gradient(270deg, rgba(0, 0, 0, 0.36) 34.88%, rgba(255, 255, 255, 0.2088) 340.96%);
 }
 
@@ -73,4 +69,9 @@ background: radial-gradient(79.04% 79.04% at 50% 50%, rgba(0, 0, 0, 0.53) 0%, rg
   background: linear-gradient(88.19deg, rgba(0, 255, 209, 0.77) -166.74%, rgba(0, 0, 0, 0) 108.72%);
   mix-blend-mode: normal;
   border-bottom: 1px solid #00FF94;
+}
+
+
+.namebar > span {
+  color: rgb(255, 5, 5);
 }

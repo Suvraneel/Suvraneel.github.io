@@ -11,7 +11,7 @@ const ThemeChanger = () => {
   if (!mounted) return null;
 
   return (
-    <div>
+    <div className="flex justify-center">
       {theme === "light" ? (
         <img
           src="https://user-images.githubusercontent.com/64256342/151416170-51c1f8ec-28bd-41b0-bf9c-837509e5460e.png"

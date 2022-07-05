@@ -1,15 +1,20 @@
 import { useTheme } from 'next-themes';
 import Head from 'next/head';
-import Layout, { siteTitle } from '../components/layout';
 import utilStyles from '../styles/utils.module.css';
+import '../styles/Home.module.css'
 
 export default function Home() {
-  const { theme, setTheme } = useTheme()
+  const { theme } = useTheme()
   return (
-    <Layout>
+    <>
       <Head>
         <title>Portfolio</title>
       </Head>
-    </Layout>
+      <div>
+        <h1 className="namebar text-7xl relative top-32 left-32 font-medium">
+          Hey there,<br/>I&apos;m <span>Suvraneel</span>
+        </h1>
+      </div>
+    </>
   );
 }

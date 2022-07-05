@@ -9,11 +9,17 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@fontsource/playfair-display": "^4.5.10",
+    "@fontsource/raleway": "^4.5.9",
+    "@fortawesome/fontawesome-svg-core": "^6.1.1",
+    "@fortawesome/free-brands-svg-icons": "^6.1.1",
+    "@fortawesome/free-regular-svg-icons": "^6.1.1",
+    "@fortawesome/free-solid-svg-icons": "^6.1.1",
+    "@fortawesome/react-fontawesome": "^0.2.0",
     "next": "12.2.0",
     "next-themes": "^0.2.0",
     "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "styled-components": "^5.3.5"
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.7",
