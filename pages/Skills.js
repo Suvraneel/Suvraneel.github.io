@@ -1,6 +1,6 @@
 // import Script from "next/script";
 import React, { useEffect } from "react";
-import { SkillSphere } from "../components/skillSphere";
+import { SkillSphere } from "../components/SkillSphere";
 
 const Skills = () => {
     const rgb = [0, 255, 255];

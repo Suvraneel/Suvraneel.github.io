@@ -39,6 +39,8 @@ img {
   display: block;
 }
 
+/* --------------------------------------------------------------------- */
+
 .logo {
   /* Frame 3 */
 
@@ -46,7 +48,7 @@ img {
 }
 
 .nav{
-  width: 12em;
+  width: 8em;
 }
 
 .nav-dark {
@@ -66,12 +68,16 @@ img {
   padding: 10px;
   gap: 10px;
 
-  background: linear-gradient(88.19deg, rgba(0, 255, 209, 0.77) -166.74%, rgba(0, 0, 0, 0) 108.72%);
+  background: linear-gradient(88.19deg, rgba(0, 0, 0, 0.91) -166.74%, rgba(0, 0, 0, 0) 108.72%);
   mix-blend-mode: normal;
-  border-bottom: 1px solid #00FF94;
+  border-bottom: 1px solid #8248FF;
 }
 
 
 .namebar > span {
   color: rgb(255, 5, 5);
 }
+
+.calendly-inline-widget {
+  filter: invert(100%);
+}   
