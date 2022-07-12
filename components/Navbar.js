@@ -10,15 +10,20 @@ export const Navbar = () => {
         <div className="logo w-full h-36"></div>
         <ThemeToggler />
         <div className="gap-0">
-        {menu.map((item, index) => {
-          return (
-            <div key={index} className="flex justify-center nav-link-dark">
-              <Link href={item} target="_blank">
-                <a className="text-white">{item}</a>
-              </Link>
-            </div>
-          );
-        })}
+          <div className="flex justify-center nav-link-dark">
+            <Link href="/" target="_blank">
+              <a className="text-white">Home</a>
+            </Link>
+          </div>
+          {menu.map((item, index) => {
+            return (
+              <div key={index} className="flex justify-center nav-link-dark">
+                <Link href={item} target="_blank">
+                  <a className="text-white">{item}</a>
+                </Link>
+              </div>
+            );
+          })}
         </div>
         <Socials />
       </div>
