@@ -1,5 +1,5 @@
 {
-  "name": "portfolio",
+  "name": "sandbox-folio",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -21,7 +21,8 @@
     "next": "12.2.0",
     "next-themes": "^0.2.0",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "styled-components": "^5.3.5"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.7",
@@ -29,5 +30,7 @@
     "eslint-config-next": "12.2.0",
     "postcss": "^8.4.14",
     "tailwindcss": "^3.1.4"
-  }
+  },
+  "keywords": [],
+  "description": ""
 }
