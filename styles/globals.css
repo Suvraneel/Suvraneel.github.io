@@ -81,3 +81,12 @@ img {
 .calendly-inline-widget {
   filter: invert(100%);
 }   
+
+.form-bg{
+  background: linear-gradient(270deg, rgba(0, 0, 0, 0.537) 34.88%, rgba(255, 255, 255, 0.2088) 340.96%);
+}
+
+form>input, form>textarea{
+  background: linear-gradient(270deg, rgba(0, 0, 0, 0.36) 34.88%, rgba(255, 255, 255, 0.2088) 340.96%);
+  border: 1px solid #8248FF;
+}
