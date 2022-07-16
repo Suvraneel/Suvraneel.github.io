@@ -112,7 +112,7 @@ class NextNProgress extends React.Component {
           height: 100vh;
           background-color: #1d2630aa;
           z-index: 1040;
-          opacity: 0.8;
+          opacity: 0.9;
         }
         @-webkit-keyframes nprogress-spinner {
           0% {
@@ -173,7 +173,7 @@ class NextNProgress extends React.Component {
 
         .covers span {
           background: linear-gradient(180deg, white 0, #ddd 100%);
-          animation: up 1.5s infinite;
+          animation: up 2s infinite;
         }
 
         @keyframes up {

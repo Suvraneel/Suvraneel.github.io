@@ -6,11 +6,14 @@ import SplineObj from "../components/SplineObj";
 
 const Contact = () => {
   useEffect(() => {
-    // Calendly();
-    const CalendlyScript = document.createElement("script");
-    CalendlyScript.src =
-      "https://assets.calendly.com/assets/external/widget.js";
-    document.body.appendChild(CalendlyScript);
+    setTimeout(() => {
+      // Calendly();
+      const CalendlyScript = document.createElement("script");
+      CalendlyScript.async = true;
+      CalendlyScript.src =
+        "https://assets.calendly.com/assets/external/widget.js";
+      document.body.appendChild(CalendlyScript);
+    }, 3000);
   }, []);
   return (
     <div className="flex flex-row justify-center relative left-10 h-screen w-screen">

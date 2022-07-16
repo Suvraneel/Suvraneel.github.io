@@ -47,10 +47,6 @@ img {
   background: radial-gradient(79.04% 79.04% at 50% 50%, rgba(0, 0, 0, 0.53) 0%, rgba(0, 0, 0, 0.2) 100%);
 }
 
-.nav{
-  width: 8em;
-}
-
 .nav-dark {
   /* Nav */
   background: linear-gradient(270deg, rgba(0, 0, 0, 0.36) 34.88%, rgba(255, 255, 255, 0.2088) 340.96%);

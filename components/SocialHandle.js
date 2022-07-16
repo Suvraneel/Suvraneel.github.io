@@ -7,6 +7,7 @@ export const SocialHandle = (props) => {
     <div>
       <FontAwesomeIcon
         icon={props.icon}
+        size={props.size? props.size : "1x"}
         className="w-6 h-6"
         onMouseEnter={() => {
           setIsFocused(true);
