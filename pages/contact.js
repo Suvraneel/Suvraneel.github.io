@@ -3,34 +3,29 @@ import Script from "next/script";
 import Head from "next/head";
 import { Calendly } from "../components/Calendly";
 import SplineObj from "../components/SplineObj";
+import Modal from "../components/CalendlyModal";
 
 const Contact = () => {
-  useEffect(() => {
-    setTimeout(() => {
-      // Calendly();
-      const CalendlyScript = document.createElement("script");
-      CalendlyScript.async = true;
-      CalendlyScript.src =
-        "https://assets.calendly.com/assets/external/widget.js";
-      document.body.appendChild(CalendlyScript);
-    }, 3000);
-  }, []);
+  // useEffect(() => {
+  //   setTimeout(() => {
+  //     // Calendly();
+  //     const CalendlyScript = document.createElement("script");
+  //     CalendlyScript.async = true;
+  //     CalendlyScript.src =
+  //       "https://assets.calendly.com/assets/external/widget.js";
+  //     document.body.appendChild(CalendlyScript);
+  //   }, 3000);
+  // }, []);
   return (
     <div className="flex flex-row justify-center relative left-10 h-screen w-screen">
       <Head>
         <title>Portfolio</title>
       </Head>
-      {/* <Script
-        type="text/javascript"
-        src="https://assets.calendly.com/assets/external/widget.js"
-        strategy="lazyOnload"
-        async
-      ></Script> */}
       <div className="h-full w-11/12 z-0">
         <SplineObj scene={"./spline/sceneMUSHROOM.splinecode"} />
       </div>
       <div className="w-3/4 h-full form-bg flex px-10 py-5 mx-15 my-10 gap-5 z-10 absolute left-48 top-0 h-5/6">
-        <form className="flex flex-col gap-5 rounded w-1/2">
+        <form id="form" className="flex flex-col gap-5 rounded w-1/2">
           <div className="text-3xl">Contact Me</div>
           <div className="text-xl gap-1 flex flex-col">
             <div className="flex gap-5 justify-start">
@@ -72,10 +67,7 @@ const Contact = () => {
             Submit
           </button>
         </form>
-        <div
-          className="calendly-inline-widget w-1/2 h-full opacity-90"
-          data-url="https://calendly.com/suvraneel/meet"
-        ></div>
+        <Modal/>
       </div>
 
       {/* <div
