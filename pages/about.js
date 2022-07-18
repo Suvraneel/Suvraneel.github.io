@@ -9,7 +9,8 @@ const About = () => {
       <title>About Me</title>
     </Head>
     <div className="h-screen">
-      <SplineObj scene={'./spline/sceneROG.splinecode'}/>
+      {/* <SplineObj scene={'./spline/sceneROG.splinecode'}/> */}
+      <SplineObj scene={'https://prod.spline.design/Mk-LZd5LpzlOllLb/scene.splinecode'}/>
     </div>
   </>
   )

@@ -13,7 +13,8 @@ export default function Home() {
         <title>Portfolio</title>
       </Head>
       <div className="h-screen">
-          <SplineObj scene={'./spline/sceneHOME.splinecode'}/>
+          <SplineObj scene={'https://prod.spline.design/eBcxlYl5eV3WlaMm/scene.splinecode'}/>
+          {/* <SplineObj scene={'./spline/sceneHOME.splinecode'}/> */}
       </div>
     </>
   );
