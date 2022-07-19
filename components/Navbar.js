@@ -1,16 +1,16 @@
+import {
+  faChartPie,
+  faCode,
+  faCubes,
+  faHouseChimney,
+  faPenFancy,
+  faSignature,
+} from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
-import React from "react";
+import { useState } from "react";
 import { SocialHandle } from "./SocialHandle";
 import { Socials } from "./Socials";
 import ThemeToggler from "./ThemeToggler";
-import {
-  faHouseChimney,
-  faSignature,
-  faChartPie,
-  faPenFancy,
-  faCubes,
-  faCode,
-} from "@fortawesome/free-solid-svg-icons";
 export const Navbar = () => {
   // const menu = ["About", "Skills", "Work", "Projects", "Contact"];
   const menu = [
@@ -21,26 +21,36 @@ export const Navbar = () => {
     { name: "Projects", href: "/projects", icon: faCubes },
     { name: "Contact", href: "/contact", icon: faPenFancy },
   ];
+  const [isShownHoverContent, setIsShownHoverContent] = useState(false);
   return (
     <>
-      <div className="h-screen flex flex-col gap-3 absolute nav-dark w-10 md:w-28 justify-items-center items-center">
+      <div className="h-screen flex flex-col gap-3 absolute sidebar-container" onMouseEnter={() => setIsShownHoverContent(true)}
+        onMouseLeave={() => setIsShownHoverContent(false)}>
         <div className="logo w-full h-36"></div>
         <ThemeToggler />
         <div className="gap-0">
           {menu.map((item, index) => {
             return (
-              <div key={index} className="flex justify-start nav-link-dark">
+              <div key={index} className="sidebar-item flex justify-start">
                 <Link href={item.href} target="_blank">
                   <a className="text-white flex flex-row gap-3 hover:text-cyan-300">
-                    <SocialHandle icon={item.icon} brandColor="cyan" size="xs"/>
-                    <div className="hidden md:block">{item.name}</div>
+                    <div className="flex justify-start">
+                      <SocialHandle
+                        icon={item.icon}
+                        brandColor="white"
+                        size="xs"
+                        className="sidebar-icon"
+                      />
+                    </div>
+                    <div className="sidebar-title">{item.name}</div>
                   </a>
                 </Link>
               </div>
             );
           })}
         </div>
-        <Socials />
+        {isShownHoverContent?<Socials />:""}
+        {/* <div className="fixed bottom-2 text-xl pl-3">&copy;</div> */}
       </div>
     </>
   );

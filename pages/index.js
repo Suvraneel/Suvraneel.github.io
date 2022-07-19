@@ -1,10 +1,7 @@
-import React from "react";
 import { useTheme } from "next-themes";
 import Head from "next/head";
-import utilStyles from "../styles/utils.module.css";
-import { Navbar } from "../components/Navbar";
-import "../styles/Home.module.css";
 import SplineObj from "../components/SplineObj";
+import "../styles/Home.module.css";
 export default function Home() {
   const { theme } = useTheme();
   return (
