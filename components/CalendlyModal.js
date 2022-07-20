@@ -5,31 +5,29 @@ export default function CalendlyModal() {
   const [showModal, setShowModal] = React.useState(false);
   return (
     <div>
-      <button
-        className="bg-black w-full rounded p-3"
-        type="button"
-        onClick={() => setShowModal(true)}
-      >
+      <a href="#" className="animated-button1 p-1 w-full hover:text-cyan-400" onClick={() => setShowModal(true)}>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
         Schedule a Meet with me...
-      </button>
+      </a>
       {showModal ? (
         <>
-          <div
-            className="justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none"
-          >
+          <div className="justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none">
             <div className="relative w-1/2 my-6 mx-auto max-w-3xl bg-black">
               <div className="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-black outline-none focus:outline-none">
                 <div className="relative w-full flex flex-col">
-                    <div className="w-full flex flex-col items-end bg-transparent">
-                        <button
-                        className="p-5 bg-transparent"
-                        type="button"
-                        onClick={() => setShowModal(false)}
+                  <div className="w-full flex flex-col items-end bg-transparent">
+                    <button
+                      className="p-5 bg-transparent"
+                      type="button"
+                      onClick={() => setShowModal(false)}
                     >
-                        Close
+                      Close
                     </button>
-                    </div>
-                <InlineWidget url="https://calendly.com/suvraneel/meet" />
+                  </div>
+                  <InlineWidget url="https://calendly.com/suvraneel/meet" />
                 </div>
               </div>
             </div>
