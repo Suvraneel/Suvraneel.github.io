@@ -8,7 +8,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import { useState } from "react";
-import { SocialHandle } from "./SocialHandle";
+import { FontAwesomeObj } from "./FontAwesomeObj";
 import { Socials } from "./Socials";
 import ThemeToggler from "./ThemeToggler";
 export const Navbar = () => {
@@ -24,8 +24,11 @@ export const Navbar = () => {
   const [isShownHoverContent, setIsShownHoverContent] = useState(false);
   return (
     <>
-      <div className="h-screen flex flex-col gap-3 absolute sidebar-container" onMouseEnter={() => setIsShownHoverContent(true)}
-        onMouseLeave={() => setIsShownHoverContent(false)}>
+      <div
+        className="h-screen flex flex-col gap-3 absolute sidebar-container z-[1000]"
+        onMouseEnter={() => setIsShownHoverContent(true)}
+        onMouseLeave={() => setIsShownHoverContent(false)}
+      >
         <div className="logo w-full h-36"></div>
         <ThemeToggler />
         <div className="gap-0">
@@ -35,21 +38,22 @@ export const Navbar = () => {
                 <Link href={item.href} target="_blank">
                   <a className="text-white flex flex-row gap-3 hover:text-cyan-300">
                     <div className="flex justify-start">
-                      <SocialHandle
+                      <FontAwesomeObj
                         icon={item.icon}
-                        brandColor="white"
+                        brandColor="cyan"
+                        title={item.name}
+                        titleClassName="sidebar-title pl-2"
                         size="xs"
                         className="sidebar-icon"
                       />
                     </div>
-                    <div className="sidebar-title">{item.name}</div>
                   </a>
                 </Link>
               </div>
             );
           })}
         </div>
-        {isShownHoverContent?<Socials />:""}
+        {isShownHoverContent ? <Socials /> : ""}
         {/* <div className="fixed bottom-2 text-xl pl-3">&copy;</div> */}
       </div>
     </>

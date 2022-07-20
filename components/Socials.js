@@ -8,7 +8,7 @@ import {
   faGithub,
 } from "@fortawesome/free-brands-svg-icons";
 import Link from "next/link";
-import { SocialHandle } from "./SocialHandle";
+import { FontAwesomeObj } from "./FontAwesomeObj";
 
 export const Socials = () => {
   const social = [
@@ -16,19 +16,19 @@ export const Socials = () => {
       name: "GitHub",
       icon: faGithub,
       link: "https://github.com/Suvraneel",
-      brandColor: "#6e5494",
+      brandColor: "#802bfc",
     },
     {
       name: "LinkedIn",
       icon: faLinkedin,
       link: "https://www.linkedin.com/in/suvraneel-bhuin/",
-      brandColor: "#007dbb",
+      brandColor: "#0062ff",
     },
     {
       name: "twitter",
       icon: faTwitter,
       link: "https://twitter.com/SuvraneelB",
-      brandColor: "#00acee",
+      brandColor: "#00bbff",
     },
   ];
   return (
@@ -37,7 +37,7 @@ export const Socials = () => {
         return (
           <Link href={item.link} key={index}>
             <a>
-              <SocialHandle icon={item.icon} brandColor={item.brandColor} />
+              <FontAwesomeObj icon={item.icon} brandColor={item.brandColor} />
             </a>
           </Link>
         );

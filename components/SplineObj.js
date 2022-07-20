@@ -8,7 +8,7 @@ const SplineObj = (props) => {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       {/* <Spline className="absolute top-0 left-0" scene="https://prod.spline.design/eBcxlYl5eV3WlaMm/scene.splinecode" /> */}
-      <Spline className="absolute top-0 left-0" scene={props.scene} />
+      <Spline className="absolute top-0 right-0" scene={props.scene} />
     </Suspense>
   );
 };

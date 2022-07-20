@@ -4,6 +4,9 @@ import Head from "next/head";
 import { Calendly } from "../components/Calendly";
 import SplineObj from "../components/SplineObj";
 import CalendlyModal from "../components/CalendlyModal";
+import { FontAwesomeObj } from "../components/FontAwesomeObj";
+import { faEnvelopesBulk, faMobile } from "@fortawesome/free-solid-svg-icons";
+import Link from "next/link";
 
 const Contact = () => {
   // useEffect(() => {
@@ -27,13 +30,15 @@ const Contact = () => {
           scene={"https://prod.spline.design/shTSpaHWL9CC-uJA/scene.splinecode"}
         />
       </div>
-      <div className="w-3/4 h-full form-bg px-10 py-5 mx-15 my-10 gap-5 z-10 h-5/6 rounded login-box">
-        <div className="w-full h-full flex">
+      <div className="w-fit md:w-3/4 h-full form-bg px-10 py-5 mx-15 my-10 gap-3 z-10 h-fit lg:h-5/6 rounded login-box">
+        <div className="w-full h-full flex flex-col md:flex-row">
           <form
             id="form"
-            className="flex flex-col gap-5 rounded w-1/2 h-full justify-evenly"
+            className="flex flex-col gap-5 rounded w-full md:w-1/2 h-full justify-evenly"
           >
-            <div className="text-7xl animated-heading bold">Contact Me</div>
+            <div className="text-3xl md:text-4xl xl:text-7xl animated-heading bold mb-2 md:mb-10">
+              Contact Me
+            </div>
             <div className="user-box">
               <input
                 type="text"
@@ -53,7 +58,7 @@ const Contact = () => {
             <div className="user-box">
               <textarea
                 className="w-full px-4 rounded"
-                rows={3}
+                rows={4}
                 cols={5}
                 required
               ></textarea>
@@ -62,8 +67,11 @@ const Contact = () => {
             {/* <button className="bg-black w-full rounded p-3 jello-vertical" type="submit">
             Submit
           </button> */}
-            <div>
-              <a href="#" className="animated-button1 p-1 w-full hover:text-cyan-400">
+            <div className="w-full h-full flex flex-col gap-4">
+              <a
+                href="#"
+                className="animated-button1 p-2 w-full hover:text-cyan-400 text-xs md:text-md"
+              >
                 <span></span>
                 <span></span>
                 <span></span>
@@ -86,18 +94,34 @@ const Contact = () => {
                 alt="contact_phone"
                 className="h-5 w-5"
               /> */}
-                <div className="text-sm"> +91 7001967224</div>
-              </div>
-              <div className="flex gap-5 justify-start">
-                {/* <img
-                src="./images/mailVector.png"
-                alt="contact_mail"
-                className="h-3 w-4"
-              /> */}
-                <div className="text-sm"> bsuvraneel@gmail.com</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link href={"https://api.whatsapp.com/send/?phone=917001967224&text=Hey+Suvraneel+!+👋"}>
+                    <div className="text-sm flex w-full gap-2 items-center">
+                      <FontAwesomeObj
+                        icon={faMobile}
+                        brandColor="cyan"
+                        title="+91 7000167224"
+                        titleClassName="text-md"
+                        size="xs"
+                        className="sidebar-icon"
+                      />{" "}
+                    </div>
+                  </Link>
+                  <Link href={"mailto:bsuvraneel@gmail.com"} target="_blank">
+                    <div className="text-sm flex w-full gap-2 items-center">
+                      <FontAwesomeObj
+                        icon={faEnvelopesBulk}
+                        brandColor="cyan"
+                        title="bsuvraneel@gmail.com"
+                        size="xs"
+                        className="sidebar-icon"
+                      />{" "}
+                    </div>
+                  </Link>
+                </div>
               </div>
             </div>
-            <div className="flex w-full h-full py-10">
+            <div className="flex w-full h-full py-10 hidden md:block">
               <iframe
                 id="map"
                 scrolling="no"

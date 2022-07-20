@@ -5,7 +5,7 @@ export default function CalendlyModal() {
   const [showModal, setShowModal] = React.useState(false);
   return (
     <div>
-      <a href="#" className="animated-button1 p-1 w-full hover:text-cyan-400" onClick={() => setShowModal(true)}>
+      <a href="#" className="animated-button1 p-2 w-full hover:text-cyan-400 text-xs md:text-md" onClick={() => setShowModal(true)}>
         <span></span>
         <span></span>
         <span></span>
@@ -20,7 +20,7 @@ export default function CalendlyModal() {
                 <div className="relative w-full flex flex-col">
                   <div className="w-full flex flex-col items-end bg-transparent">
                     <button
-                      className="p-5 bg-transparent"
+                      className="p-5 bg-transparent h-fit"
                       type="button"
                       onClick={() => setShowModal(false)}
                     >
