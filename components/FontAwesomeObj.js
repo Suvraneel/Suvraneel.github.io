@@ -29,9 +29,7 @@ export const FontAwesomeObj = (props) => {
         ) : (
           <div className={titleClassName}>{title}</div>
         )
-      ) : (
-        ""
-      )}
+      ) : null}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Script from "next/script";
 import Head from "next/head";
 import { Calendly } from "../components/Calendly";
@@ -9,18 +9,18 @@ import { faEnvelopesBulk, faMobile } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 
 const Contact = () => {
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     // Calendly();
-  //     const CalendlyScript = document.createElement("script");
-  //     CalendlyScript.async = true;
-  //     CalendlyScript.src =
-  //       "https://assets.calendly.com/assets/external/widget.js";
-  //     document.body.appendChild(CalendlyScript);
-  //   }, 3000);
-  // }, []);
+  const [showModal, setShowModal] = useState(false);
+  const closeBtn = (
+    <button
+      className="p-5 text-white hover:text-amber-400 h-fit absolute top-0 right-0 z-[1001] text-md"
+      type="button"
+      onClick={() => setShowModal(false)}
+    >
+      Changed your mind? Close Scheduler...
+    </button>
+  );
   return (
-    <div className="h-screen w-screen">
+    <div id="contact" className="h-screen w-screen">
       <Head>
         <title>Portfolio</title>
       </Head>
@@ -30,6 +30,13 @@ const Contact = () => {
           scene={"https://prod.spline.design/shTSpaHWL9CC-uJA/scene.splinecode"}
         />
       </div>
+      <div id="modal" className="h-fit w-full max-w-3xl"></div>
+      {showModal ? (
+        <>
+          {closeBtn}
+          <CalendlyModal/>
+        </>
+      ) : null}
       <div className="w-fit md:w-3/4 h-full form-bg px-10 py-5 mx-15 my-10 gap-3 z-10 h-fit lg:h-5/6 rounded login-box">
         <div className="w-full h-full flex flex-col md:flex-row">
           <form
@@ -83,28 +90,37 @@ const Contact = () => {
                 <div className="text-white">OR</div>
                 <div className="bg-white w-1/2 h-0.5 hr"></div>
               </div>
-              <CalendlyModal />
+              <a
+                href="#"
+                className="animated-button1 p-2 w-full hover:text-cyan-400 text-xs md:text-md"
+                onClick={() => setShowModal(true)}
+              >
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                Schedule a Meet with me...
+              </a>
             </div>
           </form>
           <div className="w-1/2 h-full p-10">
             <div className="text-xl text-white gap-1 flex flex-col">
               <div className="flex gap-5 justify-start">
-                {/* <img
-                src="./images/bi_phone.png"
-                alt="contact_phone"
-                className="h-5 w-5"
-              /> */}
                 <div className="flex flex-wrap items-center gap-2">
-                  <Link href={"https://api.whatsapp.com/send/?phone=917001967224&text=Hey+Suvraneel+!+👋"}>
+                  <Link
+                    href={
+                      "https://api.whatsapp.com/send/?phone=917001967224&text=Hey+Suvraneel+!+👋"
+                    }
+                  >
                     <div className="text-sm flex w-full gap-2 items-center">
                       <FontAwesomeObj
                         icon={faMobile}
                         brandColor="cyan"
-                        title="+91 7000167224"
+                        title="+91 70001967224"
                         titleClassName="text-md"
                         size="xs"
                         className="sidebar-icon"
-                      />{" "}
+                      />
                     </div>
                   </Link>
                   <Link href={"mailto:bsuvraneel@gmail.com"} target="_blank">
@@ -126,8 +142,6 @@ const Contact = () => {
                 id="map"
                 scrolling="no"
                 src="https://maps.google.com/maps?width=100%25&amp;height=400&amp;hl=en&amp;q=Prabhuram%20Sarkar%20Lane,%20Kolkata,%20India+(My%20Business%20Name)&amp;t=&amp;z=14&amp;ie=UTF8&amp;iwloc=B&amp;output=embed"
-                // width="500"
-                // height="500"
                 loading="lazy"
                 className="invert opacity-60 hover:opacity-100 w-full h-full"
               />
