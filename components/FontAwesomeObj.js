@@ -23,7 +23,7 @@ export const FontAwesomeObj = (props) => {
       />
       {hasTitle ? (
         isFocused ? (
-          <div className={titleClassName + " text-" + brandColor + "-400"}>
+          <div className={titleClassName + " text-cyan-400"}>
             {title}
           </div>
         ) : (
