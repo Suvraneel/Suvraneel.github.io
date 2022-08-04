@@ -1,18 +1,16 @@
 {
-  "products": [
+  "projects": [
        {
-          "id": "ghost-whey-x-chips-ahoy",
-          "name": "Ghost Whey X Chips Ahoy",
-          "details": "We've said it before and we will say it again, nothing beats the real thing. With years of R&D and REAL CHIPS AHOY!® cookie pieces in every scoop, this flavor is second to none.",
-          "price": "$39.99",
-          "image": "https://cdn.shopify.com/s/files/1/2060/6331/products/image.png?v=1571331841"
+          "id": "nft-haven",
+          "name": "NFT Haven",
+          "details": "• DApp serving for NFT-generation & minting, available for trading on OpenSea marketplace.• Lightning NFT Network - Mint NFTs in blazing speed across multiple ecosystems (Ethereum, Binance Smart Chain, Polygon)• Multi-chain minting is now made easy all in one place !",
+          "image": "https://suvraneel.vercel.app/images/project-1.gif"
         },
       {
-          "id": "ghost-whey-vegan",
-          "name": "GHOST® Vegan Protein",
-          "details": "GHOST Vegan Protein combines a premium, fully disclosed vegan protein blend with industry-leading flavors...what more could you ask for?",
-          "price": "$49.99",
-          "image": "https://cdn.shopify.com/s/files/1/2060/6331/products/Vegan.png?v=1574882358"
+          "id": "diablo-music-app",
+          "name": "Diablo Music App",
+          "details": "Minimalistic Music Player with a dark UI especially-curated for the nocturnal. Utilises Firebase-authenticated login. Doubles as local & online music player",
+          "image": "https://suvraneel.vercel.app/images/project-3.png"
         }
   ],
   "profile": {
