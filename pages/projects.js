@@ -1,86 +1,74 @@
-import Link from "next/link";
-import fetch from "isomorphic-unfetch";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import dynamic from "next/dynamic";
+import Head from "next/head";
+import { useState } from "react";
+import { framerLogger } from "../stateLogger";
+import { projectsData } from "./api/projectsDat";
+const ProjectModal = dynamic(() => import("../components/ProjectModal"), {
+  loading: () => <p>Loading...</p>
+});
+export default function Work() {
+  // Modal type
+  const [modalType] = useState("flip");
+  const [projIndex, setProjIndex] = useState(projectsData[0]);
+  const [modalOpen, setModalOpen] = useState(false);
 
-// Our custom easing
-let easing = [0.6, -0.05, 0.01, 0.99];
-
-// animate: defines animation
-// initial: defines initial state of animation or stating point.
-// exit: defines animation when component exits
-
-// Custom variant
-const fadeInUp = {
-  initial: {
-    y: 60,
-    opacity: 0,
-    transition: { duration: 0.6, ease: easing },
-  },
-  animate: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      duration: 0.6,
-      ease: easing,
-    },
-  },
-};
-
-const stagger = {
-  animate: {
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-export const Projects = (props) => (
-  <div className="flex-1 w-full h-full justify-center items-center m-10">
-    <motion.div initial="initial" animate="animate" exit={{ opacity: 0 }}>
-      <div className="">
-        <motion.div
-          variants={stagger}
-          style={{display: 'flex', flexDirection: 'row', justifyContent: 'evenly', alignItems: 'center'}}>
-          {props.projects.map((project) => (
-            <Link
-              key={project.id}
-              href="/projects/[id]"
-              as={`/projects/${project.id}`}
-            >
-              <motion.div
-                variants={fadeInUp}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <span className="category">Protein</span>
+  const close = () => setModalOpen(false);
+  const open = () => setModalOpen(true);
+  return (
+    <>
+      <Head>
+        <title>Projects</title>
+      </Head>
+      <div className="h-screen flex flex-col items-center nav-gap">
+        {/* <div
+          className="text-3xl md:text-4xl xl:text-7xl animated-heading bold mb-2 md:mb-10.
+      "
+        >
+          Work
+        </div> */}
+        <motion.main>
+          {/* <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'row', margin:'0 5%', justifyContent: 'space-evenly', alignItems: 'center', gap: 5, flexWrap: 'wrap', flexShrink: 1, flexGrow: 1, backgroundColor: 'rgba(255, 255, 255, 0.5)', paddingBottom: '10px'}}> */}
+          <div className="grid grid-cols-1 sm:grid-cols-2	 lg:grid-cols-3 col-auto justify-center">
+            {projectsData.map((project) => (
+              <div key={project.id} className="w-full" onClick={() => setProjIndex(project)}>
                 <motion.img
-                  initial={{ x: 60, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  key={project.image}
-                  src={project.image}
-                  width={350}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="save-button"
+                  onClick={open}
+                  src={'./images/project-assets/'+project.gif}
                 />
-                <div className="project-info">
-                  <h4>{project.name}</h4>
-                </div>
-              </motion.div>
-            </Link>
-          ))}
-        </motion.div>
+              </div>
+            ))}
+          </div>
+        </motion.main>
+
+        <ModalContainer>
+          {modalOpen ? (
+            <ProjectModal modalOpen={modalOpen} text="Bleh" handleClose={close} project={projIndex} />
+          ) : (
+            <></>
+          )}
+        </ModalContainer>
       </div>
-    </motion.div>
-  </div>
-);
-
-Projects.getInitialProps = async function () {
-  const res = await fetch(
-    "https://my-json-server.typicode.com/Suvraneel/Suvraneel.github.io/projects"
+    </>
   );
-  const data = await res.json();
-  return {
-    projects: data,
-  };
-};
+}
 
-export default Projects;
+const ModalContainer = ({ children, label = "Bleh" }) => (
+  // Enables the animation of components that have been removed from the tree
+  <AnimatePresence
+    // Disable any initial animations on children that
+    // are present when the component is first rendered
+    initial={false}
+    // Only render one component at a time.
+    // The exiting component will finish its exit
+    // animation before entering component is rendered
+    exitBeforeEnter={true}
+    // Fires when all exiting nodes have completed animating out
+    onExitComplete={() => framerLogger(label)}
+  >
+    {children}
+  </AnimatePresence>
+);

@@ -18,8 +18,9 @@ export default function ChronoCard({ curElem }) {
         onMouseEnter={() => setIsShown(true)}
         onMouseLeave={() => setIsShown(false)}
       >
+        <h2 className="text-lg w-full">{curElem.role}</h2>
+        <p className="text-lg w-full">{curElem.company}</p>
         <h3 className="font-bold text-xl mb-1">{curElem.duration}</h3>
-        <p className="text-lg w-full">{curElem.event}</p>
       </div>
     </div>
   );

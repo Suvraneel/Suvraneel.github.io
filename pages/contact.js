@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
 import Script from "next/script";
 import Head from "next/head";
-import { Calendly } from "../components/Calendly";
 import SplineObj from "../components/SplineObj";
-import CalendlyModal from "../components/CalendlyModal";
 import { FontAwesomeObj } from "../components/FontAwesomeObj";
 import { faEnvelopesBulk, faMobile } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 
+const CalendlyModal = dynamic(() => import("../components/CalendlyModal"), {
+  loading: () => <p>Loading...</p>,
+});
 const Contact = () => {
   const [showModal, setShowModal] = useState(false);
   const closeBtn = (
@@ -25,7 +27,6 @@ const Contact = () => {
         <title>Portfolio</title>
       </Head>
       <div className="h-screen">
-        {/* <SplineObj scene={"./spline/sceneMUSHROOM.splinecode"} /> */}
         <SplineObj
           scene={"https://prod.spline.design/shTSpaHWL9CC-uJA/scene.splinecode"}
         />
@@ -34,7 +35,7 @@ const Contact = () => {
       {showModal ? (
         <>
           {closeBtn}
-          <CalendlyModal/>
+          <CalendlyModal />
         </>
       ) : null}
       <div className="w-fit md:w-3/4 h-full form-bg px-10 py-5 mx-15 my-10 gap-3 z-10 h-fit lg:h-5/6 rounded login-box">
@@ -71,9 +72,6 @@ const Contact = () => {
               ></textarea>
               <label>Message*</label>
             </div>
-            {/* <button className="bg-black w-full rounded p-3 jello-vertical" type="submit">
-            Submit
-          </button> */}
             <div className="w-full h-full flex flex-col gap-4">
               <a
                 href="#"

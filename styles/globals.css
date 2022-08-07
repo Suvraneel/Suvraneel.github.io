@@ -284,4 +284,9 @@ hr {
 	  bottom: 100%;
 	}
   }
-  
+
+  /* Projects */
+  .nav-gap{
+	margin-left:50px;
+	width: calc(100%-50px) !important;
+  }
