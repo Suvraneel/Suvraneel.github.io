@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@emailjs/browser": "^3.6.2",
     "@fontsource/playfair-display": "^4.5.10",
     "@fontsource/raleway": "^4.5.9",
     "@fortawesome/fontawesome-svg-core": "^6.1.1",
@@ -18,6 +19,7 @@
     "@fortawesome/react-fontawesome": "^0.2.0",
     "@splinetool/react-spline": "^2.2.1",
     "@splinetool/runtime": "^0.9.73",
+    "emailjs-com": "^3.2.0",
     "framer-motion": "^7.0.0",
     "isomorphic-unfetch": "^3.1.0",
     "next": "^12.2.2",

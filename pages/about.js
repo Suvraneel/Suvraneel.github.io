@@ -1,5 +1,3 @@
-import React from "react";
-import { useTheme } from "next-themes";
 import Head from "next/head";
 import SplineObj from "../components/SplineObj";
 const About = () => {
@@ -15,7 +13,7 @@ const About = () => {
         />
       </div>
       <div className="h-screen w-full lg:w-1/2 xl:w-1/3 absolute left-32 top-10 z-100 text-white">
-      <div className="text-7xl animated-heading bold">About Me</div>
+      <div className="text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-2 md:mb-10">About Me</div>
           <p className="w-full h-5"></p>
           <p>
             Imma Full Stack Web3.0 Developer based in India. I&apos;m currently

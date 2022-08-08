@@ -1,17 +1,38 @@
-import React, { useEffect, useState } from "react";
-import Script from "next/script";
-import Head from "next/head";
-import SplineObj from "../components/SplineObj";
-import { FontAwesomeObj } from "../components/FontAwesomeObj";
+import emailjs from "@emailjs/browser";
 import { faEnvelopesBulk, faMobile } from "@fortawesome/free-solid-svg-icons";
-import Link from "next/link";
 import dynamic from "next/dynamic";
-
+import Head from "next/head";
+import Link from "next/link";
+import { useRef, useState } from "react";
+import { FontAwesomeObj } from "../components/FontAwesomeObj";
+import SplineObj from "../components/SplineObj";
 const CalendlyModal = dynamic(() => import("../components/CalendlyModal"), {
   loading: () => <p>Loading...</p>,
 });
 const Contact = () => {
   const [showModal, setShowModal] = useState(false);
+  const form = useRef();
+
+  const sendEmail = (e) => {
+    e.preventDefault();
+
+    emailjs
+      .sendForm(
+        "service_7t4fz0c",
+        "template_dzdjrce",
+        form.current||'',
+        "LD8juHpdDTXSbZCSv"
+      )
+      .then(
+        (result) => {
+          console.log(result.text);
+        },
+        (error) => {
+          console.log(error.text);
+        }
+      );
+  };
+
   const closeBtn = (
     <button
       className="p-5 text-white hover:text-amber-400 h-fit absolute top-0 right-0 z-[1001] text-md"
@@ -43,6 +64,9 @@ const Contact = () => {
           <form
             id="form"
             className="flex flex-col gap-5 rounded w-full md:w-1/2 h-full justify-evenly"
+            // @ts-ignore
+            ref={form}
+            onSubmit={sendEmail}
           >
             <div className="text-3xl md:text-4xl xl:text-7xl animated-heading bold mb-2 md:mb-10">
               Contact Me
@@ -50,6 +74,7 @@ const Contact = () => {
             <div className="user-box">
               <input
                 type="text"
+                name="user_name"
                 className="w-full px-4 rounded"
                 required
               ></input>
@@ -58,6 +83,7 @@ const Contact = () => {
             <div className="user-box">
               <input
                 type="email"
+                name="user_email"
                 className="w-full px-4 rounded"
                 required
               ></input>
@@ -65,6 +91,7 @@ const Contact = () => {
             </div>
             <div className="user-box">
               <textarea
+                name="message"
                 className="w-full px-4 rounded"
                 rows={4}
                 cols={5}
@@ -73,15 +100,14 @@ const Contact = () => {
               <label>Message*</label>
             </div>
             <div className="w-full h-full flex flex-col gap-4">
-              <a
-                href="#"
-                className="animated-button1 p-2 w-full hover:text-cyan-400 text-xs md:text-md"
+              <a href="#"
+                className="p-2 w-full hover:text-cyan-400"
               >
                 <span></span>
                 <span></span>
                 <span></span>
                 <span></span>
-                Submit
+                <input type="submit" value="Send" className="w-full h-full text-xs md:text-md uppercase"/>
               </a>
               <div className="flex w-full gap-5 items-center">
                 <div className="bg-white w-1/2 h-0.5 hr"></div>
@@ -90,7 +116,7 @@ const Contact = () => {
               </div>
               <a
                 href="#"
-                className="animated-button1 p-2 w-full hover:text-cyan-400 text-xs md:text-md"
+                className="p-2 w-full hover:text-cyan-400 text-xs md:text-md uppercase"
                 onClick={() => setShowModal(true)}
               >
                 <span></span>

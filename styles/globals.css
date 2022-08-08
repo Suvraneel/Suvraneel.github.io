@@ -189,10 +189,10 @@ hr {
 	justify-content: center;
 	color: #00f2ff;
 	text-decoration: none;
-	text-transform: uppercase;
 	overflow: hidden;
 	transition: 1s;
-	letter-spacing: 4px
+	letter-spacing: 4px;
+	font-size: 12px;
   }
   
   .login-box a:hover {

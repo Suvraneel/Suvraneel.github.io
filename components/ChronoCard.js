@@ -17,17 +17,19 @@ export default function ChronoCard({ curElem }) {
           onMouseLeave={() => setIsShown(false)}
         />
       </div>
-      <div className="col-start-3 col-end-5 md:mx-auto flex justify-center items-center">
+      <div className="col-start-3 col-end-4 md:mx-auto flex justify-center items-center">
         <Image
           src={"/images/work-assets/" + curElem.image}
           alt={curElem.company + "Logo"}
-          width={100}
-          height={100}
+          width={isShown?100:80}
+          height={isShown?100:80}
+          onMouseEnter={() => setIsShown(true)}
+          onMouseLeave={() => setIsShown(false)}
         />
       </div>
       <div
         className={
-          "border-4 text-white dark:text-white col-start-5 col-end-12 p-4 rounded-xl my-4 mr-auto w-full px-8 " +
+          "border-4 text-white dark:text-white col-start-4 col-end-12 p-4 rounded-xl my-4 ml-8 mr-auto w-full px-8 " +
           (isShown ? "bg-cyan-900" : "")
         }
         onMouseEnter={() => setIsShown(true)}
