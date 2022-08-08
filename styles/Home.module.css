@@ -1,0 +1,10 @@
+/* Fonts - Google */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Raleway&display=swap');
+
+.namebar {
+  /* Hey there, I’m Suvraneel */
+
+  font-family: 'Raleway', 'Playfair Display', serif;
+  font-weight: 400;
+}

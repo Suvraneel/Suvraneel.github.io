@@ -1,0 +1,42 @@
+{
+  "name": "sandbox-folio",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@emailjs/browser": "^3.6.2",
+    "@fontsource/playfair-display": "^4.5.10",
+    "@fontsource/raleway": "^4.5.9",
+    "@fortawesome/fontawesome-svg-core": "^6.1.1",
+    "@fortawesome/free-brands-svg-icons": "^6.1.1",
+    "@fortawesome/free-regular-svg-icons": "^6.1.1",
+    "@fortawesome/free-solid-svg-icons": "^6.1.1",
+    "@fortawesome/react-fontawesome": "^0.2.0",
+    "@splinetool/react-spline": "^2.2.1",
+    "@splinetool/runtime": "^0.9.73",
+    "emailjs-com": "^3.2.0",
+    "framer-motion": "^7.0.0",
+    "isomorphic-unfetch": "^3.1.0",
+    "next": "^12.2.2",
+    "next-themes": "^0.2.0",
+    "nextjs-progressbar": "^0.0.14",
+    "nprogress": "^0.2.0",
+    "react": "^18.2.0",
+    "react-calendly": "^4.0.1",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.7",
+    "eslint": "8.19.0",
+    "eslint-config-next": "12.2.0",
+    "postcss": "^8.4.14",
+    "tailwindcss": "^3.1.4"
+  },
+  "keywords": [],
+  "description": ""
+}
