@@ -8,6 +8,7 @@ export default function Home() {
     <>
       <Head>
         <title>Portfolio</title>
+        <meta name="google-site-verification" content="J9uDTeg3iujyef0pzqJ7s7xDlmizshJEn0767--L3nA" />
       </Head>
       <div className="h-screen">
           <SplineObj scene={'https://prod.spline.design/eBcxlYl5eV3WlaMm/scene.splinecode'}/>
