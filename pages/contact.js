@@ -48,9 +48,10 @@ const Contact = () => {
         <title>Portfolio</title>
       </Head>
       <div className="h-screen">
-        <SplineObj
+        {/* <SplineObj
           scene={"https://prod.spline.design/shTSpaHWL9CC-uJA/scene.splinecode"}
-        />
+        /> */}
+        <SplineObj scene={'./spline/sceneCONTACT.splinecode'}/>
       </div>
       <div id="modal" className="h-fit w-full max-w-3xl"></div>
       {showModal ? (
