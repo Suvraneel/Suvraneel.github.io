@@ -50,7 +50,7 @@ const ProjectModal = ({ handleClose, text, modalOpen, project }) => {
       >
         <div className="w-9/12 h-full flex flex-col gap-3 overflow-y-scroll overflow-x-hidden scroll-smooth">
           <ModalVideo video={project.video} />
-          <motion.img src={"./images/project-assets/" + project.gif} />
+          <motion.video src={"./images/project-assets/" + project.gif} preload="auto" autoPlay/>
         </div>
         <div className="w-full flex flex-col">
           <ModalText project={project} />
