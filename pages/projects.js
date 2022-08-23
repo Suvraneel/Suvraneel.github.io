@@ -4,9 +4,7 @@ import Head from "next/head";
 import { useState } from "react";
 import { framerLogger } from "../stateLogger";
 import { projectsData } from "./api/projectsDat";
-const ProjectModal = dynamic(() => import("../components/ProjectModal"), {
-  loading: () => <p>Loading...</p>,
-});
+import ProjectModal from "../components/ProjectModal";
 export default function Work() {
   // Modal type
   const [modalType] = useState("flip");
@@ -27,15 +25,50 @@ export default function Work() {
               <div
                 key={project.id}
                 className="w-full"
-                onClick={() => setProjIndex(project)}
+                onClick={() => {
+                  setProjIndex(project);
+                  open;
+                }}
               >
-                <motion.img
+                {/* <motion.img
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   className="save-button"
                   onClick={open}
                   src={"./images/project-assets/" + project.gif}
-                />
+                /> */}
+                <motion.video
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="save-button"
+                  onClick={open}
+                  id="my-video"
+                  preload="auto"
+                  width="640"
+                  height="264"
+                  data-setup="{}"
+                  autoPlay
+                  loop
+                  muted 
+                  playsInline
+                >
+                  {/* <source src="MY_VIDEO.mp4" type="video/mp4" /> */}
+                  <source
+                    src={"./images/project-assets/" + project.gif}
+                    type="video/webm"
+                  />
+                  <p className="vjs-no-js">
+                    To view this video please enable JavaScript, and consider
+                    upgrading to a web browser that
+                    <a
+                      href="https://videojs.com/html5-video-support/"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      supports HTML5 video
+                    </a>
+                  </p>
+                </motion.video>
               </div>
             ))}
           </div>

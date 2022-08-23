@@ -35,7 +35,8 @@
     "eslint": "8.19.0",
     "eslint-config-next": "12.2.0",
     "postcss": "^8.4.14",
-    "tailwindcss": "^3.1.4"
+    "tailwindcss": "^3.1.4",
+    "video.js": "^7.20.2"
   },
   "keywords": [],
   "description": ""
