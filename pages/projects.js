@@ -54,9 +54,8 @@ export default function Work() {
                     loop
                     muted
                     playsInline
-                    onLoadStart={() => setIsLoading([i, ...isLoading])}
-                    onLoadedData={() =>
-                      setIsLoading(isLoading.filter((item) => item !== i))
+                    onLoadStart={() =>
+                      setIsLoading([...isLoading, i])
                     }
                     src={"./images/project-assets/" + project.gif}
                   >
