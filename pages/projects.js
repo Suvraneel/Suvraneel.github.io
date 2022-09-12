@@ -39,27 +39,29 @@ export default function Work() {
                   onClick={open}
                   src={"./images/project-assets/" + project.gif}
                 /> */}
-                  {isLoading.includes(i) ? (
-                    <Spinner />
-                  ) : (
-                    <motion.video
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="save-button"
-                      onClick={open}
-                      id="my-video"
-                      preload="auto"
-                      width="640"
-                      height="264"
-                      data-setup="{}"
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      onLoad={() => setIsLoading([i, ...isLoading])}
-                    >
-                      {/* <source src="MY_VIDEO.mp4" type="video/mp4" /> */}
-                      <source
+                  {isLoading.includes(i) && <Spinner />}
+                  <motion.video
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="save-button"
+                    onClick={open}
+                    id="my-video"
+                    preload="auto"
+                    width="640"
+                    height="264"
+                    data-setup="{}"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    onLoadStart={() => setIsLoading([i, ...isLoading])}
+                    onLoadedData={() =>
+                      setIsLoading(isLoading.filter((item) => item !== i))
+                    }
+                    src={"./images/project-assets/" + project.gif}
+                  >
+                    {/* <source src="MY_VIDEO.mp4" type="video/mp4" /> */}
+                    {/* <source
                         src={"./images/project-assets/" + project.gif}
                         type="video/webm"
                       />
@@ -73,9 +75,8 @@ export default function Work() {
                         >
                           supports HTML5 video
                         </a>
-                      </p>
-                    </motion.video>
-                  )}
+                      </p> */}
+                  </motion.video>
                 </div>
               );
             })}
