@@ -2,7 +2,7 @@ import React from "react";
 
 function Spinner() {
   return (
-    <div className="flex justify-center items-center m-20">
+    <div className="flex justify-center items-center w-full h-full z-0">
       <svg
         version="1.1"
         id="L1"

@@ -6,6 +6,7 @@ import { framerLogger } from "../stateLogger";
 import { projectsData } from "./api/projectsDat";
 import ProjectModal from "../components/ProjectModal";
 import Spinner from "../components/Spinner";
+import { Skeleton, SkeletonCircle, SkeletonText } from "@chakra-ui/react";
 export default function Work() {
   // Modal type
   const [modalType] = useState("flip");
@@ -39,43 +40,45 @@ export default function Work() {
                   onClick={open}
                   src={"./images/project-assets/" + project.gif}
                 /> */}
-                  {isLoading.includes(i) && <Spinner />}
-                  <motion.video
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="save-button"
-                    onClick={open}
-                    id="my-video"
-                    preload="auto"
-                    width="640"
-                    height="264"
-                    data-setup="{}"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    onLoadStart={() =>
-                      setIsLoading([...isLoading, i])
-                    }
-                    src={"./images/project-assets/" + project.gif}
-                  >
-                    {/* <source src="MY_VIDEO.mp4" type="video/mp4" /> */}
-                    {/* <source
+                  {/* <div className="flex-1 flex-row justify-center items-center z-0"><Spinner /></div> */}
+                  <Skeleton isLoaded>
+                    <motion.video
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="save-button z-5"
+                      onClick={open}
+                      id="my-video"
+                      preload="auto"
+                      width="640"
+                      height="264"
+                      data-setup="{}"
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      onLoadedData={() =>
+                        setIsLoading((isLoading) => [...isLoading, i])
+                      }
+                      src={"./images/project-assets/" + project.gif}
+                    >
+                      {/* <source src="MY_VIDEO.mp4" type="video/mp4" /> */}
+                      {/* <source
                         src={"./images/project-assets/" + project.gif}
                         type="video/webm"
                       />
                       <p className="vjs-no-js">
-                        To view this video please enable JavaScript, and
-                        consider upgrading to a web browser that
-                        <a
-                          href="https://videojs.com/html5-video-support/"
-                          target="_blank"
-                          rel="noreferrer"
+                      To view this video please enable JavaScript, and
+                      consider upgrading to a web browser that
+                      <a
+                      href="https://videojs.com/html5-video-support/"
+                      target="_blank"
+                      rel="noreferrer"
                         >
                           supports HTML5 video
                         </a>
                       </p> */}
-                  </motion.video>
+                    </motion.video>
+                  </Skeleton>
                 </div>
               );
             })}
