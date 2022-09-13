@@ -17,7 +17,7 @@ export default function ChronoCard({ curElem }) {
           onMouseLeave={() => setIsShown(false)}
         />
       </div>
-      <div className="hidden sm:block col-start-3 col-end-4 md:mx-auto flex justify-center items-center">
+      <div className="hidden sm:flex col-start-3 col-end-4 md:mx-auto flex justify-center items-center">
         <Image
           src={"/images/work-assets/" + curElem.image}
           alt={curElem.company + "Logo"}
