@@ -40,7 +40,6 @@ export default function Work() {
                   src={"./images/project-assets/" + project.gif}
                 /> */}
                   {/* <div className="flex-1 flex-row justify-center items-center z-0"><Spinner /></div> */}
-                  <Skeleton isLoaded>
                     <motion.video
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
@@ -77,7 +76,6 @@ export default function Work() {
                         </a>
                       </p> */}
                     </motion.video>
-                  </Skeleton>
                 </div>
               );
             })}
