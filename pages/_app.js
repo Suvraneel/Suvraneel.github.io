@@ -10,12 +10,12 @@ import NextNProgress from "../components/NextNProgress";
 function MyApp({ Component, pageProps }) {
   return (
     <ThemeProvider defaultTheme="dark" attribute="class">
-      <AnimatePresence exitBeforeEnter>
-      <Layout>
-        <NextNProgress color="#8F4FFB"/>
-        <Component {...pageProps} />
-      </Layout>
-      </AnimatePresence>
+        <AnimatePresence exitBeforeEnter>
+          <Layout>
+            <NextNProgress color="#8F4FFB" />
+            <Component {...pageProps} />
+          </Layout>
+        </AnimatePresence>
     </ThemeProvider>
   );
 }

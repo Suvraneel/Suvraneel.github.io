@@ -42,15 +42,19 @@ const ProjectModal = ({ handleClose, text, modalOpen, project }) => {
     <Backdrop onClick={handleClose}>
       <motion.div
         onClick={(e) => e.stopPropagation()}
-        className="mx-0 p-10 bg-black rounded absolute top-0 left-10 h-full flex justify-evenly gap-10"
+        className="mx-0 p-10 bg-black rounded absolute top-0 left-0 sm:left-10 h-full flex flex-col sm:flex-row justify-evenly gap-10 mobile-modal"
         variants={flip}
         initial="hidden"
         animate="visible"
         exit="exit"
       >
-        <div className="w-9/12 h-full flex flex-col gap-3 overflow-y-scroll overflow-x-hidden scroll-smooth">
+        <div className="w-full sm:w-9/12 h-fit sm:h-full flex flex-col gap-3 overflow-y-scroll overflow-x-hidden scroll-smooth hidden sm:flex">
           <ModalVideo video={project.video} />
-          <motion.video src={"./images/project-assets/" + project.gif} preload="auto" autoPlay/>
+          <motion.video
+            src={"./images/project-assets/" + project.gif}
+            preload="auto"
+            autoPlay
+          />
         </div>
         <div className="w-full flex flex-col">
           <ModalText project={project} />
@@ -115,8 +119,8 @@ const ModalText = ({ project }) => (
   </div>
 );
 
-const ModalVideo = ({ video }) => (
-  <div className="modal-video">
+export const ModalVideo = ({ video }) => (
+  <div className="modal-video h-fit sm:h-full">
     <iframe
       width="560"
       height="315"
