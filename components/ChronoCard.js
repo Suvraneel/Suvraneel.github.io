@@ -29,8 +29,8 @@ export default function ChronoCard({ curElem }) {
       </div>
       <div
         className={
-          "border-4 text-white dark:text-white col-start-4 col-end-12 p-4 rounded-xl my-4 ml-8 mr-auto w-full px-8 " +
-          (isShown ? "bg-cyan-900" : "")
+          "border-2 backdrop-blur-xl backdrop-contrast-100 text-white dark:text-white col-start-4 col-end-12 p-4 rounded-xl my-4 ml-8 mr-auto w-full px-8 " +
+          (isShown ? "border-cyan-400 backdrop-hue-rotate-15 backdrop-contrast-125" : "border-white")
         }
         onMouseEnter={() => setIsShown(true)}
         onMouseLeave={() => setIsShown(false)}

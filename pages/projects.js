@@ -6,7 +6,6 @@ import { framerLogger } from "../stateLogger";
 import { projectsData } from "./api/projectsDat";
 import ProjectModal from "../components/ProjectModal";
 import Spinner from "../components/Spinner";
-import { Skeleton, SkeletonCircle, SkeletonText } from "@chakra-ui/react";
 export default function Work() {
   // Modal type
   const [modalType] = useState("flip");
@@ -56,9 +55,9 @@ export default function Work() {
                       loop
                       muted
                       playsInline
-                      onLoadedData={() =>
-                        setIsLoading((isLoading) => [...isLoading, i])
-                      }
+                      // onLoadedData={() =>
+                      //   setIsLoading((isLoading) => [...isLoading, i])
+                      // }
                       src={"./images/project-assets/" + project.gif}
                     >
                       {/* <source src="MY_VIDEO.mp4" type="video/mp4" /> */}
