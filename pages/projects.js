@@ -20,7 +20,7 @@ export default function Work() {
         <title>Projects</title>
       </Head>
       <div className="h-screen flex flex-col items-center nav-gap">
-        <motion.main>
+        {!modalOpen && <motion.main>
           <div className="grid grid-cols-1 sm:grid-cols-2	 lg:grid-cols-3 col-auto justify-center">
             {projectsData.map((project, i) => {
               return (
@@ -80,19 +80,16 @@ export default function Work() {
               );
             })}
           </div>
-        </motion.main>
+        </motion.main>}
 
         <ModalContainer>
-          {modalOpen ? (
+          {modalOpen &&
             <ProjectModal
               modalOpen={modalOpen}
               text="Bleh"
               handleClose={close}
               project={projIndex}
-            />
-          ) : (
-            <></>
-          )}
+            />}
         </ModalContainer>
       </div>
     </>

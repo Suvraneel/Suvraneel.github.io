@@ -139,6 +139,13 @@ a:hover {
   padding: 20px 0;
 }
 
+@media only screen and (max-width: 768px) {
+	/* For mobile phones: */
+	.sidebar-container {
+	  display: none;
+	}
+}
+
 .sidebar-container:hover {
   width: 130px;
 }
@@ -195,6 +202,15 @@ p {
   box-shadow: 0 12px 56px 0 rgba(31, 38, 135, 0.37);
   /* backdrop-filter: blur(3px);
   webkit-backdrop-filter: blur(4px); */
+}
+
+@media only screen and (max-width: 768px) {
+	/* For mobile phones: */
+	.form-bg {
+	  left: 0;
+	  top: 0;
+	  margin: 0;
+	}
 }
 
 hr {
@@ -353,3 +369,18 @@ hr {
   margin-left: 50px;
   width: calc(100%-50px) !important;
 }
+@media only screen and (max-width: 768px) {
+	/* For mobile phones: */
+	.nav-gap{
+		margin-left: 0px;
+	  width: 100% !important;
+	}
+
+	.mobile-modal{
+		width: 100vw;
+		height: 100vh;
+		display: flex;
+		flex-wrap: wrap;
+	}
+}
+

@@ -12,7 +12,7 @@ const About = () => {
           scene={"https://prod.spline.design/Mk-LZd5LpzlOllLb/scene.splinecode"}
         /> */}
       </div>
-      <div className="h-screen w-full lg:w-1/2 xl:w-1/3 absolute left-32 top-10 z-100 text-white">
+      <div className="h-screen w-full lg:w-1/2 xl:w-1/3 absolute left-2 sm:left-32 top-10 z-100 text-white">
         <div className="text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-2 md:mb-10">
           About Me
         </div>

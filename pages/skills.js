@@ -17,13 +17,13 @@ const Skills = () => {
 
   return (
     <div className="w-full h-full flex flex-row justify-evenly">
-      <div className="h-full flex flex-col justify-center">
+      <div className="h-full hidden sm:flex flex-col justify-center">
         {/* <Script src="./scripts/skillSphere.js" strategy="afterInteractive" /> */}
         <canvas id="canvas"></canvas>
       </div>
       <div
         id="About Me"
-        className="h-full flex flex-col justify-center w-5/12 text-md gap-5 text-white"
+        className="h-full flex flex-col justify-center w-11/12 md:w-5/12 text-md gap-5 text-white"
       >
         <div className="text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-2 md:mb-10">Skills</div>
         <p>
