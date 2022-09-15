@@ -162,7 +162,7 @@ const Contact = () => {
                 </div>
               </div>
             </div>
-            <div className="flex w-full h-full py-10 hidden md:block">
+            <div className="w-full h-full py-10 hidden md:block">
               <iframe
                 id="map"
                 scrolling="no"

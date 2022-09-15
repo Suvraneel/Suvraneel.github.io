@@ -17,12 +17,12 @@ export default function ChronoCard({ curElem }) {
           onMouseLeave={() => setIsShown(false)}
         />
       </div>
-      <div className="hidden sm:flex col-start-3 col-end-4 md:mx-auto flex justify-center items-center">
+      <div className="hidden sm:flex col-start-3 col-end-4 md:mx-auto justify-center items-center jello-horizontal">
         <Image
           src={"/images/work-assets/" + curElem.image}
           alt={curElem.company + "Logo"}
-          width={isShown?100:80}
-          height={isShown?100:80}
+          width={isShown ? 100 : 80}
+          height={isShown ? 100 : 80}
           onMouseEnter={() => setIsShown(true)}
           onMouseLeave={() => setIsShown(false)}
         />
@@ -30,7 +30,9 @@ export default function ChronoCard({ curElem }) {
       <div
         className={
           "border-2 backdrop-blur-xl backdrop-contrast-100 text-white dark:text-white col-start-4 col-end-12 p-4 rounded-xl my-4 sm:ml-8 mr-auto w-full px-8 " +
-          (isShown ? "border-cyan-400 backdrop-hue-rotate-15 backdrop-contrast-125" : "border-white")
+          (isShown
+            ? "border-cyan-400 backdrop-hue-rotate-15 backdrop-contrast-125 shadow-2xl  shadow-cyan-500/60"
+            : "border-white")
         }
         onMouseEnter={() => setIsShown(true)}
         onMouseLeave={() => setIsShown(false)}
