@@ -12,7 +12,6 @@ import { FontAwesomeObj } from "./FontAwesomeObj";
 import { Socials } from "./Socials";
 import ThemeToggler from "./ThemeToggler";
 export const Navbar = () => {
-  // const menu = ["About", "Skills", "Work", "Projects", "Contact"];
   const menu = [
     { name: "Home", href: "/", icon: faHouseChimney },
     { name: "About", href: "/about", icon: faSignature },
@@ -53,8 +52,16 @@ export const Navbar = () => {
             );
           })}
         </div>
-        {isShownHoverContent ? <Socials /> : ""}
-        {/* <div className="fixed bottom-2 text-xl pl-3">&copy;</div> */}
+        {isShownHoverContent && <Socials />}
+        <div className="fixed bottom-2 text-2xl pl-3 flex flex-row gap-3 items-center justify-between">
+          &copy;
+          {isShownHoverContent && (
+            <div className="flex flex-col">
+              <div className="text-xs">Suvraneel</div>
+              <div className="text-xs">Bhuin</div>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

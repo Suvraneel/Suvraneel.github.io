@@ -48,7 +48,7 @@ const ProjectModal = ({ handleClose, text, modalOpen, project }) => {
         animate="visible"
         exit="exit"
       >
-        <div className="w-full sm:w-9/12 h-fit sm:h-full flex flex-col gap-3 overflow-y-scroll overflow-x-hidden scroll-smooth hidden sm:flex">
+        <div className="w-full sm:w-9/12 h-fit sm:h-full flex-col gap-3 overflow-y-scroll overflow-x-hidden scroll-smooth hidden sm:flex">
           <ModalVideo video={project.video} />
           <motion.video
             src={"./images/project-assets/" + project.gif}

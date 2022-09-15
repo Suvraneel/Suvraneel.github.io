@@ -37,6 +37,16 @@ const About = () => {
         </p>
         <br />
         <p>Awesome! Let&apos;s BUIDL the next big thing...</p>
+        <br />
+        <br />
+        <a href="./docs/Suvraneel_Bhuin_Resume.pdf">
+          <button
+            className="resume-button h-fit w-fit px-5 py-2 text-lg font-semibold"
+            role="button"
+          >
+            Download Resume
+          </button>
+        </a>
       </div>
     </>
   );
