@@ -45,7 +45,7 @@ const Contact = () => {
   return (
     <div id="contact" className="h-screen w-screen">
       <Head>
-        <title>Portfolio</title>
+        <title>Contact | Portfolio - Suvraneel</title>
       </Head>
       <div className="h-screen">
         {/* <SplineObj

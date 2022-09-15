@@ -29,7 +29,7 @@ export const Navbar = () => {
         onMouseLeave={() => setIsShownHoverContent(false)}
       >
         <div className="logo w-full h-36"></div>
-        <ThemeToggler />
+        {/* <ThemeToggler /> */}
         <div className="gap-0">
           {menu.map((item, index) => {
             return (

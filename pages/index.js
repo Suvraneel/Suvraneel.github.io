@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Portfolio</title>
+        <title>Home | Portfolio - Suvraneel</title>
         <meta name="google-site-verification" content="J9uDTeg3iujyef0pzqJ7s7xDlmizshJEn0767--L3nA" />
       </Head>
       <div className="h-screen">
