@@ -1,3 +1,4 @@
+import Head from "next/head";
 import { useEffect } from "react";
 import { SkillSphere } from "../components/SkillSphere";
 
@@ -17,6 +18,9 @@ const Skills = () => {
 
   return (
     <div className="w-full h-full flex flex-row justify-evenly">
+      <Head>
+        <title>Skills | Portfolio - Suvraneel</title>
+      </Head>
       <div className="h-full hidden sm:flex flex-col justify-center">
         {/* <Script src="./scripts/skillSphere.js" strategy="afterInteractive" /> */}
         <canvas id="canvas"></canvas>
@@ -25,7 +29,9 @@ const Skills = () => {
         id="About Me"
         className="h-full flex flex-col justify-center w-11/12 md:w-5/12 text-md gap-5 text-white"
       >
-        <div className="text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-2 md:mb-10">Skills</div>
+        <div className="text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-2 md:mb-10">
+          Skills
+        </div>
         <p>
           I am a full stack Web (3.0) developer with a passion for creating
           beautiful &amp; responsive web applications. I am a self-taught
@@ -47,7 +53,8 @@ const Skills = () => {
           IPFS, Firebase and more.
         </p>
         <p>
-          I&apos;m currently toying with 3D UI Designs in Next.js-TailwindCSS based applications &amp; building Web3 Dapps.
+          I&apos;m currently toying with 3D UI Designs in Next.js-TailwindCSS
+          based applications &amp; building Web3 Dapps.
         </p>
       </div>
     </div>

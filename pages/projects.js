@@ -17,7 +17,7 @@ export default function Work() {
   return (
     <>
       <Head>
-        <title>Projects</title>
+        <title>Projects | Portfolio - Suvraneel</title>
       </Head>
       <div className="h-screen flex flex-col items-center nav-gap">
         {!modalOpen && <motion.main>

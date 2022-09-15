@@ -8,7 +8,7 @@ export default function Work() {
   return (
     <>
       <Head>
-        <title>Work</title>
+        <title>Work | Portfolio - Suvraneel</title>
       </Head>
       <div className="h-screen w-full flex flex-col items-center">
         <div

@@ -4,7 +4,7 @@ const About = () => {
   return (
     <>
       <Head>
-        <title>About Me</title>
+        <title>About | Portfolio - Suvraneel</title>
       </Head>
       <div className="h-screen">
         <SplineObj scene={"./spline/sceneROG.splinecode"} />
