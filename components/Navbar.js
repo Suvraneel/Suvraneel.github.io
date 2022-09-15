@@ -24,7 +24,7 @@ export const Navbar = () => {
   return (
     <>
       <div
-        className="h-screen flex flex-col gap-3 absolute sidebar-container z-[1000] backdrop-blur-sm"
+        className="h-screen flex flex-col gap-3 absolute sidebar-container z-[4000] backdrop-blur-sm"
         onMouseEnter={() => setIsShownHoverContent(true)}
         onMouseLeave={() => setIsShownHoverContent(false)}
       >

@@ -1,3 +1,4 @@
+import Hamburger from "./Hamburger";
 import { Navbar } from "./Navbar";
 
 const name = "Suvraneel";
@@ -9,6 +10,7 @@ export default function Layout({ children }) {
       <div className="flex flex-col h-full w-full">
         {children}
         <Navbar />
+        <Hamburger />
       </div>
     </div>
   );

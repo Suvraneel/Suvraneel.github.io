@@ -26,10 +26,10 @@ const Skills = () => {
         <canvas id="canvas"></canvas>
       </div>
       <div
-        id="About Me"
+        id="Skills"
         className="h-full flex flex-col justify-center w-11/12 md:w-5/12 text-md gap-5 text-white"
       >
-        <div className="text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-2 md:mb-10">
+        <div className="ml-32 sm:ml-0 text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-2 md:mb-10">
           Skills
         </div>
         <p>

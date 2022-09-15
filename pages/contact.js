@@ -69,7 +69,7 @@ const Contact = () => {
             ref={form}
             onSubmit={sendEmail}
           >
-            <div className="text-3xl md:text-4xl xl:text-7xl animated-heading bold mb-2 md:mb-10">
+            <div className="ml-20 sm:ml-0 text-3xl md:text-4xl xl:text-7xl animated-heading bold mb-2 md:mb-10">
               Contact Me
             </div>
             <div className="user-box">

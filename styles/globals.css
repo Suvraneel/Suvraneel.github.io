@@ -139,11 +139,16 @@ a:hover {
   overflow: hidden;
   padding: 20px 0;
 }
-
+.hamburger {
+  display: none;
+}
 @media only screen and (max-width: 768px) {
 	/* For mobile phones: */
 	.sidebar-container {
 	  display: none;
+	}
+	.hamburger {
+	  display: flex;
 	}
 }
 
