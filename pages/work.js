@@ -10,9 +10,9 @@ export default function Work() {
       <Head>
         <title>Work | Portfolio - Suvraneel</title>
       </Head>
-      <div className="h-screen w-full flex flex-col items-center">
+      <div className="h-screen w-full flex flex-col items-center p-5 sm:p-0">
         <div
-          className="text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-2 md:mb-10
+          className="ml-8 sm:ml-0 text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-2 md:mb-10
           "
         >
           Work &amp; Experience
