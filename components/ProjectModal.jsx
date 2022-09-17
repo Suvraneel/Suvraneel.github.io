@@ -42,13 +42,13 @@ const ProjectModal = ({ handleClose, text, modalOpen, project }) => {
     <Backdrop onClick={handleClose}>
       <motion.div
         onClick={(e) => e.stopPropagation()}
-        className="mx-0 p-10 bg-black rounded absolute top-0 left-0 sm:left-10 h-full flex flex-col sm:flex-row justify-evenly gap-10 mobile-modal"
+        className="w-full h-fit mx-0 p-10 sm:p-14 bg-black rounded absolute top-0 left-0 flex flex-col-reverse sm:flex-row justify-evenly gap-10"
         variants={flip}
         initial="hidden"
         animate="visible"
         exit="exit"
       >
-        <div className="w-full sm:w-9/12 h-fit sm:h-full flex-col gap-3 overflow-y-scroll overflow-x-hidden scroll-smooth hidden sm:flex">
+        <div className="w-full sm:w-9/12 h-fit sm:h-full flex-col gap-3 overflow-y-scroll overflow-x-hidden scroll-smooth">
           <ModalVideo video={project.video} />
           <motion.video
             src={"./images/project-assets/" + project.gif}
@@ -67,7 +67,7 @@ const ProjectModal = ({ handleClose, text, modalOpen, project }) => {
 
 const ModalText = ({ project }) => (
   <div className="flex flex-col gap-5">
-    <div className="text-3xl text-white bolder pt-15">{project.name}</div>
+    <div className="text-3xl text-white mt-4 sm:mt-0">{project.name}</div>
     <div className="text-lg text-cyan-500 flex flex-col">
       <a
         href={project.github}
@@ -96,12 +96,11 @@ const ModalText = ({ project }) => (
         />
       </a>
     </div>
-    <div className="flex flex-row gap-2 wrap">
+    <div className="flex flex-row gap-2 flex-wrap">
       {project.tech_stk.map((tech, i) => (
         <div
           key={i}
-          className="bg-slate-100 dark:hover:bg-slate-700 dark:bg-stone-800 rounded-2xl w-full py-1
-          text-orange-600 drop-shadow-md font-semibold flex justify-center"
+          className="bg-slate-100 dark:hover:bg-slate-700 dark:bg-stone-800 rounded-2xl w-fit px-3 py-1 text-orange-600 drop-shadow-md font-semibold flex justify-center items-center"
         >
           <h4 className="text-sm sm:text-md font-semibold text-cyan-500">
             {tech}
@@ -120,13 +119,11 @@ const ModalText = ({ project }) => (
 );
 
 export const ModalVideo = ({ video }) => (
-  <div className="modal-video h-fit sm:h-full">
+  <div className="modal-video h-fit sm:h-full iframe-container">
     <iframe
-      width="560"
-      height="315"
+      className="responsive-iframe"
       src={video}
       title="YouTube video player"
-      frameBorder="0"
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowFullScreen
     ></iframe>
