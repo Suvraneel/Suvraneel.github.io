@@ -1,5 +1,6 @@
 import emailjs from "@emailjs/browser";
-import { faEnvelopesBulk, faMobile } from "@fortawesome/free-solid-svg-icons";
+import { faClose, faEnvelopesBulk, faMobile } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dynamic from "next/dynamic";
 import Head from "next/head";
 import Link from "next/link";
@@ -35,11 +36,12 @@ const Contact = () => {
 
   const closeBtn = (
     <button
-      className="p-5 text-white hover:text-amber-400 h-fit absolute top-0 right-0 z-[1001] text-md"
+      className="h-fit absolute top-0 right-0 z-[1001] text-md"
       type="button"
       onClick={() => setShowModal(false)}
     >
-      Changed your mind? Close Scheduler...
+      <div className="hidden md:block p-5 text-white hover:text-amber-400">Changed your mind? Close Scheduler...</div>
+      <FontAwesomeIcon className="block md:hidden bg-black p-2 text-amber-400" icon={faClose} size='2x'></FontAwesomeIcon>
     </button>
   );
   return (

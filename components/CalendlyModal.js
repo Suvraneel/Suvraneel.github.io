@@ -14,7 +14,7 @@ function portalContent() {
         <div className="relative h-full w-full mx-48 bg-transparent">
           <div className="border-0 rounded-lg shadow-lg relative flex flex-col h-full w-full bg-transparent outline-none focus:outline-none">
             <div className="relative h-full w-full flex flex-col justify-center items-center opacity-95">
-              <InlineWidget url="https://calendly.com/suvraneel/meet" styles={{ display: 'flex', flexDirection: 'row', height:'100rem', width:'100rem'}}/>
+              <InlineWidget url="https://calendly.com/suvraneel/meet" styles={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', height:'100vh', width:'100vw'}}/>
             </div>
           </div>
         </div>

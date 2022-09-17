@@ -12,8 +12,8 @@ const About = () => {
           scene={"https://prod.spline.design/Mk-LZd5LpzlOllLb/scene.splinecode"}
         /> */}
       </div>
-      <div className="h-full w-full lg:w-1/2 xl:w-1/3 absolute left-2 sm:left-32 top-2 sm:top-10 z-100 text-white flex flex-col items-center gap-3 sm:gap-6 px-5 sm:px-0">
-        <div className="ml-10 sm:ml-0 text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-2 md:mb-10">
+      <div className="h-fit w-full lg:w-1/2 xl:w-1/3 absolute left-2 sm:left-32 top-2 sm:top-10 z-100 text-white flex flex-col gap-5 sm:gap-6 px-5 sm:px-0">
+        <div className="ml-16 sm:ml-0 text-3xl md:text-4xl xl:text-5xl animated-heading bold md:mb-10">
           About Me
         </div>
         <p>
@@ -36,7 +36,7 @@ const About = () => {
         <p className="w-full h-5 hidden sm:block"></p>
         <a href="./docs/Suvraneel_Bhuin_Resume.pdf">
           <button
-            className="resume-button h-fit w-fit px-5 py-2 text-lg font-semibold"
+            className="resume-button h-fit w-fit px-5 py-2 text-lg font-semibold mb-3"
             role="button"
           >
             Download Resume

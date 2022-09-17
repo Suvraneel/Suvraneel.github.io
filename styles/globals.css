@@ -15,7 +15,7 @@ body {
     Helvetica Neue, sans-serif;
   line-height: 1.6;
   font-size: 18px;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .dark {
