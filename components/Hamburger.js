@@ -91,6 +91,7 @@ function Hamburger() {
               whileTap={{ scale: 0.95 }}
               key={index}
               className="sidebar-item flex justify-start"
+              onClick={() => toggleOpen()}
             >
               <Link href={item.href} target="_blank">
                 <a className="text-white flex flex-row gap-5 hover:text-cyan-300">
@@ -118,7 +119,7 @@ function Hamburger() {
           <Socials />
         </motion.li>
       </motion.ul>
-      <MenuToggle toggle={() => toggleOpen()} />;
+      <MenuToggle toggle={() => toggleOpen()} />
     </motion.nav>
   );
 }

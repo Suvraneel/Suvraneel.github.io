@@ -12,17 +12,15 @@ const About = () => {
           scene={"https://prod.spline.design/Mk-LZd5LpzlOllLb/scene.splinecode"}
         /> */}
       </div>
-      <div className="h-screen w-full lg:w-1/2 xl:w-1/3 absolute left-2 sm:left-32 top-10 z-100 text-white">
-        <div className="ml-24 sm:ml-0 text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-2 md:mb-10">
+      <div className="h-full w-full lg:w-1/2 xl:w-1/3 absolute left-2 sm:left-32 top-2 sm:top-10 z-100 text-white flex flex-col items-center gap-3 sm:gap-6 px-5 sm:px-0">
+        <div className="ml-10 sm:ml-0 text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-2 md:mb-10">
           About Me
         </div>
-        <p className="w-full h-5"></p>
         <p>
           Imma Full Stack Web3.0 Developer based in India. I&apos;m currently
           pursuing the final year of my B.Tech in Computer Science &amp;
           Engineering at UCSTA, University of Calcutta.
         </p>
-        <br />
         <p>
           Well-organised person, collaborative, innovative and team-player.
           Problem-solver, Conscientious and active, perfectionist with a keen
@@ -30,15 +28,12 @@ const About = () => {
           &amp; concoct fresh utilitarian website/software with dynamic,
           intuitive user experience.
         </p>
-        <br />
         <p>
           Interested in working on ambitious projects with dedicated &amp;
           driven team. Have an idea?
         </p>
-        <br />
         <p>Awesome! Let&apos;s BUIDL the next big thing...</p>
-        <br />
-        <br />
+        <p className="w-full h-5 hidden sm:block"></p>
         <a href="./docs/Suvraneel_Bhuin_Resume.pdf">
           <button
             className="resume-button h-fit w-fit px-5 py-2 text-lg font-semibold"
