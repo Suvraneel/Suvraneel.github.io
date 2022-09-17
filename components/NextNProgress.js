@@ -96,6 +96,7 @@ class NextNProgress extends React.Component {
           z-index: 1061;
           height: 30%;
         }
+
         .nprogress-custom-parent {
           overflow: hidden;
           position: relative;
@@ -209,6 +210,35 @@ class NextNProgress extends React.Component {
         }
         .covers span:nth-child(7) {
           animation-delay: 0.857142s;
+        }
+
+        @media only screen and (max-width: 768px) {
+          /* For mobile phones: */
+          #nprogress .SB-logo {
+            top: 25vh;
+            left: 25vw;
+            z-index: 1061;
+            height: 22%;
+          }
+          span {
+            display: none;
+          }
+          loader{
+            left: 10vw;
+            top: 10vh;
+            width: 200px;
+          }
+          #nprogress .contemplating {
+            left: 20vw;
+          }
+          #nprogress .SB-logo {
+            display: "block";
+            position: fixed;
+            top: 35vh;
+            left: 25vw;
+            z-index: 1061;
+            height: 30%;
+          }
         }
       `}</style>
     );
