@@ -121,8 +121,7 @@ const ModalText = ({ project }) => (
 export const ModalVideo = ({ video }) => (
   <div className="modal-video h-fit sm:h-full iframe-container">
     <iframe
-      className="responsive-iframe"
-      src={video}
+      src={video+'?rel=0&iv_load_policy=3&showinfo=0&origin=https://suvraneel.github.io'}
       title="YouTube video player"
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowFullScreen
