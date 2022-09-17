@@ -13,6 +13,7 @@ import Link from "next/link";
 import { FontAwesomeObj } from "./FontAwesomeObj";
 import { motion, useCycle } from "framer-motion";
 import MenuToggle from "./DrawerToggler";
+import { Socials } from "./Socials";
 
 const sidebar = {
   open: (height = 1000) => ({
@@ -72,15 +73,15 @@ function Hamburger() {
       initial={false}
       animate={isOpen ? "open" : "closed"}
       custom="100%"
-      className="z-[2001] hamburger"
+      className="z-[2001] hamburger text-white"
     >
       <motion.div
-        className="h-2/5 w-2/5 bg-black absolute top-0 left-0"
+        className="h-4/5 w-1/2 bg-black absolute top-0 left-0"
         variants={sidebar}
       />
       <motion.ul
         variants={variantsNav}
-        className="hamburger-menu w-fit h-fit gap-0 fixed top-10 left-0"
+        className="hamburger-menu w-fit h-fit flex flex-col gap-3 fixed top-16 left-5"
       >
         {menu.map((item, index) => {
           return (
@@ -108,6 +109,14 @@ function Hamburger() {
             </motion.li>
           );
         })}
+        <motion.li
+          variants={variantsItem}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          className="mt-2"
+        >
+          <Socials />
+        </motion.li>
       </motion.ul>
       <MenuToggle toggle={() => toggleOpen()} />;
     </motion.nav>

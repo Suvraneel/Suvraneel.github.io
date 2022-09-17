@@ -32,7 +32,7 @@ export const Socials = () => {
     },
   ];
   return (
-    <div className="flex flex-col md:flex-row justify-evenly content-center gap-2">
+    <div className="flex flex-row justify-evenly content-center gap-2">
       {social.map((item, index) => {
         return (
           <Link href={item.link} key={index}>
