@@ -22,6 +22,17 @@ export const projectsData = [
       tech_stk: ["IPFS","React","AntDesign","Solidity"]
   },
   {
+    id: "solingo",
+    name: "SoLingo",
+    details:
+      "Alongwith the crypto boom & more big players entering, people not crypto-literate are susceptible to scams & unintentional wrong decisions at the least. Educational platforms in the crypto space are hence, a necessity. This is a learn-to-earn project aimed at incentivising crypto-education. This website lets you study the Solana Cookbook & attempt quizzes by module so as to gauge your new-found knowledge & showcase it with cool NFTs you earn on successful completion of each module.",
+      github: "https://github.com/Open-Sorcerer/SoLingo",
+      url: "#",
+      gif: "video-to-be-added.webm",
+      video: "https://www.youtube.com/embed/T_0E6QbSDLo",
+      tech_stk: ["Anchor","TypeScript","React","TailwindCSS","Solidity","Mocha","IPFS","Solana"]
+  },
+  {
     id: "nft-haven",
     name: "NFT Haven",
     details:
@@ -31,6 +42,17 @@ export const projectsData = [
       gif: "nft-haven.webm",
       video: "https://www.youtube.com/embed/YeQI5xZn-_g",
       tech_stk: ["React.js","Node.js","Web3.js","Solidity","Moralis","Chainlink"]
+  },
+  {
+    id: "jailbreak",
+    name: "JailBreak",
+    details:
+      "A 2D RPG-style Indie Adventure Game built from scratch in stock Java & simple mathematical game logic (without using JavaFx or any Game Engine/ Library). Complete implementation is done using OOP concepts (Sprites, Classes, Inheritance, Interfaces & Threads) only. The game is a single player game where the player has to escape from a prison & reach the treasure chest by solving puzzles, dodging security cameras & enemies' vision. It also has a character selection screen & a main menu pane to tweak game settings. The game is inspired by the popular game series - The Legend of Zelda (The OG version).",
+      github: "https://github.com/Suvraneel/JavaMonsterz",
+      url: "#",
+      gif: "video-to-be-added.webm",
+      video: "https://www.youtube.com/embed/ft7uN51_jCw",
+      tech_stk: ["Java 17.0.4","Object-Oriented Programming","IntelliJ IDEA 2022.2","Figma", "Sprites"]
   },
   {
     id: "bounty-gunslinger",
@@ -77,13 +99,12 @@ export const projectsData = [
       tech_stk: ["HTML5","CSS3","Javascript","BootStrap","Chart.js","APIs"]
   },
   {
-    id: "diablo-music-app",
     name: "Diablo Music App",
     details:
       "Minimalistic Music Player with a dark UI especially-curated for the nocturnal. Utilises Firebase-authenticated login. Doubles as local & online music player",
       github: "https://github.com/Suvraneel/Diablo-Music",
       url: "https://suvraneel.github.io/pages/diablo-music.html",
-      gif: "coming_soon.webm",
+      gif: "video-to-be-added.webm",
       video: "https://www.youtube-nocookie.com/embed/u8BbvsCbQyM?rel=0&amp;controls=0&amp;showinfo=0",
       tech_stk: ["Flutter","Firebase","Dart","Dart-UI","Dart-Libraries"]
   },
