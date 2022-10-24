@@ -1,19 +1,19 @@
 import { AnimatePresence, motion } from "framer-motion";
-import dynamic from "next/dynamic";
 import Head from "next/head";
 import { useState } from "react";
+import useSound from "use-sound";
+import ProjectModal from "../components/ProjectModal";
 import { framerLogger } from "../stateLogger";
 import { projectsData } from "./api/projectsDat";
-import ProjectModal from "../components/ProjectModal";
-import Spinner from "../components/Spinner";
 export default function Work() {
-  // Modal type
-  const [modalType] = useState("flip");
   const [projIndex, setProjIndex] = useState(projectsData[0]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState([-1]);
   const close = () => setModalOpen(false);
   const open = () => setModalOpen(true);
+  const popSfx = "./sounds/pop.wav";
+  const confirmSfx = "./sounds/confirm.wav";
+  const [playPop, { stop: stopPop }] = useSound(popSfx, { volume: 0.50 });
+  const [playConfirm] = useSound(confirmSfx, { volume: 0.50 });
   return (
     <>
       <Head>
@@ -30,6 +30,13 @@ export default function Work() {
                   onClick={() => {
                     setProjIndex(project);
                     open;
+                    playConfirm();
+                  }}
+                  onMouseEnter={() => {
+                    playPop();
+                  }}
+                  onMouseLeave={() => {
+                    stopPop();
                   }}
                 >
                   {/* <motion.img
@@ -86,7 +93,7 @@ export default function Work() {
           {modalOpen &&
             <ProjectModal
               modalOpen={modalOpen}
-              text="Bleh"
+              text="Project Modal"
               handleClose={close}
               project={projIndex}
             />}
@@ -96,10 +103,10 @@ export default function Work() {
   );
 }
 
-const ModalContainer = ({ children, label = "Bleh" }) => (
+const ModalContainer = ({ children, label = "Modal Container" }) => (
   <AnimatePresence
     initial={false}
-    exitBeforeEnter={true}
+    mode="wait"
     onExitComplete={() => framerLogger(label)}
   >
     {children}
