@@ -2,7 +2,6 @@ import Head from "next/head";
 import { useState } from "react";
 import ChronoCard from "../components/ChronoCard";
 import { workData } from "./api/workData";
-
 export default function Work() {
   const [data] = useState(workData);
   return (

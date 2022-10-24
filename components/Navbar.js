@@ -5,12 +5,18 @@ import {
   faHouseChimney,
   faPenFancy,
   faSignature,
+  faPlay,
+  faStop,
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import { useState } from "react";
 import { FontAwesomeObj } from "./FontAwesomeObj";
 import { Socials } from "./Socials";
 import ThemeToggler from "./ThemeToggler";
+import useSound from "use-sound";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import Equalizer from "./Equalizer";
+
 export const Navbar = () => {
   const menu = [
     { name: "Home", href: "/", icon: faHouseChimney },
@@ -21,6 +27,10 @@ export const Navbar = () => {
     { name: "Contact", href: "/contact", icon: faPenFancy },
   ];
   const [isShownHoverContent, setIsShownHoverContent] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const bgMusicSfx = "./sounds/RoadsideFlowers.mp3";
+  const [play, { stop }] = useSound(bgMusicSfx, { volume: 0.25 });
+  const [isHovering, setIsHovering] = useState(false);
   return (
     <>
       <div
@@ -28,8 +38,40 @@ export const Navbar = () => {
         onMouseEnter={() => setIsShownHoverContent(true)}
         onMouseLeave={() => setIsShownHoverContent(false)}
       >
-        <div className="logo w-full h-36"></div>
         {/* <ThemeToggler /> */}
+        <button
+          onClick={() => {
+            isPlaying ? stop() : play();
+            setIsPlaying(!isPlaying);
+          }}
+          onMouseEnter={() => {
+            setIsHovering(true);
+          }}
+          onMouseLeave={() => {
+            setIsHovering(false);
+          }}
+        >
+          {isPlaying ? (
+            isHovering ? (
+              <FontAwesomeObj
+              icon={faStop}
+              brandColor="cyan"
+              size="2x"
+              className="sidebar-icon w-full flex items-center justify-center"
+            />
+            ) : (
+              <Equalizer />
+            )
+          ) : (
+              <FontAwesomeObj
+                icon={faPlay}
+                brandColor="cyan"
+                size="2x"
+                className="sidebar-icon w-full flex items-center justify-center"
+              />
+          )}
+        </button>
+        <div className="logo w-full h-36"></div>
         <div className="gap-0">
           {menu.map((item, index) => {
             return (
