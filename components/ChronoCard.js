@@ -46,7 +46,10 @@ export default function ChronoCard({ curElem }) {
             setIsHovering(false);
             stopPop();
           }}
-        />
+          style={{
+            maxWidth: "100%",
+            height: "auto"
+          }} />
       </div>
       <div
         className={

@@ -93,19 +93,21 @@ function Hamburger() {
               className="sidebar-item flex justify-start"
               onClick={() => toggleOpen()}
             >
-              <Link href={item.href} target="_blank">
-                <a className="text-white flex flex-row gap-5 hover:text-cyan-300">
-                  <div className="flex justify-start">
-                    <FontAwesomeObj
-                      icon={item.icon}
-                      brandColor="cyan"
-                      title={item.name}
-                      titleClassName="sidebar-title pl-2 text-xl"
-                      size="xs"
-                      className="sidebar-icon"
-                    />
-                  </div>
-                </a>
+              <Link
+                href={item.href}
+                className="text-white flex flex-row gap-5 hover:text-cyan-300">
+
+                <div className="flex justify-start">
+                  <FontAwesomeObj
+                    icon={item.icon}
+                    brandColor="cyan"
+                    title={item.name}
+                    titleClassName="sidebar-title pl-2 text-xl"
+                    size="xs"
+                    className="sidebar-icon"
+                  />
+                </div>
+
               </Link>
             </motion.li>
           );

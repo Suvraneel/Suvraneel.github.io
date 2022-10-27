@@ -35,11 +35,11 @@ export const Socials = () => {
     <div className="flex flex-row justify-evenly content-center gap-2">
       {social.map((item, index) => {
         return (
-          <Link href={item.link} key={index}>
-            <a>
-              <FontAwesomeObj icon={item.icon} brandColor={item.brandColor} />
-            </a>
-          </Link>
+          (<Link href={item.link} key={index} target="_blank">
+
+            <FontAwesomeObj icon={item.icon} brandColor={item.brandColor} />
+
+          </Link>)
         );
       })}
     </div>
