@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import Image from "next/legacy/image";
+/* eslint-disable @next/next/no-img-element */
+import { useState } from "react";
 import useSound from "use-sound";
 export default function ChronoCard({ curElem }) {
   const [isShown, setIsShown] = useState(false);
@@ -8,7 +8,19 @@ export default function ChronoCard({ curElem }) {
   const [playPop, { stop: stopPop }] = useSound(popSfx, { volume: 0.25 });
   const [isHovering, setIsHovering] = useState(false);
   return (
-    <div className="flex md:contents">
+    <div
+      className="flex md:contents"
+      onMouseEnter={() => {
+        setIsShown(true);
+        setIsHovering(true);
+        playPop();
+      }}
+      onMouseLeave={() => {
+        setIsShown(false);
+        setIsHovering(false);
+        stopPop();
+      }}
+    >
       <div className="hidden sm:block col-start-2 col-end-3 md:mx-auto relative">
         <div className="h-full w-6 flex items-center justify-center">
           <div className="h-full w-1 bg-white pointer-events-none" />
@@ -18,38 +30,19 @@ export default function ChronoCard({ curElem }) {
             "w-6 h-6 hidden sm:block absolute top-1/2 -mt-3 border-4 rounded-full bg-slate-700 shadow text-center " +
             (isShown ? "animate-ping" : "")
           }
-          onMouseEnter={() => {
-            setIsShown(true);
-            setIsHovering(true);
-            playPop();
-          }}
-          onMouseLeave={() => {
-            setIsShown(false);
-            setIsHovering(false);
-            stopPop();
-          }}
         />
       </div>
       <div className="hidden sm:flex col-start-3 col-end-4 md:mx-auto justify-center items-center jello-horizontal">
-        <Image
+        <img
           src={"/images/work-assets/" + curElem.image}
           alt={curElem.company + "Logo"}
           width={isShown ? 100 : 80}
           height={isShown ? 100 : 80}
-          onMouseEnter={() => {
-            setIsShown(true);
-            setIsHovering(true);
-            playPop();
-          }}
-          onMouseLeave={() => {
-            setIsShown(false);
-            setIsHovering(false);
-            stopPop();
-          }}
           style={{
             maxWidth: "100%",
-            height: "auto"
-          }} />
+            height: "auto",
+          }}
+        />
       </div>
       <div
         className={
@@ -58,16 +51,6 @@ export default function ChronoCard({ curElem }) {
             ? "border-cyan-400 backdrop-hue-rotate-15 backdrop-contrast-125 shadow-2xl  shadow-cyan-500/60"
             : "border-white")
         }
-        onMouseEnter={() => {
-          setIsShown(true);
-          setIsHovering(true);
-          playPop();
-        }}
-        onMouseLeave={() => {
-          setIsShown(false);
-          setIsHovering(false);
-          stopPop();
-        }}
       >
         <div className="text-lg w-full">{curElem.role}</div>
         <div className="text-lg w-full">{curElem.company}</div>

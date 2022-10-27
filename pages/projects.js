@@ -10,10 +10,10 @@ export default function Work() {
   const [modalOpen, setModalOpen] = useState(false);
   const close = () => setModalOpen(false);
   const open = () => setModalOpen(true);
+  const snapSfx = "./sounds/snap.wav";
   const popSfx = "./sounds/pop.wav";
-  const confirmSfx = "./sounds/confirm.wav";
-  const [playPop, { stop: stopPop }] = useSound(popSfx, { volume: 0.50 });
-  const [playConfirm] = useSound(confirmSfx, { volume: 0.50 });
+  const [playSnap, { stop: stopSnap }] = useSound(snapSfx, { volume: 0.50 });
+  const [playPop] = useSound(popSfx, { volume: 0.50 });
   return (
     <>
       <Head>
@@ -25,18 +25,18 @@ export default function Work() {
             {projectsData.map((project, i) => {
               return (
                 <div
-                  key={project.id}
+                  key={i}
                   className="w-full"
                   onClick={() => {
                     setProjIndex(project);
                     open;
-                    playConfirm();
-                  }}
-                  onMouseEnter={() => {
                     playPop();
                   }}
+                  onMouseEnter={() => {
+                    playSnap();
+                  }}
                   onMouseLeave={() => {
-                    stopPop();
+                    stopSnap();
                   }}
                 >
                   {/* <motion.img

@@ -29,7 +29,7 @@ export const Navbar = () => {
   const [isShownHoverContent, setIsShownHoverContent] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const bgMusicSfx = "./sounds/RoadsideFlowers.mp3";
-  const [play, { stop }] = useSound(bgMusicSfx, { volume: 0.25 });
+  const [playBGM, { stop: stopBGM }] = useSound(bgMusicSfx, { volume: 0.25 });
   const [isHovering, setIsHovering] = useState(false);
   return <>
     <div
@@ -40,7 +40,7 @@ export const Navbar = () => {
       {/* <ThemeToggler /> */}
       <button
         onClick={() => {
-          isPlaying ? stop() : play();
+          isPlaying ? stopBGM() : playBGM();
           setIsPlaying(!isPlaying);
         }}
         onMouseEnter={() => {
