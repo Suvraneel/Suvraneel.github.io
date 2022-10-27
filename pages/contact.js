@@ -1,5 +1,9 @@
 import emailjs from "@emailjs/browser";
-import { faClose, faEnvelopesBulk, faMobile } from "@fortawesome/free-solid-svg-icons";
+import {
+  faClose,
+  faEnvelopesBulk,
+  faMobile,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dynamic from "next/dynamic";
 import Head from "next/head";
@@ -7,13 +11,20 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { FontAwesomeObj } from "../components/FontAwesomeObj";
 import SplineObj from "../components/SplineObj";
+import useSound from "use-sound";
+
 const CalendlyModal = dynamic(() => import("../components/CalendlyModal"), {
   loading: () => <p>Loading...</p>,
 });
 const Contact = () => {
   const [showModal, setShowModal] = useState(false);
   const form = useRef();
-
+  const snapSfx = "./sounds/snap.wav";
+  const confirmSfx = "./sounds/confirm.wav";
+  const popSfx = "./sounds/pop.wav";
+  const [playSnap, { stop: stopSnap }] = useSound(snapSfx, { volume: 0.25 });
+  const [playConfirm] = useSound(confirmSfx, { volume: 0.25 });
+  const [playPop] = useSound(popSfx, { volume: 0.25 });
   const sendEmail = (e) => {
     e.preventDefault();
 
@@ -21,7 +32,7 @@ const Contact = () => {
       .sendForm(
         "service_7t4fz0c",
         "template_dzdjrce",
-        form.current||'',
+        form.current || "",
         "LD8juHpdDTXSbZCSv"
       )
       .then(
@@ -38,10 +49,25 @@ const Contact = () => {
     <button
       className="h-fit absolute top-0 right-0 z-[1001] text-md"
       type="button"
-      onClick={() => setShowModal(false)}
+      onMouseEnter={() => {
+        playSnap();
+      }}
+      onMouseLeave={() => {
+        stopSnap();
+      }}
+      onClick={() => {
+        setShowModal(false);
+        playPop();
+      }}
     >
-      <div className="hidden md:block p-5 text-white hover:text-amber-400">Changed your mind? Close Scheduler...</div>
-      <FontAwesomeIcon className="block md:hidden bg-black p-2 text-amber-400" icon={faClose} size='2x'></FontAwesomeIcon>
+      <div className="hidden md:block p-5 text-white hover:text-amber-400">
+        Changed your mind? Close Scheduler...
+      </div>
+      <FontAwesomeIcon
+        className="block md:hidden bg-black p-2 text-amber-400"
+        icon={faClose}
+        size="2x"
+      ></FontAwesomeIcon>
     </button>
   );
   return (
@@ -53,7 +79,7 @@ const Contact = () => {
         {/* <SplineObj
           scene={"https://prod.spline.design/shTSpaHWL9CC-uJA/scene.splinecode"}
         /> */}
-        <SplineObj scene={'./spline/sceneCONTACT.splinecode'}/>
+        <SplineObj scene={"./spline/sceneCONTACT.splinecode"} />
       </div>
       <div id="modal" className="h-fit w-full max-w-3xl"></div>
       {showModal ? (
@@ -103,14 +129,26 @@ const Contact = () => {
               <label>Message*</label>
             </div>
             <div className="w-full h-full flex flex-col gap-4">
-              <a href="#"
+              <a
+                href="#"
                 className="p-2 w-full hover:text-cyan-400"
+                onMouseEnter={() => {
+                  playSnap();
+                }}
+                onMouseLeave={() => {
+                  stopSnap();
+                }}
+                onClick={() => playConfirm()}
               >
                 <span></span>
                 <span></span>
                 <span></span>
                 <span></span>
-                <input type="submit" value="Send" className="w-full h-full text-xs md:text-md uppercase"/>
+                <input
+                  type="submit"
+                  value="Send"
+                  className="w-full h-full text-xs md:text-md uppercase"
+                />
               </a>
               <div className="flex w-full gap-5 items-center">
                 <div className="bg-white w-1/2 h-0.5 hr"></div>
@@ -120,7 +158,12 @@ const Contact = () => {
               <a
                 href="#"
                 className="p-2 w-full hover:text-cyan-400 text-xs md:text-md uppercase"
-                onClick={() => setShowModal(true)}
+                onMouseEnter={() => playSnap()}
+                onMouseLeave={() => stopSnap()}
+                onClick={() => {
+                  setShowModal(true);
+                  playConfirm();
+                }}
               >
                 <span></span>
                 <span></span>
@@ -138,7 +181,8 @@ const Contact = () => {
                     href={
                       "https://api.whatsapp.com/send/?phone=917001967224&text=Hey+Suvraneel+!+👋"
                     }
-                    legacyBehavior>
+                    legacyBehavior
+                  >
                     <div className="text-sm flex w-full gap-2 items-center">
                       <FontAwesomeObj
                         icon={faMobile}
@@ -150,7 +194,11 @@ const Contact = () => {
                       />
                     </div>
                   </Link>
-                  <Link href={"mailto:bsuvraneel@gmail.com"} target="_blank" legacyBehavior>
+                  <Link
+                    href={"mailto:bsuvraneel@gmail.com"}
+                    target="_blank"
+                    legacyBehavior
+                  >
                     <div className="text-sm flex w-full gap-2 items-center">
                       <FontAwesomeObj
                         icon={faEnvelopesBulk}

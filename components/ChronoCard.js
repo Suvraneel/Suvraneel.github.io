@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Image from "next/legacy/image";
+import Image from "next/image";
 import useSound from "use-sound";
 export default function ChronoCard({ curElem }) {
   const [isShown, setIsShown] = useState(false);
@@ -46,7 +46,10 @@ export default function ChronoCard({ curElem }) {
             setIsHovering(false);
             stopPop();
           }}
-        />
+          style={{
+            maxWidth: "100%",
+            height: "auto"
+          }} />
       </div>
       <div
         className={

@@ -5,7 +5,7 @@ import {
   faHouseChimney,
   faPenFancy,
   faSignature,
-  faPlay,
+  faMusic,
   faStop,
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
@@ -63,7 +63,7 @@ export const Navbar = () => {
           )
         ) : (
             <FontAwesomeObj
-              icon={faPlay}
+              icon={faMusic}
               brandColor="cyan"
               size="2x"
               className="sidebar-icon w-full flex items-center justify-center"

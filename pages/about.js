@@ -1,6 +1,11 @@
 import Head from "next/head";
 import SplineObj from "../components/SplineObj";
+import useSound from "use-sound";
 const About = () => {
+  const snapSfx = "./sounds/snap.wav";
+  const confirmSfx = "./sounds/confirm.wav";
+  const [playSnap, { stop: stopSnap }] = useSound(snapSfx, { volume: 0.25 });
+  const [playConfirm] = useSound(confirmSfx, { volume: 0.25 });
   return (
     <>
       <Head>
@@ -34,10 +39,13 @@ const About = () => {
         </p>
         <p>Awesome! Let&apos;s BUIDL the next big thing...</p>
         <p className="w-full h-5 hidden sm:block"></p>
-        <a href="./docs/Suvraneel_Bhuin_Resume.pdf">
+        <a href="./docs/Suvraneel_Bhuin_Resume.pdf" target="_blank">
           <button
             className="resume-button h-fit w-fit px-5 py-2 text-lg font-semibold mb-3"
             role="button"
+            onMouseEnter={() => playSnap()}
+            onMouseLeave={() => stopSnap()}
+            onClick={() => playConfirm()}
           >
             Download Resume
           </button>
