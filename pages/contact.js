@@ -138,7 +138,7 @@ const Contact = () => {
                     href={
                       "https://api.whatsapp.com/send/?phone=917001967224&text=Hey+Suvraneel+!+👋"
                     }
-                  >
+                    legacyBehavior>
                     <div className="text-sm flex w-full gap-2 items-center">
                       <FontAwesomeObj
                         icon={faMobile}
@@ -150,7 +150,7 @@ const Contact = () => {
                       />
                     </div>
                   </Link>
-                  <Link href={"mailto:bsuvraneel@gmail.com"} target="_blank">
+                  <Link href={"mailto:bsuvraneel@gmail.com"} target="_blank" legacyBehavior>
                     <div className="text-sm flex w-full gap-2 items-center">
                       <FontAwesomeObj
                         icon={faEnvelopesBulk}
