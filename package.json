@@ -19,6 +19,7 @@
     "@fortawesome/react-fontawesome": "^0.2.0",
     "@splinetool/react-spline": "^2.2.1",
     "@splinetool/runtime": "^0.9.73",
+    "countapi-js": "^1.0.2",
     "emailjs-com": "^3.2.0",
     "framer-motion": "^7.3.2",
     "isomorphic-unfetch": "^3.1.0",
