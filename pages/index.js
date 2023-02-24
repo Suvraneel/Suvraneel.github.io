@@ -16,8 +16,8 @@ export default function Home() {
         <meta name="google-site-verification" content="J9uDTeg3iujyef0pzqJ7s7xDlmizshJEn0767--L3nA"/>
       </Head>
       <div className="h-screen">
-          <SplineObj scene={'https://prod.spline.design/k-kWZfspl6rYFCEw/scene.splinecode'} />
-          {/* <SplineObj scene={'./spline/sceneHOME.splinecode'}/> */}
+          {/* <SplineObj scene={'https://prod.spline.design/k-kWZfspl6rYFCEw/scene.splinecode'} /> */}
+          <SplineObj scene={'./spline/sceneHOME.splinecode'}/>
       </div>
     </>
   );
