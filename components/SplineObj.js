@@ -5,7 +5,7 @@ import Spinner from "./Spinner";
 const Spline = dynamic(() => import("@splinetool/react-spline"), {
   ssr: false,
 });
-const SplineObj = (props) => {
+const SplineObj = (/** @type {{ scene: string; }} */ props) => {
   const [isDesktop, setDesktop] = useState(false);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ const SplineObj = (props) => {
   }, []);
   return (
     <Suspense fallback={<Spinner/>}>
-      {isDesktop?(<Spline className="absolute top-0 right-0" scene={props.scene} />):<></>}
+      {isDesktop&&<Spline className="absolute top-0 right-0" scene={props.scene} />}
     </Suspense>
   );
 };

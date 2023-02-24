@@ -88,7 +88,7 @@ const Contact = () => {
           <CalendlyModal />
         </>
       ) : null}
-      <div className="w-fit md:w-3/4 h-full form-bg px-10 py-5 sm:mx-15 my-10 gap-3 z-10 h-fit lg:h-5/6 rounded login-box backdrop-blur-sm">
+      <div className="w-fit md:w-3/4 form-bg px-10 py-5 sm:mx-15 my-10 gap-3 z-10 h-fit lg:h-5/6 rounded login-box backdrop-blur-sm">
         <div className="w-full h-full flex flex-col md:flex-row">
           <form
             id="form"
