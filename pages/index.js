@@ -17,7 +17,7 @@ export default function Home() {
       </Head>
       <div className="h-screen">
           {/* <SplineObj scene={'https://prod.spline.design/k-kWZfspl6rYFCEw/scene.splinecode'} /> */}
-          <SplineObj scene={'./spline/sceneHOME.splinecode'}/>
+          <SplineObj scene={'./spline/sceneDACCORD.splinecode'}/>
       </div>
     </>
   );
