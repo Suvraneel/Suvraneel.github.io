@@ -12,10 +12,10 @@ const About = () => {
         <title>About | Portfolio - Suvraneel</title>
       </Head>
       <div className="h-screen">
-        <SplineObj scene={"./spline/sceneROG.splinecode"} />
-        {/* <SplineObj
+        {/* <SplineObj scene={"./spline/sceneROG.splinecode"} /> */}
+        <SplineObj
           scene={"https://prod.spline.design/Mk-LZd5LpzlOllLb/scene.splinecode"}
-        /> */}
+        />
       </div>
       <div className="h-fit w-full lg:w-1/2 xl:w-1/3 absolute left-2 sm:left-32 top-2 sm:top-10 z-100 text-white flex flex-col gap-5 sm:gap-6 px-5 sm:px-0">
         <div className="ml-16 sm:ml-0 text-3xl md:text-4xl xl:text-5xl animated-heading bold md:mb-10">
