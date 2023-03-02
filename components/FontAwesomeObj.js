@@ -21,6 +21,7 @@ export const FontAwesomeObj = (props) => {
         stopSnap();
       }}
       onClick={() => playConfirm()}
+      aria-label="music-button"
     >
       <FontAwesomeIcon
         icon={icon}

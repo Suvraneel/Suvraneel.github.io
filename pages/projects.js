@@ -39,35 +39,27 @@ export default function Work() {
                     stopSnap();
                   }}
                 >
-                  {/* <motion.img
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="save-button"
-                  onClick={open}
-                  src={"./images/project-assets/" + project.gif}
-                /> */}
-                  {/* <div className="flex-1 flex-row justify-center items-center z-0"><Spinner /></div> */}
-                    <motion.video
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="save-button z-5"
-                      onClick={open}
-                      id="my-video"
-                      preload="auto"
-                      width="640"
-                      height="264"
-                      data-setup="{}"
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      // onLoadedData={() =>
-                      //   setIsLoading((isLoading) => [...isLoading, i])
-                      // }
-                      src={"./images/project-assets/" + project.gif}
-                    >
-                      {/* <source src="MY_VIDEO.mp4" type="video/mp4" /> */}
-                      {/* <source
+                  <motion.video
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="save-button z-5"
+                    onClick={open}
+                    id="my-video"
+                    preload="auto"
+                    width="640"
+                    height="264"
+                    data-setup="{}"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    // onLoadedData={() =>
+                    //   setIsLoading((isLoading) => [...isLoading, i])
+                    // }
+                    src={"./images/project-assets/" + project.gif}
+                  >
+                    {/* <source src="MY_VIDEO.mp4" type="video/mp4" /> */}
+                    {/* <source
                         src={"./images/project-assets/" + project.gif}
                         type="video/webm"
                       />
@@ -82,7 +74,7 @@ export default function Work() {
                           supports HTML5 video
                         </a>
                       </p> */}
-                    </motion.video>
+                  </motion.video>
                 </div>
               );
             })}

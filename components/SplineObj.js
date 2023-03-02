@@ -2,9 +2,8 @@ import React, { Suspense, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import dynamic from "next/dynamic";
 import Spinner from "./Spinner";
-const Spline = dynamic(() => import("@splinetool/react-spline"), {
-  ssr: false,
-});
+import Spline from '@splinetool/react-spline';
+
 const SplineObj = (/** @type {{ scene: string; }} */ props) => {
   const [isDesktop, setDesktop] = useState(false);
 

@@ -3,19 +3,17 @@ import {
   faCode,
   faCubes,
   faHouseChimney,
+  faMusic,
   faPenFancy,
   faSignature,
-  faMusic,
   faStop,
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 import { useState } from "react";
+import useSound from "use-sound";
+import Equalizer from "./Equalizer";
 import { FontAwesomeObj } from "./FontAwesomeObj";
 import { Socials } from "./Socials";
-import ThemeToggler from "./ThemeToggler";
-import useSound from "use-sound";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import Equalizer from "./Equalizer";
 
 export const Navbar = () => {
   const menu = [
