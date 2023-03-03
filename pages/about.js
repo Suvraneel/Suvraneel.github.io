@@ -10,6 +10,7 @@ const About = () => {
     <>
       <Head>
         <title>About | Portfolio - Suvraneel</title>
+        <meta name="description" content="About | Official Portfolio Website | Suvraneel Bhuin" />
       </Head>
       <div className="h-screen">
         {/* <SplineObj scene={"./spline/sceneROG.splinecode"} /> */}

@@ -18,14 +18,15 @@ export default function Work() {
     <>
       <Head>
         <title>Projects | Portfolio - Suvraneel</title>
+        <meta name="description" content="Projects | Official Portfolio Website | Suvraneel Bhuin" />
       </Head>
       <div className="h-screen flex flex-col items-center nav-gap">
         {!modalOpen && <motion.main>
           <div className="grid grid-cols-1 sm:grid-cols-2	 lg:grid-cols-3 col-auto justify-center">
-            {projectsData.map((project, i) => {
+            {projectsData.map((project) => {
               return (
                 <div
-                  key={i}
+                  key={project.id}
                   className="w-full"
                   onClick={() => {
                     setProjIndex(project);
@@ -53,27 +54,8 @@ export default function Work() {
                     loop
                     muted
                     playsInline
-                    // onLoadedData={() =>
-                    //   setIsLoading((isLoading) => [...isLoading, i])
-                    // }
                     src={"./images/project-assets/" + project.gif}
                   >
-                    {/* <source src="MY_VIDEO.mp4" type="video/mp4" /> */}
-                    {/* <source
-                        src={"./images/project-assets/" + project.gif}
-                        type="video/webm"
-                      />
-                      <p className="vjs-no-js">
-                      To view this video please enable JavaScript, and
-                      consider upgrading to a web browser that
-                      <a
-                      href="https://videojs.com/html5-video-support/"
-                      target="_blank"
-                      rel="noreferrer"
-                        >
-                          supports HTML5 video
-                        </a>
-                      </p> */}
                   </motion.video>
                 </div>
               );

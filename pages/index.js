@@ -14,6 +14,7 @@ export default function Home() {
       <Head>
         <title>Home | Portfolio - Suvraneel</title>
         <meta name="google-site-verification" content="J9uDTeg3iujyef0pzqJ7s7xDlmizshJEn0767--L3nA"/>
+        <meta name="description" content="Home | Official Portfolio Website | Suvraneel Bhuin" />
       </Head>
       <div className="h-screen">
           <SplineObj scene={'https://prod.spline.design/k-kWZfspl6rYFCEw/scene.splinecode'} />

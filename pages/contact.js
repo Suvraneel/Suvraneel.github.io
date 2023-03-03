@@ -74,6 +74,7 @@ const Contact = () => {
     <div id="contact" className="h-screen w-screen">
       <Head>
         <title>Contact | Portfolio - Suvraneel</title>
+        <meta name="description" content="Contact | Official Portfolio Website | Suvraneel Bhuin" />
       </Head>
       <div className="h-screen">
         {/* <SplineObj

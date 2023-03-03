@@ -20,6 +20,7 @@ const Skills = () => {
     <div className="w-full h-full flex flex-row justify-evenly">
       <Head>
         <title>Skills | Portfolio - Suvraneel</title>
+        <meta name="description" content="Skills | Official Portfolio Website | Suvraneel Bhuin" />
       </Head>
       <div className="h-full hidden sm:flex flex-col justify-center">
         {/* <Script src="./scripts/skillSphere.js" strategy="afterInteractive" /> */}

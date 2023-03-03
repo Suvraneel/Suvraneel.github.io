@@ -2,8 +2,8 @@ import React, { Suspense, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import dynamic from "next/dynamic";
 import Spinner from "./Spinner";
-import Spline from '@splinetool/react-spline';
 
+const Spline = dynamic(() => import("@splinetool/react-spline"), { ssr: false });
 const SplineObj = (/** @type {{ scene: string; }} */ props) => {
   const [isDesktop, setDesktop] = useState(false);
 
@@ -25,7 +25,7 @@ const SplineObj = (/** @type {{ scene: string; }} */ props) => {
     return () => window.removeEventListener('resize', updateMedia);
   }, []);
   return (
-    <Suspense fallback={<Spinner/>}>
+    <Suspense fallback={<>Loading...</>}>
       {isDesktop&&<Spline className="absolute top-0 right-0" scene={props.scene} />}
     </Suspense>
   );

@@ -248,7 +248,7 @@ class NextNProgress extends React.Component {
     const { options } = this.props;
 
     NProgress.configure({
-      template: '<img id="load-canvas" src="./images/loading-gif.gif"></img><div class="bar" role="bar"><div class="peg"></div></div><div class="logo-center"><div class="contemplating">Suvraneel is contemplating...</div></div><img class="SB-logo" src="./images/Logo-SB.png"/><div class="loader"><span>L</span><span>O</span><span>A</span><span>D</span><span>I</span><span>N</span><span>G</span><div class="covers"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>'
+      template: '<img id="load-canvas" src="./images/loading-gif.webm"></img><div class="bar" role="bar"><div class="peg"></div></div><div class="logo-center"><div class="contemplating">Suvraneel is contemplating...</div></div><img class="SB-logo" src="./images/Logo-SB.png"/><div class="loader"><span>L</span><span>O</span><span>A</span><span>D</span><span>I</span><span>N</span><span>G</span><div class="covers"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>'
     });
 
     // Trigger progress bar on initial page load

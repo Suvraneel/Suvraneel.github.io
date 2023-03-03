@@ -47,6 +47,7 @@ export const Navbar = () => {
         onMouseLeave={() => {
           setIsHovering(false);
         }}
+        id="music" aria-label="Music"
       >
         {isPlaying ? (
           isHovering ? (
@@ -72,7 +73,7 @@ export const Navbar = () => {
       <div className="gap-0">
         {menu.map((item, index) => {
           return (
-            <div key={index} className="sidebar-item flex justify-start">
+            <div key={item.name} className="sidebar-item flex justify-start">
               <Link
                 href={item.href}
                 className="text-white flex flex-row gap-3 hover:text-cyan-300">

@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import React, { useState } from "react";
+import { useState } from "react";
 import useSound from "use-sound";
 export const FontAwesomeObj = (props) => {
   const [isFocused, setIsFocused] = useState(false);
@@ -21,7 +21,6 @@ export const FontAwesomeObj = (props) => {
         stopSnap();
       }}
       onClick={() => playConfirm()}
-      aria-label="music-button"
     >
       <FontAwesomeIcon
         icon={icon}
@@ -29,15 +28,11 @@ export const FontAwesomeObj = (props) => {
         className="w-6 h-6"
         color={isFocused ? brandColor : "white"}
       />
-      {hasTitle ? (
-        isFocused ? (
-          <div className={titleClassName + " text-cyan-400"}>
-            {title}
-          </div>
-        ) : (
-          <div className={titleClassName}>{title}</div>
-        )
-      ) : null}
+      {hasTitle &&
+        <div className={`${titleClassName} ${isFocused && 'text-cyan-400'}`}>
+          {title}
+        </div>
+      }
     </div>
   );
 };

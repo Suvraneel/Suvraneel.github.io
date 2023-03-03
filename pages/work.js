@@ -8,6 +8,7 @@ export default function Work() {
     <>
       <Head>
         <title>Work | Portfolio - Suvraneel</title>
+        <meta name="description" content="Work | Official Portfolio Website | Suvraneel Bhuin" />
       </Head>
       <div className="h-screen w-full flex flex-col items-center p-5 sm:p-0">
         <div
