@@ -27,7 +27,7 @@ export default function Work() {
               return (
                 <div
                   key={project.id}
-                  className="w-full"
+                  className="w-full relative z-5 hover:z-10"
                   onClick={() => {
                     setProjIndex(project);
                     open;
@@ -40,8 +40,9 @@ export default function Work() {
                     stopSnap();
                   }}
                 >
+                  <div className='w-full h-full absolute z-0 bottom-0 left-0 bg-gradient-to-t from-black via-black/20 to-transparent text-white text-xl flex flex-col justify-end items-start p-3'>{project.name}</div>
                   <motion.video
-                    whileHover={{ scale: 1.1 }}
+                    whileHover={{ scale: 1.2 }}
                     whileTap={{ scale: 0.9 }}
                     className="save-button z-5"
                     onClick={open}
