@@ -1,10 +1,16 @@
 import React from 'react';
 import NProgress from 'nprogress';
 import Router from "next/router";
-import PropTypes from 'prop-types';
+
+interface Props {
+  color?: string;
+  startPosition?: number;
+  stopDelayMs?: number;
+  height?: number;
+}
 
 /* eslint-disable react/prefer-stateless-function */
-class NextNProgress extends React.Component {
+class NextNProgress extends React.Component<Props> {
   static defaultProps = {
     color: '#29D',
     startPosition: 0.3,
@@ -250,8 +256,6 @@ class NextNProgress extends React.Component {
   }
 
   componentDidMount() {
-    const { options } = this.props;
-
     NProgress.configure({
       template: '<video autoPlay loop muted playsInline id="load-canvas" src="./images/loading-gif.webm" class="myVideo"></video><div class="bar" role="bar"><div class="peg"></div></div><div class="logo-center"><div class="contemplating">Suvraneel is contemplating...</div></div><img class="SB-logo" src="./images/Logo-SB.png"/><div class="loader"><span>L</span><span>O</span><span>A</span><span>D</span><span>I</span><span>N</span><span>G</span><div class="covers"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>',
       speed:300
@@ -260,7 +264,7 @@ class NextNProgress extends React.Component {
     // Trigger progress bar on initial page load
     if (Router.pathname === '/') {
       this.routeChangeStart()
-      setTimeout(this.routeChangeEnd, 3000);
+      setTimeout(this.routeChangeEnd, 4000);
     }
 
     Router.events.on('routeChangeStart', this.routeChangeStart);
@@ -268,12 +272,5 @@ class NextNProgress extends React.Component {
     Router.events.on('routeChangeError', this.routeChangeEnd);
   }
 }
-
-NextNProgress.propTypes = {
-  color: PropTypes.string,
-  startPosition: PropTypes.number,
-  stopDelayMs: PropTypes.number,
-  options: PropTypes.object,
-};
 
 export default NextNProgress;

@@ -1,4 +1,4 @@
-export const projectsData = [
+const projectsData = [
   {
     id: "gssoc-website",
     name: "GirlScript SoC 2022 Official Website",
@@ -109,3 +109,5 @@ export const projectsData = [
       tech_stk: ["Flutter","Firebase","Dart","Dart-UI","Dart-Libraries"]
   },
 ];
+
+export default projectsData;

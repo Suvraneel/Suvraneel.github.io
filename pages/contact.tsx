@@ -10,13 +10,15 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { FontAwesomeObj } from "../components/FontAwesomeObj";
-import SplineObj from "../components/SplineObj";
+import SplineObj from "../components/SplineObject";
 import useSound from "use-sound";
+import { NextPage } from "next";
 
 const CalendlyModal = dynamic(() => import("../components/CalendlyModal"), {
   loading: () => <p>Loading...</p>,
 });
-const Contact = () => {
+
+const Contact: NextPage = () => {
   const [showModal, setShowModal] = useState(false);
   const form = useRef();
   const snapSfx = "./sounds/snap.wav";
@@ -216,7 +218,6 @@ const Contact = () => {
             <div className="w-full h-full py-10 hidden md:block">
               <iframe
                 id="map"
-                scrolling="no"
                 src="https://maps.google.com/maps?width=100%25&amp;height=400&amp;hl=en&amp;q=Prabhuram%20Sarkar%20Lane,%20Kolkata,%20India+(My%20Business%20Name)&amp;t=&amp;z=14&amp;ie=UTF8&amp;iwloc=B&amp;output=embed"
                 loading="lazy"
                 className="invert opacity-60 hover:opacity-100 w-full h-full"

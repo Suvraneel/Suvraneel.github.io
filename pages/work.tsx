@@ -2,8 +2,8 @@ import Head from "next/head";
 import { useState } from "react";
 import ChronoCard from "../components/ChronoCard";
 import { workData } from "./api/workData";
-export default function Work() {
-  const [data] = useState(workData);
+import { NextPage } from "next";
+const Work: NextPage = () => {
   return (
     <>
       <Head>
@@ -18,11 +18,13 @@ export default function Work() {
           Work &amp; Experience
         </div>
         <div className="flex flex-col md:grid grid-cols-12 text-gray-50 cursor-default w-full">
-          {data.map((curElem, i) => {
-            return <ChronoCard key={i} curElem={curElem} />;
+          {workData.map((curElem) => {
+            return <ChronoCard key={curElem.duration} curElem={curElem} />;
           })}
         </div>
       </div>
     </>
   );
 }
+
+export default Work;

@@ -4,10 +4,12 @@ import { useState } from "react";
 import useSound from "use-sound";
 import ProjectModal from "../components/ProjectModal";
 import { framerLogger } from "../stateLogger";
-import { projectsData } from "./api/projectsDat";
-export default function Work() {
-  const [projIndex, setProjIndex] = useState(projectsData[0]);
-  const [modalOpen, setModalOpen] = useState(false);
+import projectsData from "./api/projectsDat";
+import { NextPage } from "next";
+
+const Projects: NextPage = () => {
+  const [projIndex, setProjIndex] = useState<any>(projectsData[0]);
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
   const close = () => setModalOpen(false);
   const open = () => setModalOpen(true);
   const snapSfx = "./sounds/snap.wav";
@@ -30,7 +32,7 @@ export default function Work() {
                   className="w-full relative z-5 hover:z-10"
                   onClick={() => {
                     setProjIndex(project);
-                    open;
+                    open();
                     playPop();
                   }}
                   onMouseEnter={() => {
@@ -67,8 +69,6 @@ export default function Work() {
         <ModalContainer>
           {modalOpen &&
             <ProjectModal
-              modalOpen={modalOpen}
-              text="Project Modal"
               handleClose={close}
               project={projIndex}
             />}
@@ -87,3 +87,5 @@ const ModalContainer = ({ children, label = "Modal Container" }) => (
     {children}
   </AnimatePresence>
 );
+
+export default Projects;

@@ -13,9 +13,9 @@ import { useState } from "react";
 import useSound from "use-sound";
 import Equalizer from "./Equalizer";
 import { FontAwesomeObj } from "./FontAwesomeObj";
-import { Socials } from "./Socials";
+import Socials from "./Socials";
 
-export const Navbar = () => {
+const Navbar = () => {
   const menu = [
     { name: "Home", href: "/", icon: faHouseChimney },
     { name: "About", href: "/about", icon: faSignature },
@@ -24,54 +24,50 @@ export const Navbar = () => {
     { name: "Projects", href: "/projects", icon: faCubes },
     { name: "Contact", href: "/contact", icon: faPenFancy },
   ];
-  const [isShownHoverContent, setIsShownHoverContent] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const bgMusicSfx = "./sounds/RoadsideFlowers.mp3";
+  const [isShownHoverContent, setIsShownHoverContent] = useState<boolean>(false);
+  const [isHovering, setIsHovering] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [playBGM, { stop: stopBGM }] = useSound(bgMusicSfx, { volume: 0.25 });
-  const [isHovering, setIsHovering] = useState(false);
   return <>
     <div
       className="h-screen flex flex-col gap-3 absolute sidebar-container z-[4000] backdrop-blur-sm"
       onMouseEnter={() => setIsShownHoverContent(true)}
       onMouseLeave={() => setIsShownHoverContent(false)}
     >
-      {/* <ThemeToggler /> */}
       <button
         onClick={() => {
           isPlaying ? stopBGM() : playBGM();
           setIsPlaying(!isPlaying);
         }}
-        onMouseEnter={() => {
-          setIsHovering(true);
-        }}
-        onMouseLeave={() => {
-          setIsHovering(false);
-        }}
-        id="music" aria-label="Music"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        id="music"
+        aria-label="Music"
       >
         {isPlaying ? (
           isHovering ? (
             <FontAwesomeObj
-            icon={faStop}
-            brandColor="cyan"
-            size="2x"
-            className="sidebar-icon w-full flex items-center justify-center"
-          />
-          ) : (
-            <Equalizer />
-          )
-        ) : (
-            <FontAwesomeObj
-              icon={faMusic}
+              icon={faStop}
               brandColor="cyan"
               size="2x"
               className="sidebar-icon w-full flex items-center justify-center"
             />
+          ) : (
+            <Equalizer />
+          )
+        ) : (
+          <FontAwesomeObj
+            icon={faMusic}
+            brandColor="cyan"
+            size="2x"
+            className="sidebar-icon w-full flex items-center justify-center"
+          />
         )}
       </button>
       <div className="logo w-full h-36"></div>
       <div className="gap-0">
-        {menu.map((item, index) => {
+        {menu.map(item => {
           return (
             <div key={item.name} className="sidebar-item flex justify-start">
               <Link
@@ -107,3 +103,6 @@ export const Navbar = () => {
     </div>
   </>;
 };
+
+export default Navbar;
+

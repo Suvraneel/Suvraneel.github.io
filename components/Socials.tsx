@@ -10,7 +10,7 @@ import {
 import Link from "next/link";
 import { FontAwesomeObj } from "./FontAwesomeObj";
 
-export const Socials = () => {
+const Socials = () => {
   const social = [
     {
       name: "GitHub",
@@ -33,15 +33,15 @@ export const Socials = () => {
   ];
   return (
     <div className="flex flex-row justify-evenly content-center gap-2">
-      {social.map((item, index) => {
+      {social.map(item => {
         return (
-          (<Link href={item.link} key={item.name} target="_blank">
-
+          <Link href={item.link} key={item.name} target="_blank">
             <FontAwesomeObj icon={item.icon} brandColor={item.brandColor} />
-
-          </Link>)
+          </Link>
         );
       })}
     </div>
   );
 };
+
+export default Socials;

@@ -22,7 +22,7 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "components/NextNProgress.tsx"  ],
   "exclude": [
     "node_modules"
   ]

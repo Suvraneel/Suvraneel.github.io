@@ -2,9 +2,9 @@ import React from "react";
 import { InlineWidget } from "react-calendly";
 import ReactDOM from "react-dom";
 
-export default function CalendlyModal() {
+const CalendlyModal = () => {
   const portalDiv = document.getElementById("modal");
-  return portalDiv ? ReactDOM.createPortal(portalContent(), portalDiv) : null;
+  return portalDiv && ReactDOM.createPortal(portalContent(), portalDiv);
 }
 
 function portalContent() {
@@ -22,3 +22,5 @@ function portalContent() {
     </div>
   );
 }
+
+export default CalendlyModal;

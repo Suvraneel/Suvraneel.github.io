@@ -1,11 +1,11 @@
 import Head from "next/head";
-import SplineObj from "../components/SplineObj";
+import SplineObj from "../components/SplineObject";
 import "../styles/Home.module.css";
 import { useEffect, useState } from "react";
 import { useRouter } from 'next/router';
-import Spinner from './../components/Spinner';
-import HamsterLoader from './../components/HamsterLoader/index';
-export default function Home() {
+import HamsterLoader from '../components/HamsterLoader/index';
+import { NextPage } from "next";
+const Home: NextPage = () => {
   const router = useRouter();
   useEffect(() => {
     window.innerWidth < 550 && router.replace("https://suvraneel.bio.link/");
@@ -28,3 +28,5 @@ export default function Home() {
     </>
   );
 }
+
+export default Home;

@@ -1,6 +1,4 @@
-import React from "react";
-
-export const SkillSphere = (props) => {
+export const SkillSphere = () => {
     const canvas = document.getElementById('canvas');
 
     const texts = [

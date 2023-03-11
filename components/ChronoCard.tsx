@@ -1,23 +1,20 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
 import useSound from "use-sound";
-export default function ChronoCard({ curElem }) {
-  const [isShown, setIsShown] = useState(false);
-
+const ChronoCard = ({ curElem }) => {
+  const [isShown, setIsShown] = useState<boolean>(false);
   const popSfx = "./sounds/pop.wav";
   const [playPop, { stop: stopPop }] = useSound(popSfx, { volume: 0.25 });
-  const [isHovering, setIsHovering] = useState(false);
+
   return (
     <div
       className="flex md:contents"
       onMouseEnter={() => {
         setIsShown(true);
-        setIsHovering(true);
         playPop();
       }}
       onMouseLeave={() => {
         setIsShown(false);
-        setIsHovering(false);
         stopPop();
       }}
     >
@@ -66,3 +63,6 @@ export default function ChronoCard({ curElem }) {
     </div>
   );
 }
+
+export default ChronoCard
+

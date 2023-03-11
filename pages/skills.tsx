@@ -1,16 +1,11 @@
 import Head from "next/head";
 import { useEffect } from "react";
 import { SkillSphere } from "../components/SkillSphere";
+import { NextPage } from "next";
 
-const Skills = () => {
+const Skills: NextPage = () => {
   const rgb = [0, 255, 255];
-  const props = {
-    rgb: rgb,
-    width: 500,
-    height: 500,
-    radius: 150,
-    fontSize: 16,
-  };
+
   // Skill Sphere Script
   useEffect(() => {
     SkillSphere(rgb);

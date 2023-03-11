@@ -30,7 +30,8 @@ const flip = {
   },
 };
 
-const ProjectModal = ({ handleClose, text, modalOpen, project }) => {
+const ProjectModal = (props: { handleClose: any; project: any; }) => {
+  const { handleClose, project } = props;
   // Log state
   useEffect(() => {
     stateLogger("Modal", true);
@@ -96,9 +97,9 @@ const ModalText = ({ project }) => (
       </a>
     </div>
     <div className="flex flex-row gap-2 flex-wrap">
-      {project.tech_stk.map((tech, i) => (
+      {project.tech_stk.map((tech:string) => (
         <div
-          key={i}
+          key={tech}
           className="bg-slate-100 dark:hover:bg-slate-700 dark:bg-stone-800 rounded-2xl w-fit px-3 py-1 text-orange-600 drop-shadow-md font-semibold flex justify-center items-center"
         >
           <h4 className="text-sm sm:text-md font-semibold text-cyan-500">
@@ -109,7 +110,7 @@ const ModalText = ({ project }) => (
     </div>
     <div className="text-lg">
       <ul className="list-disc">
-        {project.details.split("|").map((details) => (
+        {project.details.split("|").map((details:string) => (
           <li key={details}>{details}</li>
         ))}
       </ul>
@@ -120,7 +121,7 @@ const ModalText = ({ project }) => (
 export const ModalVideo = ({ video }) => (
   <div className="modal-video h-fit sm:h-full iframe-container">
     <iframe
-      src={video+'?rel=0&iv_load_policy=3&showinfo=0&origin=https://suvraneel.github.io'}
+      src={video + '?rel=0&iv_load_policy=3&showinfo=0&origin=https://suvraneel.github.io'}
       title="YouTube video player"
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowFullScreen

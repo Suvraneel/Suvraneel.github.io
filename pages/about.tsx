@@ -1,7 +1,8 @@
 import Head from "next/head";
-import SplineObj from "../components/SplineObj";
+import SplineObj from "../components/SplineObject";
 import useSound from "use-sound";
-const About = () => {
+import { NextPage } from 'next';
+const About:NextPage = () => {
   const snapSfx = "./sounds/snap.wav";
   const confirmSfx = "./sounds/confirm.wav";
   const [playSnap, { stop: stopSnap }] = useSound(snapSfx, { volume: 0.25 });

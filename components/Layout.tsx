@@ -1,11 +1,7 @@
-import AsciiArt from "./AsciiArt";
 import Hamburger from "./Hamburger";
-import { Navbar } from "./Navbar";
+import Navbar from "./Navbar";
 
-const name = "Suvraneel";
-export const siteTitle = "Next.js Portfolio Website";
-
-export default function Layout({ children }) {
+const Layout = ({ children }) => {
   return (
     <div className="bg-transparent flex flex-row justify-start w-screen h-screen" id="visits">
       <div className="flex flex-col h-full w-full">
@@ -16,3 +12,5 @@ export default function Layout({ children }) {
     </div>
   );
 }
+
+export default Layout;

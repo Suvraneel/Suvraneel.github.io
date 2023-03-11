@@ -1,6 +1,3 @@
-import { faBars, faClose } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useState } from "react";
 import {
   faChartPie,
   faCode,
@@ -9,11 +6,11 @@ import {
   faPenFancy,
   faSignature,
 } from "@fortawesome/free-solid-svg-icons";
-import Link from "next/link";
-import { FontAwesomeObj } from "./FontAwesomeObj";
 import { motion, useCycle } from "framer-motion";
+import Link from "next/link";
 import MenuToggle from "./DrawerToggler";
-import { Socials } from "./Socials";
+import { FontAwesomeObj } from "./FontAwesomeObj";
+import Socials from "./Socials";
 
 const sidebar = {
   open: (height = 1000) => ({
@@ -58,7 +55,8 @@ const variantsNav = {
     transition: { staggerChildren: 0.05, staggerDirection: -1 },
   },
 };
-function Hamburger() {
+
+const Hamburger = () => {
   const [isOpen, toggleOpen] = useCycle(false, true);
   const menu = [
     { name: "Home", href: "/about", icon: faHouseChimney },
@@ -83,13 +81,13 @@ function Hamburger() {
         variants={variantsNav}
         className="hamburger-menu w-fit h-fit flex flex-col gap-3 fixed top-16 left-5"
       >
-        {menu.map((item, index) => {
+        {menu.map((item) => {
           return (
             <motion.li
               variants={variantsItem}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              key={index}
+              key={item.name}
               className="sidebar-item flex justify-start"
               onClick={() => toggleOpen()}
             >
