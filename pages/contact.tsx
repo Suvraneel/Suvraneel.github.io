@@ -85,12 +85,12 @@ const Contact: NextPage = () => {
         <SplineObj scene={"./spline/sceneCONTACT.splinecode"} />
       </div>
       <div id="modal" className="h-fit w-full max-w-3xl"></div>
-      {showModal ? (
+      {showModal &&
         <>
           {closeBtn}
           <CalendlyModal />
         </>
-      ) : null}
+      }
       <div className="w-fit md:w-3/4 form-bg px-10 py-5 sm:mx-15 my-10 gap-3 z-10 h-fit lg:h-5/6 rounded login-box backdrop-blur-sm">
         <div className="w-full h-full flex flex-col md:flex-row">
           <form
@@ -179,18 +179,18 @@ const Contact: NextPage = () => {
           <div className="w-1/2 h-full p-10">
             <div className="text-xl text-white gap-1 flex flex-col">
               <div className="flex gap-5 justify-start">
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col items-start gap-2">
                   <Link
-                    href={
-                      "https://api.whatsapp.com/send/?phone=917001967224&text=Hey+Suvraneel+!+👋"
-                    }
+                    target="_blank"
+                    href={"https://suvraneel.bio.link"}
+                    className="text-white flex flex-row gap-3 hover:text-cyan-300"
                     legacyBehavior
-                  >
-                    <div className="text-sm flex w-full gap-2 items-center">
+                    >
+                    <div className="flex justify-start">
                       <FontAwesomeObj
                         icon={faMobile}
                         brandColor="cyan"
-                        title="+91 70001967224"
+                        title="suvraneel.bio.link"
                         titleClassName="text-md"
                         size="xs"
                         className="sidebar-icon"
@@ -199,10 +199,11 @@ const Contact: NextPage = () => {
                   </Link>
                   <Link
                     href={"mailto:bsuvraneel@gmail.com"}
+                    className="text-white flex flex-row gap-3 hover:text-cyan-300"
                     target="_blank"
                     legacyBehavior
                   >
-                    <div className="text-sm flex w-full gap-2 items-center">
+                    <div className="flex justify-start">
                       <FontAwesomeObj
                         icon={faEnvelopesBulk}
                         brandColor="cyan"

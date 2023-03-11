@@ -73,7 +73,6 @@ const Navbar = () => {
               <Link
                 href={item.href}
                 className="text-white flex flex-row gap-3 hover:text-cyan-300">
-
                 <div className="flex justify-start">
                   <FontAwesomeObj
                     icon={item.icon}
@@ -84,19 +83,18 @@ const Navbar = () => {
                     className="sidebar-icon"
                   />
                 </div>
-
               </Link>
             </div>
           );
         })}
       </div>
       {isShownHoverContent && <Socials />}
-      <div className="fixed bottom-2 text-2xl pl-3 flex flex-row gap-3 items-center justify-between">
+      <div className="fixed bottom-2 text-2xl pl-3 flex flex-row gap-2 items-center justify-between">
         &copy;
         {isShownHoverContent && (
           <div className="flex flex-col">
             <div className="text-xs">Suvraneel</div>
-            <div className="text-xs">Bhuin</div>
+            <div className="text-xs flex gap-1 items-end justify-start align-baseline">Bhuin <div style={{ fontSize: "0.6rem" }}>2023</div></div>
           </div>
         )}
       </div>
