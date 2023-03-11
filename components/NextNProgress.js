@@ -56,7 +56,7 @@ class NextNProgress extends React.Component {
           transform: rotate(3deg) translate(0px, -4px);
         }
         #nprogress .spinner {
-          display: "block";
+          display: block;
           position: fixed;
           z-index: 1051;
           top: 15px;
@@ -74,11 +74,9 @@ class NextNProgress extends React.Component {
           animation: nprogress-spinner 400ms linear infinite;
         }
         #nprogress .logo-center {
-          display: "flex";
+          display: flex;
           position: fixed;
           z-index: 1041;
-          top: 20%;
-          right: 40%;
         }
         #nprogress .contemplating {
           display: "block";
@@ -113,7 +111,7 @@ class NextNProgress extends React.Component {
           height: 100vh;
           background-color: #1d2630aa;
           z-index: 1040;
-          opacity: 0.9;
+          opacity: 1;
         }
         @-webkit-keyframes nprogress-spinner {
           0% {
@@ -143,9 +141,9 @@ class NextNProgress extends React.Component {
         .loader {
           position: absolute;
           bottom: 0;
-          left: 40vw;
+          left: 38vw;
           margin: auto;
-          width: 350px;
+          width: 355px;
           color: white;
           font-family: "Roboto Condensed", sans-serif;
           font-size: 250%;
@@ -255,13 +253,14 @@ class NextNProgress extends React.Component {
     const { options } = this.props;
 
     NProgress.configure({
-      template: '<video autoPlay loop muted playsInline id="load-canvas" src="./images/loading-gif.webm" class="myVideo"></video><div class="bar" role="bar"><div class="peg"></div></div><div class="logo-center"><div class="contemplating">Suvraneel is contemplating...</div></div><img class="SB-logo" src="./images/Logo-SB.png"/><div class="loader"><span>L</span><span>O</span><span>A</span><span>D</span><span>I</span><span>N</span><span>G</span><div class="covers"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>'
+      template: '<video autoPlay loop muted playsInline id="load-canvas" src="./images/loading-gif.webm" class="myVideo"></video><div class="bar" role="bar"><div class="peg"></div></div><div class="logo-center"><div class="contemplating">Suvraneel is contemplating...</div></div><img class="SB-logo" src="./images/Logo-SB.png"/><div class="loader"><span>L</span><span>O</span><span>A</span><span>D</span><span>I</span><span>N</span><span>G</span><div class="covers"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>',
+      speed:300
     });
 
     // Trigger progress bar on initial page load
     if (Router.pathname === '/') {
       this.routeChangeStart()
-      setTimeout(this.routeChangeEnd, 500);
+      setTimeout(this.routeChangeEnd, 3000);
     }
 
     Router.events.on('routeChangeStart', this.routeChangeStart);
