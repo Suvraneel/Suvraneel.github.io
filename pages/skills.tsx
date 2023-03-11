@@ -4,11 +4,10 @@ import { SkillSphere } from "../components/SkillSphere";
 import { NextPage } from "next";
 
 const Skills: NextPage = () => {
-  const rgb = [0, 255, 255];
 
   // Skill Sphere Script
   useEffect(() => {
-    SkillSphere(rgb);
+    SkillSphere();
   }, []);
 
   return (
