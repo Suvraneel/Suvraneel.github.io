@@ -21,9 +21,6 @@ const About: NextPage = () => {
           scene={"https://prod.spline.design/Mk-LZd5LpzlOllLb/scene.splinecode"}
         /> */}
       </div>
-      <div className="h-full w-1/2 absolute right-0">
-        <Canvas />
-      </div>
       <div className="h-fit w-full lg:w-3/5 xl:w-1/2 absolute left-2 sm:left-32 top-2 sm:top-10 z-100 text-white flex flex-col gap-5 sm:gap-6 px-5 sm:px-0">
         <div className="ml-16 sm:ml-0 text-3xl md:text-4xl xl:text-5xl animated-heading bold md:mb-10">
           About Me
@@ -36,7 +33,7 @@ const About: NextPage = () => {
         </p>
         <p>
           Interested in working on ambitious projects with dedicated &amp;
-          driven team. Have an idea?
+          driven team.<br/>Have an idea?
         </p>
         <p>Awesome! Let&apos;s BUIDL the next big thing...</p>
         <p className="w-full h-5 hidden sm:block"></p>
@@ -51,6 +48,9 @@ const About: NextPage = () => {
             Download Resume
           </button>
         </a>
+      </div>
+      <div className="h-screen w-1/2 flex flex-grow flex-col flex-end absolute right-0 bottom-0">
+        <Canvas />
       </div>
     </>
   );

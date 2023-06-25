@@ -12,8 +12,8 @@ const Canvas: React.FC = () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerWidth;
       } else {
-        canvas.height = 700;
-        canvas.width = 700;
+        canvas.height = window.innerHeight;
+        canvas.width = window.innerHeight;
       }
     }
 
@@ -103,7 +103,7 @@ const Canvas: React.FC = () => {
         this.w = width;
         this.h = height;
         this.img = document.getElementById('image1') as HTMLImageElement;
-        this.gap = 3;
+        this.gap = 2;
         this.particleArray = [];
 
         this.centerx = this.w * 0.5;
@@ -125,24 +125,30 @@ const Canvas: React.FC = () => {
       }
 
       init(ctx: CanvasRenderingContext2D) {
-        ctx.drawImage(this.img, 0, 0, this.w, this.h);
-        const pixels = ctx.getImageData(0, 0, this.w, this.h).data;
+        const image1 = new Image();
+        image1.src = './images/Speaker.png';
+        image1.onload = () => {
+          this.img = image1;
 
-        for (let y = 0; y < this.h; y += this.gap) {
-          for (let x = 0; x < this.w; x += this.gap) {
-            const index = (y * this.w + x) * 4;
-            const red = pixels[index];
-            const green = pixels[index + 1];
-            const blue = pixels[index + 2];
-            const alpha = pixels[index + 3];
+          ctx.drawImage(this.img, 0, 0, this.w, this.h);
+          const pixels = ctx.getImageData(0, 0, this.w, this.h).data;
 
-            const color = `rgba(${red},${green},${blue},${alpha / 255})`;
-            if (alpha > 0) {
-              this.particleArray.push(new Particle(this, x, y, color));
+          for (let y = 0; y < this.h; y += this.gap) {
+            for (let x = 0; x < this.w; x += this.gap) {
+              const index = (y * this.w + x) * 4;
+              const red = pixels[index];
+              const green = pixels[index + 1];
+              const blue = pixels[index + 2];
+              const alpha = pixels[index + 3];
+
+              const color = `rgba(${red},${green},${blue},${alpha / 255})`;
+              if (alpha > 0) {
+                this.particleArray.push(new Particle(this, x, y, color));
+              }
             }
           }
         }
-      }
+      };
 
       draw(ctx: CanvasRenderingContext2D) {
         this.particleArray.forEach((particle) => particle.draw(ctx));
