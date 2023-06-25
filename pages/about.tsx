@@ -49,7 +49,7 @@ const About: NextPage = () => {
           </button>
         </a>
       </div>
-      <div className="h-screen w-1/2 flex flex-grow flex-col flex-end absolute right-0 bottom-0">
+      <div className="hidden h-screen w-1/2 lg:flex flex-grow flex-col flex-end absolute right-0 bottom-0">
         <Canvas />
       </div>
     </>

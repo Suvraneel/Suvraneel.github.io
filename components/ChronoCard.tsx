@@ -18,18 +18,18 @@ const ChronoCard = ({ curElem }) => {
         stopPop();
       }}
     >
-      <div className="hidden sm:block col-start-2 col-end-3 md:mx-auto relative">
+      <div className="hidden relative left-5 md:block col-start-1 col-end-2 md:mx-auto">
         <div className="h-full w-6 flex items-center justify-center">
           <div className="h-full w-1 bg-white pointer-events-none" />
         </div>
         <div
           className={
             "w-6 h-6 hidden sm:block absolute top-1/2 -mt-3 border-4 rounded-full bg-slate-700 shadow text-center " +
-            (isShown ? "animate-ping" : "")
+            (isShown && "animate-ping")
           }
         />
       </div>
-      <div className="hidden sm:flex col-start-3 col-end-4 md:mx-auto justify-center items-center jello-horizontal">
+      <div className="hidden sm:flex col-start-5 col-end-6 lg:col-start-5 lg:col-end-6 xl:col-start-4 xl:col-end-5 md:mx-auto justify-center items-center jello-horizontal">
         <img
           src={"/images/work-assets/" + curElem.image}
           alt={curElem.company + "Logo"}
@@ -43,7 +43,7 @@ const ChronoCard = ({ curElem }) => {
       </div>
       <div
         className={
-          "border-2 backdrop-blur-xl backdrop-contrast-100 text-white dark:text-white col-start-4 col-end-12 p-4 rounded-xl my-4 sm:ml-8 mr-auto w-full px-8 " +
+          "border-2 backdrop-blur-xl backdrop-contrast-100 text-white dark:text-white col-start-6 lg:col-start-6 xl:col-start-5 col-end-12 p-4 rounded-xl my-4 sm:ml-8 mr-auto w-full px-8 " +
           (isShown
             ? "border-cyan-400 backdrop-hue-rotate-15 backdrop-contrast-125 shadow-2xl  shadow-cyan-500/60"
             : "border-white")
