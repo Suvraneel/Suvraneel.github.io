@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from 'next/router';
 import HamsterLoader from '../components/HamsterLoader/index';
 import { NextPage } from "next";
+
 const Home: NextPage = () => {
   const router = useRouter();
   useEffect(() => {

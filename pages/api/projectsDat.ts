@@ -11,6 +11,17 @@ const projectsData = [
     tech_stk: ["NextJS", "TailwindCSS", "ChakraUI", "Figma", "Moralis", "Solidity", "Axios", "Express"]
   },
   {
+    id: "eth-commerce",
+    name: "EthCommerce",
+    details:
+    "EthCommerce is an online platform that helps creators, developers, and entrepreneurs sell their products directly to their audience. |The problem EthCommerce solves is independent creators' challenges when trying to sell their products online. |EthCommerce removes all intermediaries and gives direct access to the audience. |Developed on different chains, buyers can choose to buy courses on their favourite chain. |Our platform charges minimal fees, and that too only when the creator decides to withdraw the money. |All the data is stored on IPFS, so there is no chance that the data will be lost. |EthCommerce provides full flexibility and a real connection with the audience. |With QuickNode alerts, we send messages to the audience and creators whenever a new course is created or purchased.",
+    github: "https://github.com/Open-Sorcerer/EthCommerce",
+    url: "https://ethcommerce.vercel.app/",
+    gif: "video-to-be-added.webm",
+    video: "https://www.youtube.com/embed/mBmFIWkCQIY",
+    tech_stk: ["NextJS 13", "TailwindCSS", "Spline.Design", "Figma", "QuickNode", "Solidity", "MongoDB", "IPFS", "ThirdWeb", "HardHat", "Wagmi"]
+  },
+  {
     id: "de-stack-overflow",
     name: "DeStackOverflow",
     details:
@@ -31,6 +42,17 @@ const projectsData = [
       gif: "video-to-be-added.webm",
       video: "https://www.youtube.com/embed/T_0E6QbSDLo",
       tech_stk: ["Anchor","TypeScript","React","TailwindCSS","Solidity","Mocha","IPFS","Solana"]
+  },
+  {
+    id: "CrewS",
+    name: "CrewS",
+    details:
+        "CrewS is a No Code Tool to create Data DAOs. |With CrewS you can take your crew on chain quickly to manage data along with governance. |Features include managing proposals, on-chain voting, execution of proposals, storing data as per the voting results. |FVM enables a new kind of data-centric DAO that has heretofore been impossible. |DataDAOs are DAOs whose mission revolves around the preservation, curation, augmentation, and promotion of datasets considered valuable by their stakeholders.",
+    github: "https://github.com/Open-Sorcerer/CrewS",
+    url: "https://bafybeiblkpu3lbde4jgopk36e2y5ggcti6olyzgpdisgcblcem24ls5cku.ipfs.gateway.valist.io/",
+    gif: "video-to-be-added.webm",
+    video: "https://www.youtube.com/embed/4sabLpt37-Y",
+    tech_stk: ["NextJS","TailwindCSS","Solidity","FVM","IPFS"]
   },
   {
     id: "nft-haven",
