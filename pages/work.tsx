@@ -11,7 +11,7 @@ const Work: NextPage = () => {
         <title>Work | Portfolio - Suvraneel</title>
         <meta name="description" content="Work | Official Portfolio Website | Suvraneel Bhuin" />
       </Head>
-      <div className="h-2/3 lg:h-full w-80 xl:w-96 absolute left-5 bottom-0 z-20">
+      <div className="h-full w-80 xl:w-96 absolute left-5 bottom-0 z-50">
         <SplineObj
           scene={"https://prod.spline.design/2s42dKJz8AJDZ1HK/scene.splinecode"}
         />

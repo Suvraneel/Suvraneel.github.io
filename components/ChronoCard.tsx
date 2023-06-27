@@ -33,8 +33,8 @@ const ChronoCard = ({ curElem }) => {
         <img
           src={"/images/work-assets/" + curElem.image}
           alt={curElem.company + "Logo"}
-          width={isShown ? 100 : 80}
-          height={isShown ? 100 : 80}
+          width={isShown ? 90 : 70}
+          height={isShown ? 90 : 70}
           style={{
             maxWidth: "100%",
             height: "auto",
