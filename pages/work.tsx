@@ -11,7 +11,7 @@ const Work: NextPage = () => {
         <title>Work | Portfolio - Suvraneel</title>
         <meta name="description" content="Work | Official Portfolio Website | Suvraneel Bhuin" />
       </Head>
-      <div className="h-full w-80 xl:w-96 absolute left-5 bottom-0 z-50">
+      <div className="h-full w-80 xl:w-96 fixed left-0 bottom-0 z-50">
         <SplineObj
           scene={"https://prod.spline.design/2s42dKJz8AJDZ1HK/scene.splinecode"}
         />
@@ -23,7 +23,7 @@ const Work: NextPage = () => {
         >
           Work &amp; Experience
         </div>
-        <div className="flex flex-col md:grid grid-cols-12 text-gray-50 cursor-default w-full">
+        <div className="flex flex-col md:grid grid-cols-12 text-gray-50 cursor-default w-full z-0">
           {workData.map((curElem) => {
             return <ChronoCard key={curElem.duration} curElem={curElem} />;
           })}
