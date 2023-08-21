@@ -3,14 +3,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fonts - Google */
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display&family=Poiret+One&family=Raleway&display=swap");
 
 html,
 body {
   padding: 0;
   margin: 0;
-  font-family: "Raleway", "Playfair Display", -apple-system, BlinkMacSystemFont,
+  font-family: var(--font-TASAOrb) , "Raleway", "Playfair Display", -apple-system, BlinkMacSystemFont,
     Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans,
     Helvetica Neue, sans-serif;
   line-height: 1.6;
@@ -27,8 +25,6 @@ img {
   display: block;
 }
 
-@import url("https://fonts.googleapis.com/css?family=Montserrat:100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i");
-@import url("https://fonts.googleapis.com/css?family=Poppins:400,500,600,700,800,900");
 
 body {
   font-family: "Montserrat", sans-serif;
@@ -41,66 +37,32 @@ body {
   /* background-position: center; */
   /* background-repeat: repeat; */
   /* background-size: 4%; */
-  background: linear-gradient(
-    57deg,
-    #0b0047,
-    #000000,
-    #1c002f,
-    #094138,
-    #001249
-  );
-  background-size: 1400% 1400%;
-
-  -webkit-animation: AnimationName 23s ease infinite;
-  -moz-animation: AnimationName 23s ease infinite;
-  -o-animation: AnimationName 23s ease infinite;
-  animation: AnimationName 23s ease infinite;
+  background: black;
 }
 
-@-webkit-keyframes AnimationName {
+/* Styles for the swirling orb animation */
+@keyframes swirlAnimation {
   0% {
-    background-position: 0% 83%;
-  }
-  50% {
-    background-position: 100% 18%;
+    transform: rotate(0deg);
   }
   100% {
-    background-position: 0% 83%;
+    transform: rotate(360deg);
   }
 }
-@-moz-keyframes AnimationName {
+
+@keyframes swirlAnimation {
   0% {
-    background-position: 0% 83%;
-  }
-  50% {
-    background-position: 100% 18%;
+    transform: rotate(0deg);
   }
   100% {
-    background-position: 0% 83%;
+    transform: rotate(360deg);
   }
 }
-@-o-keyframes AnimationName {
-  0% {
-    background-position: 0% 83%;
-  }
-  50% {
-    background-position: 100% 18%;
-  }
-  100% {
-    background-position: 0% 83%;
-  }
+
+.animate-swirl {
+  animation: swirlAnimation 5s linear infinite;
 }
-@keyframes AnimationName {
-  0% {
-    background-position: 0% 83%;
-  }
-  50% {
-    background-position: 100% 18%;
-  }
-  100% {
-    background-position: 0% 83%;
-  }
-}
+
 
 a {
   color: #0070f3;
@@ -141,7 +103,7 @@ a:hover {
 }
 
 .sidebar-container:hover {
-  width: 130px;
+  width: 140px;
 }
 
 .sidebar-item {
@@ -161,10 +123,9 @@ p {
 
 .resume-button,
 .resume-button:after {
-  background: linear-gradient(45deg, transparent 5%, #DE272C 5%);
+  background: linear-gradient(45deg, transparent 5%, #9200BA 5%);
   border: 0;
-  color: #fff;
-  box-shadow: 6px 0px 0px #00E6F6;
+  box-shadow: 6px 0px 0px #00D6E6;
   outline: transparent;
   position: relative;
   -webkit-user-select: none;
@@ -187,7 +148,7 @@ p {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(45deg, transparent 3%, #00E6F6 3%, #00E6F6 5%, #DE272C 5%);
+  background: linear-gradient(45deg, transparent 3%, #00E6F6 3%, #00E6F6 5%, #70008F 5%);
   text-shadow: -3px -3px 0px #F8F005, 3px 3px 0px #00E6F6;
   clip-path: var(--slice-0);
 }
@@ -254,18 +215,18 @@ p {
 .animated-heading {
   font-family: "Playfair Display", serif;
   font-weight: 700;
-  background: url("https://i.ibb.co/RDTnNrT/animated-text-fill.png") no-repeat;
+  background: url("https://i.ibb.co/mhpzvXk/seed-46867.png") repeat;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: move 90s linear infinite;
+  animation: move 50s linear infinite;
 }
 @keyframes move {
   0% {
     background-position: 0% 30%;
   }
   100% {
-    background-position: 100% 50%;
+    background-position: 100% 70%;
   }
 }
 

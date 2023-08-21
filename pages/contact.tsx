@@ -13,9 +13,11 @@ import { FontAwesomeObj } from "../components/FontAwesomeObj";
 import SplineObj from "../components/SplineObject";
 import useSound from "use-sound";
 import { NextPage } from "next";
+import { spaceBoards, tasaOrbiter } from "@/fonts";
 
 const CalendlyModal = dynamic(() => import("../components/CalendlyModal"), {
   loading: () => <p>Loading...</p>,
+
 });
 
 const Contact: NextPage = () => {
@@ -92,7 +94,7 @@ const Contact: NextPage = () => {
         </>
       }
       <div className="w-fit md:w-3/4 form-bg px-10 py-5 sm:mx-15 my-10 gap-3 z-10 h-fit lg:h-5/6 rounded login-box backdrop-blur-sm">
-        <div className="w-full h-full flex flex-col md:flex-row">
+        <div className={`w-full h-full flex flex-col md:flex-row ${tasaOrbiter.className}`}>
           <form
             id="form"
             className="flex flex-col gap-5 rounded w-full md:w-1/2 h-full justify-evenly"
@@ -100,12 +102,13 @@ const Contact: NextPage = () => {
             ref={form}
             onSubmit={sendEmail}
           >
-            <div className="ml-20 sm:ml-0 text-3xl md:text-4xl xl:text-7xl animated-heading bold mb-2 md:mb-10">
+            <div className={`ml-20 sm:ml-0 text-2xl md:text-3xl xl:text-5xl animated-heading bold mb-2 md:mb-10 ${spaceBoards.className}`}>
               Contact Me
             </div>
             <div className="user-box">
               <input
                 type="text"
+                title="name"
                 name="user_name"
                 className="w-full px-4 rounded"
                 required
@@ -115,6 +118,7 @@ const Contact: NextPage = () => {
             <div className="user-box">
               <input
                 type="email"
+                title="Email"
                 name="user_email"
                 className="w-full px-4 rounded"
                 required
@@ -124,6 +128,7 @@ const Contact: NextPage = () => {
             <div className="user-box">
               <textarea
                 name="message"
+                title="Message"
                 className="w-full px-4 rounded"
                 rows={4}
                 cols={5}
@@ -185,7 +190,7 @@ const Contact: NextPage = () => {
                     href={"https://suvraneel.bio.link"}
                     className="text-white flex flex-row gap-3 hover:text-cyan-300"
                     legacyBehavior
-                    >
+                  >
                     <div className="flex justify-start">
                       <FontAwesomeObj
                         icon={faMobile}

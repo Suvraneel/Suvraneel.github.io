@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
 import useSound from "use-sound";
+import { tasaOrbiter } from '@/fonts';
 const ChronoCard = ({ curElem }) => {
   const [isShown, setIsShown] = useState<boolean>(false);
   const popSfx = "./sounds/pop.wav";
@@ -8,7 +9,7 @@ const ChronoCard = ({ curElem }) => {
 
   return (
     <div
-      className="flex md:contents"
+      className={`flex md:contents ${tasaOrbiter.className}`}
       onMouseEnter={() => {
         setIsShown(true);
         playPop();
@@ -18,7 +19,7 @@ const ChronoCard = ({ curElem }) => {
         stopPop();
       }}
     >
-      <div className="hidden relative left-5 md:block col-start-1 col-end-2 md:mx-auto">
+      {/* <div className="hidden relative left-5 md:block col-start-1 col-end-2 md:mx-auto">
         <div className="h-full w-6 flex items-center justify-center">
           <div className="h-full w-1 bg-white pointer-events-none" />
         </div>
@@ -28,7 +29,7 @@ const ChronoCard = ({ curElem }) => {
             (isShown && "animate-ping")
           }
         />
-      </div>
+      </div> */}
       <div className="hidden sm:flex col-start-5 col-end-6 lg:col-start-5 lg:col-end-6 xl:col-start-4 xl:col-end-5 md:mx-auto justify-center items-center jello-horizontal">
         <img
           src={"/images/work-assets/" + curElem.image}

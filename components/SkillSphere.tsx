@@ -1,3 +1,5 @@
+
+import { raleway, montserrat, spaceBoards } from "@/fonts";
 export const SkillSphere = () => {
     const canvas = document.getElementById('canvas');
 
@@ -28,8 +30,8 @@ export const SkillSphere = () => {
       const {
         width = 500,
         height = 500,
-        radius = 150,
-        fontSize = 16,
+        radius = 160,
+        fontSize = 12,
         tilt = 0,
         initialVelocityX = 0,
         initialVelocityY = 0,
@@ -101,7 +103,7 @@ export const SkillSphere = () => {
           const alpha = 0.6 + 0.4 * (x/radius);
           const size = fontSize + 2 + 5*(x/radius);
           ctx.fillStyle = `rgba(0,255,255,${alpha})`;
-          ctx.font = `${size}px "Raleway", "Playfair Display", "Helvetica Neue", sans-serif`;
+          ctx.font = `${size}px ${spaceBoards.style.fontFamily}, "Raleway", "Playfair Display", "Helvetica Neue", sans-serif`;
           ctx.fillText(text, y + width/2, -z + height/2);
     
           ix--;

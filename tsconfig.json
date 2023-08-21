@@ -5,6 +5,9 @@
       "dom.iterable",
       "esnext"
     ],
+    "paths": {
+      "@/fonts": ["./styles/fonts"]
+    },
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,

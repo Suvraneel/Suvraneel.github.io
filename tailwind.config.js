@@ -6,7 +6,13 @@ module.exports = {
   ],
   darkMode: 'class',
   theme: {
-    extend: {},
+    extend: {
+			fontFamily: {
+				sans: ["serif", "sans-serif"],
+				primary: ['var(--font-spaceBoards)', "sans-serif"],
+				secondary: ['var(--font-TASAOrb)', "sans-serif"],
+			},
+		},
   },
   plugins: [],
 }
