@@ -148,8 +148,8 @@ p {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(45deg, transparent 3%, #00E6F6 3%, #00E6F6 5%, #70008F 5%);
-  text-shadow: -3px -3px 0px #F8F005, 3px 3px 0px #00E6F6;
+  background: linear-gradient(45deg, transparent 3%, #06FFC8 3%, #06FFC8 5%, #70008F 5%);
+  text-shadow: -3px -3px 0px #F8F005, 3px 3px 0px #06FFC8;
   clip-path: var(--slice-0);
 }
 

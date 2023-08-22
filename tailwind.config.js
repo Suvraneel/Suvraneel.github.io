@@ -12,6 +12,10 @@ module.exports = {
 				primary: ['var(--font-spaceBoards)', "sans-serif"],
 				secondary: ['var(--font-TASAOrb)', "sans-serif"],
 			},
+      colors: {
+        primary: "#B338FF",
+        accent: "#06FFC8",
+      }
 		},
   },
   plugins: [],

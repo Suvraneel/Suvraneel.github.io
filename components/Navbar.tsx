@@ -78,7 +78,7 @@ const Navbar = () => {
                     icon={item.icon}
                     brandColor="cyan"
                     title={item.name}
-                    titleClassName="sidebar-title pl-2"
+                    titleClassName="sidebar-title pl-2 font-semibold"
                     size="xs"
                     className="sidebar-icon"
                   />

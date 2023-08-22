@@ -39,7 +39,7 @@ const About: NextPage = () => {
         <p className="w-full h-5 hidden sm:block"></p>
         <a href="./docs/Suvraneel_Bhuin_Resume.pdf" target="_blank">
           <button
-            className={`resume-button h-fit w-fit px-5 py-2 text-md text-cyan-300  font-semibold mb-3 ${spaceBoards.className}`}
+            className={`resume-button h-fit w-fit px-5 py-2 text-md text-accent  font-semibold mb-3 ${spaceBoards.className}`}
             role="button"
             onMouseEnter={() => playSnap()}
             onMouseLeave={() => stopSnap()}

@@ -18,7 +18,7 @@ function MyApp({ Component, pageProps }) {
       <AnimatePresence mode="wait">
         <Layout>
         <AsciiArt />
-          <NextNProgress color="#8F4FFB" />
+          <NextNProgress color="#B338FF" />
           <Component {...pageProps} />
         </Layout>
       </AnimatePresence>
