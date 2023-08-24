@@ -5,11 +5,11 @@ export const SkillSphere = () => {
 
     const texts = [
       'HTML5', 'JavaScript', 'CSS3', 'Flutter', 'Dart',
-      'C++', 'Python', 'Java', 'MySQL', 'MongoDB',
-      'Node.JS', 'VHDL', 'Flutter', 'Next.JS', 'BootStrap',
-      'React.JS', 'JSX', 'Git', 'TailwindCSS',
+      'BootStrap', 'TypeScript', 'C/C++', 'MongoDB', 'MySQL',
+      'NodeJS', 'Figma', 'NextJS', 'Vite', 'Java',
+      'ReactJS', 'REST APIs', 'Git', 'TailwindCSS', 'Solidity'
     ];
-    const counts = [1,2,4,5,4,2,1];
+    const counts = [1,2,4,6,4,2,1];
     
     const options = {
       tilt: Math.PI / 9,
@@ -30,7 +30,7 @@ export const SkillSphere = () => {
       const {
         width = 500,
         height = 500,
-        radius = 160,
+        radius = 200,
         fontSize = 12,
         tilt = 0,
         initialVelocityX = 0,

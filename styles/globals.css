@@ -153,6 +153,7 @@ p {
   clip-path: var(--slice-0);
 }
 
+
 .resume-button:hover:after {
   animation: 1s glitch;
   animation-timing-function: steps(2, end);

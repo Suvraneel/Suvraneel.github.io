@@ -9,7 +9,7 @@ const ChronoCard = ({ curElem }) => {
 
   return (
     <div
-      className={`flex md:contents ${tasaOrbiter.className}`}
+      className="h-fit w-full relative flex md:contents"
       onMouseEnter={() => {
         setIsShown(true);
         playPop();
@@ -44,18 +44,33 @@ const ChronoCard = ({ curElem }) => {
       </div>
       <div
         className={
-          "border-2 backdrop-blur-xl backdrop-contrast-100 text-white dark:text-white col-start-6 lg:col-start-6 xl:col-start-5 col-end-12 p-4 rounded-xl my-4 sm:ml-8 mr-auto w-full px-8 " +
+          "border-2 backdrop-blur-xl backdrop-contrast-100 text-white dark:text-white col-start-6 lg:col-start-6 xl:col-start-5 col-end-12 p-4 rounded-xl my-4 sm:ml-8 mr-auto w-full px-8 " +  tasaOrbiter.className + " " +
           (isShown
             ? "border-cyan-400 backdrop-hue-rotate-15 backdrop-contrast-125 shadow-2xl  shadow-cyan-500/60"
             : "border-white")
         }
       >
-        <div className="text-lg w-full">{curElem.role}</div>
-        <div className="text-lg w-full">{curElem.company}</div>
-        <div className="font-bold text-md mb-1">{curElem.duration}</div>
+        <div className="flex flex-row justify-between items-start gap-4">
+          <div>
+            <div className="text-lg w-full">{curElem.role}</div>
+            <div className="text-lg w-full">{curElem.company}</div>
+            <div className="font-bold text-md mb-1">{curElem.duration}</div>
+          </div>
+          <img
+            className="sm:hidden"
+            src={"/images/work-assets/" + curElem.image}
+            alt={curElem.company + "Logo"}
+            width={isShown ? 90 : 70}
+            height={isShown ? 90 : 70}
+            style={{
+              maxWidth: "100%",
+              height: "auto",
+            }}
+          />
+        </div>
         <div className="text-sm w-full">
           <ul className="list-disc">
-            {curElem.details.split("|").map((details) => (
+            {curElem.details.split("|").map((details: any) => (
               <li key={details}>{details}</li>
             ))}
           </ul>
@@ -65,5 +80,5 @@ const ChronoCard = ({ curElem }) => {
   );
 }
 
-export default ChronoCard
+export default ChronoCard;
 

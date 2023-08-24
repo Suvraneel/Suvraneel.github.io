@@ -11,7 +11,7 @@ const Path = props => (
 );
 
 const MenuToggle = ({ toggle }) => (
-  <button onClick={toggle} className="hamburger hamburger--collapse absolute top-3 left-3 p-3 z-[2001] text-white">
+  <button type="button" title="hamburger" onClick={toggle} className="hamburger hamburger--collapse absolute top-3 left-3 p-3 z-[2001] text-white">
     <svg width="23" height="23" viewBox="0 0 23 23">
       <Path
         variants={{
