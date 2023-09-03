@@ -20,7 +20,8 @@ const Skills: NextPage = () => {
       </Head>
       <div className="h-screen z-0">
         <SplineObj
-          scene={"https://prod.spline.design/WmbvQs0Ze0BaJKW2/scene.splinecode"}
+          // scene={"https://prod.spline.design/WmbvQs0Ze0BaJKW2/scene.splinecode"}
+          scene={"./spline/sceneCOLORSTREAM.splinecode"}
         />
       </div>
       <div
