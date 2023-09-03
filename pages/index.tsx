@@ -23,8 +23,8 @@ const Home: NextPage = () => {
         <div className='fixed h-full w-full flex flex-row justify-center items-center z-0'>
           <HamsterLoader loaderTitle='Loading 3D scene...'/>
         </div>
-        <SplineObj scene={'https://prod.spline.design/k-kWZfspl6rYFCEw/scene.splinecode'} />
-        {/* <SplineObj scene={'./spline/sceneDACCORD.splinecode'}/> */}
+        {/* <SplineObj scene={'https://draft.spline.design/K1kBXIwzikeebkVI/scene.splinecode'} /> */}
+        <SplineObj scene={'./spline/sceneDACCORD.splinecode'}/>
       </div>
     </>
   );
