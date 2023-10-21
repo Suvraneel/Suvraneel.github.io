@@ -3,7 +3,7 @@ import SplineObj from "@components/SplineObject";
 import { spaceBoards } from "@fonts";
 import { NextPage } from "next";
 import Head from "next/head";
-import { workData } from "./api/workData";
+import { workData } from "@api/workData";
 
 const Work: NextPage = () => {
   return (

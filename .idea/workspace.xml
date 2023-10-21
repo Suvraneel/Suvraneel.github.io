@@ -6,7 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="ec71105c-956e-42f4-9fc3-82b5491bc0db" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pages/api/projectsDat.ts" beforeDir="false" afterPath="$PROJECT_DIR$/pages/api/projectsDat.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/api/projectsDat.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/api/projectsDat.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/yarn.lock" beforeDir="false" afterPath="$PROJECT_DIR$/yarn.lock" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

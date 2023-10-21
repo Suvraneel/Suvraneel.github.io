@@ -1,16 +1,17 @@
+"use client";
 import HamsterLoader from '@components/HamsterLoader/index';
 import SplineObj from "@components/SplineObject";
 import "@styles/Home.module.css";
 import { NextPage } from "next";
 import Head from "next/head";
-import { useRouter } from 'next/router';
+// import { useRouter } from 'next/navigation';
 import { useEffect } from "react";
 
 const Home: NextPage = () => {
-  const router = useRouter();
-  useEffect(() => {
-    window.innerWidth < 550 && router.replace("https://suvraneel.bio.link/");
-  }, [router]);
+  // const router = useRouter();
+  // useEffect(() => {
+  //   window.innerWidth < 550 && router.replace("https://suvraneel.bio.link/");
+  // }, [router]);
 
   return (
     <>

@@ -125,7 +125,7 @@ const projectsData = [
     details:
       "Minimalistic Music Player with a dark UI especially-curated for the nocturnal.| Utilises Firebase-authenticated login.| Doubles as local & online music player",
       github: "https://github.com/Suvraneel/Diablo-Music",
-      url: "https://suvraneel.github.io/pages/diablo-music.html",
+      url: "https://github.com/Suvraneel/Diablo-Music",
       gif: "video-to-be-added.webm",
       video: "https://www.youtube-nocookie.com/embed/u8BbvsCbQyM?rel=0&amp;controls=0&amp;showinfo=0",
       tech_stk: ["Flutter","Firebase","Dart","Dart-UI","Dart-Libraries"]

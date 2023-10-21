@@ -3,10 +3,10 @@ import Layout from "@components/Layout";
 import NextNProgress from "@components/NextNProgress";
 import "@fontsource/playfair-display";
 import "@fontsource/raleway/400.css";
+import "@styles/globals.css";
 import { AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "next-themes";
 import { AppProps } from 'next/app';
-import "@styles/globals.css";
 
 function MyApp({ Component, pageProps }: AppProps) {
   // countapi.hit('suvraneel.github.io', 'counter').then((result) => {

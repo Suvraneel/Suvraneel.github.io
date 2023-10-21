@@ -1,4 +1,4 @@
-import { SkillSphere } from "@components/SkillSphere";
+import SkillSphereScript from "@components/SkillSphere";
 import SplineObj from '@components/SplineObject';
 import { spaceBoards, tasaOrbiter } from "@fonts";
 import { NextPage } from "next";
@@ -6,18 +6,13 @@ import Head from "next/head";
 import { useEffect } from "react";
 
 const Skills: NextPage = () => {
-
-  // Skill Sphere Script
-  useEffect(() => {
-    SkillSphere();
-  }, []);
-
   return (
     <div className="w-11/12 h-full flex flex-row justify-start mx-10">
       <Head>
         <title>Skills | Portfolio - Suvraneel</title>
         <meta name="description" content="Skills | Official Portfolio Website | Suvraneel Bhuin" />
       </Head>
+      <SkillSphereScript/>
       <div className="h-screen z-0">
         <SplineObj
           // scene={"https://prod.spline.design/WmbvQs0Ze0BaJKW2/scene.splinecode"}

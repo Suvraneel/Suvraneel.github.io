@@ -1,10 +1,11 @@
+"use client"
 import { AnimatePresence, motion } from "framer-motion";
 import Head from "next/head";
 import { ReactNode, useState } from "react";
 import useSound from "use-sound";
 import ProjectModal from "@components/ProjectModal";
 import { framerLogger } from "@root/stateLogger";
-import projectsData from "./api/projectsDat";
+import projectsData from "@api/projectsDat";
 import { NextPage } from "next";
 
 const Projects: NextPage = () => {

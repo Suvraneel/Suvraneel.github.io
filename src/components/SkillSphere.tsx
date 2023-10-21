@@ -1,6 +1,15 @@
-
+"use client"
 import { spaceBoards } from "@fonts";
-export const SkillSphere = () => {
+import { useEffect } from "react";
+
+const SkillSphereScript = () => {
+  useEffect(() => {
+    SkillSphere();
+  }, []);
+  return null;
+}
+
+const SkillSphere = () => {
     const canvas = document.getElementById('canvas');
 
     const texts = [
@@ -169,3 +178,5 @@ export const SkillSphere = () => {
       startLoop();
     }
 };
+
+export default SkillSphereScript;

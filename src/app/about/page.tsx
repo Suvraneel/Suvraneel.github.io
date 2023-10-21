@@ -1,15 +1,10 @@
-import Head from "next/head";
-import SplineObj from "@components/SplineObject";
-import useSound from "use-sound";
-import { NextPage } from 'next';
-import Canvas from '@components/Particle'
+import Howler from "@components/Howler";
+import Canvas from '@components/Particle';
 import { spaceBoards, tasaOrbiter } from "@fonts";
+import { NextPage } from 'next';
+import Head from "next/head";
 
 const About: NextPage = () => {
-  const snapSfx = "./sounds/snap.wav";
-  const confirmSfx = "./sounds/confirm.wav";
-  const [playSnap, { stop: stopSnap }] = useSound(snapSfx, { volume: 0.25 });
-  const [playConfirm] = useSound(confirmSfx, { volume: 0.25 });
   return (
     <>
       <Head>
@@ -38,15 +33,12 @@ const About: NextPage = () => {
         <p  className={tasaOrbiter.className}>Awesome! Let&apos;s BUIDL the next big thing...</p>
         <p className="w-full h-5 hidden sm:block"></p>
         <a href="./docs/Suvraneel_Bhuin_Resume.pdf" target="_blank">
-          <button
+          <Howler
             className={`resume-button h-fit w-fit px-5 py-2 text-md text-accent shadow-md font-semibold mb-3 ${spaceBoards.className}`}
             role="button"
-            onMouseEnter={() => playSnap()}
-            onMouseLeave={() => stopSnap()}
-            onClick={() => playConfirm()}
           >
             Download Resume
-          </button>
+          </Howler>
         </a>
       </div>
       <div className="hidden h-screen w-1/2 lg:flex flex-grow flex-col flex-end absolute right-0 bottom-0">

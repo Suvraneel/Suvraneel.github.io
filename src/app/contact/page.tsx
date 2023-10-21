@@ -1,3 +1,4 @@
+"use client"
 import emailjs from "@emailjs/browser";
 import {
   faClose,
@@ -9,13 +10,13 @@ import dynamic from "next/dynamic";
 import Head from "next/head";
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { FontAwesomeObj } from "../components/FontAwesomeObj";
-import SplineObj from "../components/SplineObject";
+import { FontAwesomeObj } from "@components/FontAwesomeObj";
+import SplineObj from "@components/SplineObject";
 import useSound from "use-sound";
 import { NextPage } from "next";
 import { spaceBoards, tasaOrbiter } from "@fonts";
 
-const CalendlyModal = dynamic(() => import("../components/CalendlyModal"), {
+const CalendlyModal = dynamic(() => import("@components/CalendlyModal"), {
   loading: () => <p>Loading...</p>,
 
 });
