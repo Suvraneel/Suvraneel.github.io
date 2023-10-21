@@ -65,7 +65,19 @@ const ProjectModal = (props: { handleClose: any; project: any; }) => {
   );
 };
 
-const ModalText = ({ project }) => (
+type ProjectModalProps = {
+  project: {
+    details: string;
+    name: string;
+    github: string;
+    url: string;
+    tech_stk: string[];
+    video: string;
+    gif: string;
+  };
+};
+
+const ModalText = ({ project }: ProjectModalProps) => (
   <div className="flex flex-col gap-5">
     <div className="text-3xl text-white mt-4 sm:mt-0">{project.name}</div>
     <div className="text-lg text-cyan-500 flex flex-col">
@@ -97,7 +109,7 @@ const ModalText = ({ project }) => (
       </a>
     </div>
     <div className="flex flex-row gap-2 flex-wrap">
-      {project.tech_stk.map((tech:string) => (
+      {project.tech_stk.map((tech: string) => (
         <div
           key={tech}
           className="bg-slate-100 dark:hover:bg-slate-700 dark:bg-stone-800 rounded-2xl w-fit px-3 py-1 text-orange-600 drop-shadow-md font-semibold flex justify-center items-center"
@@ -110,7 +122,7 @@ const ModalText = ({ project }) => (
     </div>
     <div className="text-lg">
       <ul className="list-disc">
-        {project.details.split("|").map((details:string) => (
+        {project.details.split("|").map((details: string) => (
           <li key={details}>{details}</li>
         ))}
       </ul>
@@ -118,7 +130,7 @@ const ModalText = ({ project }) => (
   </div>
 );
 
-export const ModalVideo = ({ video }) => (
+export const ModalVideo = ({ video }: { video: string }) => (
   <div className="modal-video h-fit sm:h-full iframe-container">
     <iframe
       src={video + '?rel=0&iv_load_policy=3&showinfo=0&origin=https://suvraneel.github.io'}
@@ -129,7 +141,7 @@ export const ModalVideo = ({ video }) => (
   </div>
 );
 
-const ModalButton = ({ onClick }) => (
+const ModalButton = ({ onClick }: { onClick: () => void }) => (
   <motion.button
     className="absolute top-0 right-0 p-5"
     type="button"

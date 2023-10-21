@@ -1,6 +1,7 @@
-import { motion } from "framer-motion";
+import { SVGMotionProps, motion } from "framer-motion";
+import { RefAttributes } from "react";
 
-const Path = props => (
+const Path = (props: JSX.IntrinsicAttributes & SVGMotionProps<SVGPathElement> & RefAttributes<SVGPathElement>) => (
   <motion.path
     fill="#fff"
     strokeWidth="3"
@@ -10,7 +11,7 @@ const Path = props => (
   />
 );
 
-const MenuToggle = ({ toggle }) => (
+const MenuToggle = ({ toggle }: { toggle: any }) => (
   <button type="button" title="hamburger" onClick={toggle} className="hamburger hamburger--collapse absolute top-3 left-3 p-3 z-[2001] text-white">
     <svg width="23" height="23" viewBox="0 0 23 23">
       <Path

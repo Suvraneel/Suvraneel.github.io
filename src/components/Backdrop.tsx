@@ -1,8 +1,13 @@
-import { useEffect } from "react";
 import { stateLogger } from "@root/stateLogger";
 import { motion } from "framer-motion";
+import { ReactNode, useEffect } from "react";
 
-const Backdrop = ({ children, onClick }) => {
+type BackdropProps = {
+  children: ReactNode;
+  onClick: () => void;
+};
+
+const Backdrop = ({ children, onClick }: BackdropProps) => {
   // Log state
   useEffect(() => {
     stateLogger("Backdrop", true);

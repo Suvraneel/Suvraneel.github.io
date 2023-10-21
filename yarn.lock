@@ -240,6 +240,11 @@
   dependencies:
     undici-types "~5.25.1"
 
+"@types/nprogress@^0.2.0":
+  version "0.2.2"
+  resolved "https://registry.npmjs.org/@types/nprogress/-/nprogress-0.2.2.tgz"
+  integrity sha512-2wLrSJXLztGmr7wXwM0hA/wuIOY9DznVdd+ZFofHOiXcj9JnVt+2ZeLRJ7v5ZVlmheSkUOSg3Q3O4Ce7yji79A==
+
 "@types/prop-types@*":
   version "15.7.9"
   resolved "https://registry.npmjs.org/@types/prop-types/-/prop-types-15.7.9.tgz"
@@ -1732,7 +1737,7 @@ next-themes@^0.2.1:
   resolved "https://registry.npmjs.org/next-themes/-/next-themes-0.2.1.tgz"
   integrity sha512-B+AKNfYNIzh0vqQQKqQItTS8evEouKD7H5Hj3kmuPERwddR2TxvDSFZuTj6T7Jfn1oyeUyJMydPl1Bkxkh0W7A==
 
-next@*, next@^13.5.6:
+next@*, next@^13.5.6, "next@>= 13.0.0":
   version "13.5.6"
   resolved "https://registry.npmjs.org/next/-/next-13.5.6.tgz"
   integrity sha512-Y2wTcTbO4WwEsVb4A8VSnOsG1I9ok+h74q0ZdxkwM3EODqrs4pasq7O0iUxbcS9VtWMicG7f3+HAj0r1+NtKSw==
@@ -1754,6 +1759,15 @@ next@*, next@^13.5.6:
     "@next/swc-win32-arm64-msvc" "13.5.6"
     "@next/swc-win32-ia32-msvc" "13.5.6"
     "@next/swc-win32-x64-msvc" "13.5.6"
+
+next13-progressbar@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.npmjs.org/next13-progressbar/-/next13-progressbar-1.0.4.tgz"
+  integrity sha512-N189VpWPZ5eMxcQeAF5SIe3f+UQ4YTNoMV+6f7p5luZ0rGcPzT4RnRpxuImzCxuMTEuQPItR8FtQubQDi4mHnQ==
+  dependencies:
+    "@types/nprogress" "^0.2.0"
+    nprogress "^0.2.0"
+    prop-types "^15.8.1"
 
 node-fetch@^2.6.12:
   version "2.7.0"
@@ -2047,7 +2061,7 @@ react-merge-refs@^2.0.1:
   resolved "https://registry.npmjs.org/react-merge-refs/-/react-merge-refs-2.1.1.tgz"
   integrity sha512-jLQXJ/URln51zskhgppGJ2ub7b2WFKGq3cl3NYKtlHoTG+dN2q7EzWrn3hN3EgPsTMvpR9tpq5ijdp7YwFZkag==
 
-react@*, react@^18.0.0, react@^18.2.0, "react@>= 16.8.0 || 17.x.x || ^18.0.0-0", react@>=16.3, react@>=16.8, react@>=16.8.0, react@>=17.0.0:
+react@*, react@^18.0.0, react@^18.2.0, "react@>= 16.8.0 || 17.x.x || ^18.0.0-0", "react@>= 18.0.0", react@>=16.3, react@>=16.8, react@>=16.8.0, react@>=17.0.0:
   version "18.2.0"
   resolved "https://registry.npmjs.org/react/-/react-18.2.0.tgz"
   integrity sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==

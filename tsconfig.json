@@ -30,6 +30,9 @@
       "@fonts": [
         "./src/fonts/fonts.ts"
       ],
+      "@lib/*": [
+        "./src/lib/*"
+      ],
       "@*": [
         "./src/*"
       ],
