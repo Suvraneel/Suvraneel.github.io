@@ -95,7 +95,7 @@ const Navbar = () => {
         {isShownHoverContent && (
           <div className="flex flex-col">
             <div className="text-xs">Suvraneel</div>
-            <div className="text-xs flex gap-1 items-end justify-start align-baseline">Bhuin <div style={{ fontSize: "0.6rem" }}>2023</div></div>
+            <div className="text-xs flex gap-1 items-end justify-start align-baseline">Bhuin <div className="text-[0.6rem]">2023</div></div>
           </div>
         )}
       </div>
