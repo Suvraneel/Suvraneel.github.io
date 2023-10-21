@@ -17,12 +17,12 @@ const Howler = (props: any) => {
             onMouseLeave={() => stopSnap()}
             onClick={() => {
                 playConfirm();
-                onClick
+                onClick();
             }}
         >
             {children}
         </button>
-    )
+    );
 }
 
 export default Howler

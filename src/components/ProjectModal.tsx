@@ -135,7 +135,7 @@ export const ModalVideo = ({ video }: { video: string }) => (
     <iframe
       src={video + '?rel=0&iv_load_policy=3&showinfo=0&origin=https://suvraneel.github.io'}
       title="YouTube video player"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-presentation"
       allowFullScreen
     ></iframe>
   </div>

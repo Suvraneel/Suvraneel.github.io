@@ -1,9 +1,8 @@
 "use client"
 import { AnimatePresence } from 'framer-motion'
 import { ThemeProvider } from 'next-themes'
-import React from 'react'
-import NextNProgress from '@components/NextNProgress'
 import { Next13ProgressBar } from 'next13-progressbar'
+import React from 'react'
 
 const Providers = ({
     children,
@@ -32,7 +31,7 @@ const Providers = ({
 
 export default Providers
 
-
+//  NextNProgress Config
 const height = "4px";
 const color = "#B338FF";
 const template = `

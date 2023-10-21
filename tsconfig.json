@@ -28,7 +28,7 @@
         "./src/app/api/*"
       ],
       "@fonts": [
-        "./src/fonts/fonts.ts"
+        "./src/fonts"
       ],
       "@lib/*": [
         "./src/lib/*"
@@ -38,7 +38,8 @@
       ],
       "@root/*": [
         "./*"
-      ]
+      ],
+      "use-sound": ["./types/use-sound"]
     },
     "plugins": [
       {

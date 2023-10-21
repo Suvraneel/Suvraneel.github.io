@@ -119,7 +119,7 @@ const Canvas: React.FC = () => {
         };
 
         window.addEventListener('mousemove', (e) => {
-          const bounds = canvas.getBoundingClientRect();
+          const bounds = canvas!.getBoundingClientRect();
           this.mouse.x = e.clientX - bounds.left;
           this.mouse.y = e.clientY - bounds.top;
         });
@@ -160,7 +160,7 @@ const Canvas: React.FC = () => {
       }
     }
 
-    const effect = new Effect(canvas.width, canvas.height);
+    const effect = new Effect(canvas!.width, canvas!.height);
 
     if (c) {
       effect.init(c);
@@ -168,7 +168,7 @@ const Canvas: React.FC = () => {
 
     function animate() {
       if (c) {
-        c.clearRect(0, 0, canvas.width, canvas.height);
+        c.clearRect(0, 0, canvas!.width, canvas!.height);
         effect.draw(c);
         effect.update();
         requestAnimationFrame(animate);

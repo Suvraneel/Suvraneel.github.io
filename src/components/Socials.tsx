@@ -17,7 +17,7 @@ const Socials = () => {
     {
       name: "LinkedIn",
       icon: faLinkedin,
-      link: "https://www.linkedin.com/in/suvraneel-bhuin/",
+      link: "https://www.linkedin.com/in/suvraneel/",
       brandColor: "#0062ff",
     },
     {
