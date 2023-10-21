@@ -1,10 +1,10 @@
-import Head from "next/head";
-import SplineObj from "../components/SplineObject";
-import "../styles/Home.module.css";
-import { useEffect, useState } from "react";
-import { useRouter } from 'next/router';
-import HamsterLoader from '../components/HamsterLoader/index';
+import HamsterLoader from '@components/HamsterLoader/index';
+import SplineObj from "@components/SplineObject";
+import "@styles/Home.module.css";
 import { NextPage } from "next";
+import Head from "next/head";
+import { useRouter } from 'next/router';
+import { useEffect } from "react";
 
 const Home: NextPage = () => {
   const router = useRouter();

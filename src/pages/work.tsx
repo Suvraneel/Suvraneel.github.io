@@ -1,10 +1,9 @@
-import Head from "next/head";
-import { useState } from "react";
-import ChronoCard from "../components/ChronoCard";
-import { workData } from "./api/workData";
+import ChronoCard from "@components/ChronoCard";
+import SplineObj from "@components/SplineObject";
+import { spaceBoards } from "@fonts";
 import { NextPage } from "next";
-import SplineObj from "../components/SplineObject";
-import { spaceBoards } from "@/fonts";
+import Head from "next/head";
+import { workData } from "./api/workData";
 
 const Work: NextPage = () => {
   return (

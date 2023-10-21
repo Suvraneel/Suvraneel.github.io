@@ -2,7 +2,7 @@ import { faGithub } from "@fortawesome/free-brands-svg-icons";
 import { faClose, faLink } from "@fortawesome/free-solid-svg-icons";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
-import { stateLogger } from "../stateLogger";
+import { stateLogger } from "@root/stateLogger";
 import Backdrop from "./Backdrop";
 import { FontAwesomeObj } from "./FontAwesomeObj";
 

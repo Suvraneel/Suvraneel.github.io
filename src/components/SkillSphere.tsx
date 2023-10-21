@@ -1,5 +1,5 @@
 
-import { raleway, montserrat, spaceBoards } from "@/fonts";
+import { spaceBoards } from "@fonts";
 export const SkillSphere = () => {
     const canvas = document.getElementById('canvas');
 
@@ -19,13 +19,27 @@ export const SkillSphere = () => {
       initialRotationZ: 0
     };
     
-    wordSphere(canvas, texts, counts, options);
+    if (canvas instanceof HTMLCanvasElement) {
+      wordSphere(canvas, texts, counts, options);
+    }
      
     /**
      * WordSphere
      * Written by Hyojun Kim in 2017. Licensed in MIT.
      */
-    function wordSphere(canvas, texts, counts, options) {
+    interface Options {
+      width?: number;
+      height?: number;
+      radius?: number;
+      fontSize?: number;
+      tilt?: number;
+      initialVelocityX?: number;
+      initialVelocityY?: number;
+      initialRotationX?: number;
+      initialRotationZ?: number;
+    }
+
+    function wordSphere(canvas: HTMLCanvasElement, texts: string[], counts: number[], options: Options) {
       const π = Math.PI; // happy math!
       const {
         width = 500,
@@ -44,17 +58,24 @@ export const SkillSphere = () => {
       
       // canvas setup
       let ctx = canvas.getContext('2d'); 
+      if (!ctx) {
+        throw new Error("Could not get 2D context for canvas");
+      }
       ctx.textAlign = 'center';
       
       // Hi-DPI support
       canvas.width = width * 2;
       canvas.height = height * 2;
+
+      if (ctx) {
+        // your code using ctx goes here
+      }
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.scale(2,2); 
     
       // scrolling
-      let clicked = false, lastX, lastY;
+      let clicked = false, lastX: number, lastY: number;
       canvas.addEventListener('mousedown', event => {
         clicked = true;
         lastX = event.screenX;
@@ -78,11 +99,14 @@ export const SkillSphere = () => {
       canvas.addEventListener('mouseup', e => clicked = false);
       canvas.addEventListener('mouseleave', e => clicked = false);
       
-      function rot(x,y,t) {
+      function rot(x: number,y: number,t: number) {
         return [x*Math.cos(t)-y*Math.sin(t), x*Math.sin(t)+y*Math.cos(t)];
       }
     
       function render() {
+        if (!ctx) {
+          throw new Error("Could not get 2D context for canvas");
+        }
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     
         let ix = 0, iz = 0, i = 1;
@@ -96,20 +120,22 @@ export const SkillSphere = () => {
     
           // camera transform
           [y,z] = rot(y, z, tilt);
-          [x,z] = rot(x, z, rz);
-          [x,y] = rot(x, y, rx);
-    
-          // convert to cartesian and then draw.
-          const alpha = 0.6 + 0.4 * (x/radius);
-          const size = fontSize + 2 + 5*(x/radius);
-          ctx.fillStyle = `rgba(0,255,255,${alpha})`;
-          ctx.font = `${size}px ${spaceBoards.style.fontFamily}, "Raleway", "Playfair Display", "Helvetica Neue", sans-serif`;
-          ctx.fillText(text, y + width/2, -z + height/2);
-    
-          ix--;
-          if (ix < 0) {
-            iz++;
-            ix = counts[iz] - 1;
+          if (ctx) {
+            [x,z] = rot(x, z, rz);
+            [x,y] = rot(x, y, rx);
+
+            // convert to cartesian and then draw.
+            const alpha = 0.6 + 0.4 * (x/radius);
+            const size = fontSize + 2 + 5*(x/radius);
+            ctx.fillStyle = `rgba(0,255,255,${alpha})`;
+            ctx.font = `${size}px ${spaceBoards.style.fontFamily}, "Raleway", "Playfair Display", "Helvetica Neue", sans-serif`;
+            ctx.fillText(text, y + width/2, -z + height/2);
+
+            ix--;
+            if (ix < 0) {
+              iz++;
+              ix = counts[iz] - 1;
+            }
           }
           i++;
         }

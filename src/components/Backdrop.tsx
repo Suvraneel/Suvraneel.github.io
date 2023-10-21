@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { stateLogger } from "../stateLogger";
+import { stateLogger } from "@root/stateLogger";
 import { motion } from "framer-motion";
 
 const Backdrop = ({ children, onClick }) => {

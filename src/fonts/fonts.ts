@@ -15,11 +15,11 @@ const poppins = Poppins({
   weight: "500",
 });
 const spaceBoards = localFont({
-  src: './fonts/Spaceboards.otf',
+  src: './Spaceboards.otf',
   variable: '--font-spaceBoards'
 });
 const tasaOrbiter = localFont({
-  src: './fonts/TASAOrbiterVF.woff2',
+  src: './TASAOrbiterVF.woff2',
   variable: '--font-TASAOrb'
 });
 

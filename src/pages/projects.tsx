@@ -1,9 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Head from "next/head";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import useSound from "use-sound";
-import ProjectModal from "../components/ProjectModal";
-import { framerLogger } from "../stateLogger";
+import ProjectModal from "@components/ProjectModal";
+import { framerLogger } from "@root/stateLogger";
 import projectsData from "./api/projectsDat";
 import { NextPage } from "next";
 
@@ -78,7 +78,12 @@ const Projects: NextPage = () => {
   );
 }
 
-const ModalContainer = ({ children, label = "Modal Container" }) => (
+type ModalContainerProps = {
+  children: ReactNode;
+  label?: string;
+};
+
+const ModalContainer = ({ children, label = "Modal Container" }: ModalContainerProps) => (
   <AnimatePresence
     initial={false}
     mode="wait"

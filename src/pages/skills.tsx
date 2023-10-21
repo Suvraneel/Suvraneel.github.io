@@ -1,9 +1,9 @@
+import { SkillSphere } from "@components/SkillSphere";
+import SplineObj from '@components/SplineObject';
+import { spaceBoards, tasaOrbiter } from "@fonts";
+import { NextPage } from "next";
 import Head from "next/head";
 import { useEffect } from "react";
-import { SkillSphere } from "../components/SkillSphere";
-import { NextPage } from "next";
-import SplineObj from './../components/SplineObject';
-import { raleway, montserrat, spaceBoards, tasaOrbiter } from "@/fonts";
 
 const Skills: NextPage = () => {
 

@@ -13,7 +13,7 @@ import { FontAwesomeObj } from "../components/FontAwesomeObj";
 import SplineObj from "../components/SplineObject";
 import useSound from "use-sound";
 import { NextPage } from "next";
-import { spaceBoards, tasaOrbiter } from "@/fonts";
+import { spaceBoards, tasaOrbiter } from "@fonts";
 
 const CalendlyModal = dynamic(() => import("../components/CalendlyModal"), {
   loading: () => <p>Loading...</p>,

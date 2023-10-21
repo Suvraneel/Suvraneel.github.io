@@ -1,8 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
 import useSound from "use-sound";
-import { tasaOrbiter } from '@/fonts';
-const ChronoCard = ({ curElem }) => {
+import { tasaOrbiter } from '@fonts';
+
+const ChronoCard = ({ curElem }: { curElem: any }) => {
   const [isShown, setIsShown] = useState<boolean>(false);
   const popSfx = "./sounds/pop.wav";
   const [playPop, { stop: stopPop }] = useSound(popSfx, { volume: 0.25 });
@@ -44,7 +45,7 @@ const ChronoCard = ({ curElem }) => {
       </div>
       <div
         className={
-          "border-2 backdrop-blur-xl backdrop-contrast-100 text-white dark:text-white col-start-6 lg:col-start-6 xl:col-start-5 col-end-12 p-4 rounded-xl my-4 sm:ml-8 mr-auto w-full px-8 " +  tasaOrbiter.className + " " +
+          "border-2 backdrop-blur-xl backdrop-contrast-100 text-white dark:text-white col-start-6 lg:col-start-6 xl:col-start-5 col-end-12 p-4 rounded-xl my-4 sm:ml-8 mr-auto w-full px-8 " + tasaOrbiter.className + " " +
           (isShown
             ? "border-cyan-400 backdrop-hue-rotate-15 backdrop-contrast-125 shadow-2xl  shadow-cyan-500/60"
             : "border-white")

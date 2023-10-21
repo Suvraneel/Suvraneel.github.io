@@ -1,9 +1,9 @@
 import Head from "next/head";
-import SplineObj from "../components/SplineObject";
+import SplineObj from "@components/SplineObject";
 import useSound from "use-sound";
 import { NextPage } from 'next';
-import Canvas from '../components/Particle'
-import { spaceBoards, tasaOrbiter } from "@/fonts";
+import Canvas from '@components/Particle'
+import { spaceBoards, tasaOrbiter } from "@fonts";
 
 const About: NextPage = () => {
   const snapSfx = "./sounds/snap.wav";
