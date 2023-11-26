@@ -1,10 +1,10 @@
 import Head from "next/head";
 import { useState } from "react";
-import ChronoCard from "../components/ChronoCard";
+import ChronoCard from "@components/ChronoCard";
 import { workData } from "./api/workData";
 import { NextPage } from "next";
-import SplineObj from "../components/SplineObject";
-import { spaceBoards } from "@/fonts";
+import SplineObj from "@components/SplineObject";
+import { spaceBoards } from "@font";
 
 const Work: NextPage = () => {
   return (
@@ -35,6 +35,6 @@ const Work: NextPage = () => {
       </div>
     </>
   );
-}
+};
 
 export default Work;

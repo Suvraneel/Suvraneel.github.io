@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { stateLogger } from "../stateLogger";
 import { motion } from "framer-motion";
 
-const Backdrop = ({ children, onClick }) => {
+const Backdrop = ({ children, onClick }: any) => {
   // Log state
   useEffect(() => {
     stateLogger("Backdrop", true);
