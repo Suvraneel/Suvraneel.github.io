@@ -1,0 +1,22 @@
+.sidebarContainer {
+    position: fixed;
+    height: 100%;
+    width: 50px;
+    background-color: #1f1c1c33;
+    box-shadow: 0 0 20px 1px rgba(0, 0, 0, 0.5);
+    /* backdrop-filter: blur(8px); */
+    /* webkit-backdrop-filter: blur(8px); */
+    transition: width 0.6s;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 20px 0;
+}
+.sidebarContainer:hover {
+    width: 140px;
+}
+.sidebarItem {
+    background-color: transparent;
+    padding: 10px;
+    cursor: pointer;
+}
