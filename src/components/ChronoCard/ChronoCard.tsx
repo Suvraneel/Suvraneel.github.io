@@ -3,6 +3,7 @@ import { useState } from "react";
 import { tasaOrbiter } from "@font";
 import { useSoundEffects } from "@components/SoundEffectsContext";
 import styles from "./ChronoCard.module.css";
+import Image from "next/image";
 
 const ChronoCard = ({ curElem }: { curElem: any }) => {
   const [isShown, setIsShown] = useState<boolean>(false);
@@ -33,7 +34,7 @@ const ChronoCard = ({ curElem }: { curElem: any }) => {
       <div
         className={`hidden sm:flex col-start-5 col-end-6 lg:col-start-5 lg:col-end-6 xl:col-start-4 xl:col-end-5 md:mx-auto justify-center items-center ${styles.jelloHorizontal}`}
       >
-        <img
+        <Image
           src={"/images/work-assets/" + curElem.image}
           alt={curElem.company + "Logo"}
           width={isShown ? 90 : 70}
@@ -60,7 +61,7 @@ const ChronoCard = ({ curElem }: { curElem: any }) => {
             <div className="text-lg w-full">{curElem.company}</div>
             <div className="font-bold text-md mb-1">{curElem.duration}</div>
           </div>
-          <img
+          <Image
             className="sm:hidden"
             src={"/images/work-assets/" + curElem.image}
             alt={curElem.company + "Logo"}
