@@ -1,6 +1,7 @@
 import { type Metadata, NextPage } from "next";
 import { spaceBoards, tasaOrbiter } from "@font";
 import SkillSphereRenderer from "./SkillSphereRenderer";
+import { Glow, GlowCapture } from "@codaworks/react-glow";
 
 export const metadata: Metadata = {
   title: "Skills | Official Portfolio | Suvraneel",
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 
 const Skills: NextPage = () => {
   return (
-    <div className="w-11/12 h-full flex flex-row justify-start mx-10">
+    <div className="w-11/12 h-full flex flex-col lg:flex-row justify-start mx-10">
       {/*      <div className="h-screen z-0">
         <SplineObj
           // scene={"https://prod.spline.design/WmbvQs0Ze0BaJKW2/scene.splinecode"}
@@ -19,7 +20,7 @@ const Skills: NextPage = () => {
       </div>*/}
       <div
         id="Skills"
-        className="h-fit flex flex-col justify-evenly items-start w-11/12 md:w-2/3 gap-2 sm:gap-4 text-white ml-2 my-4 md:ml-12 md:my-10 md:px-10 md:py-5 rounded-lg shadow-xl shadow-purple-500/20 bg-black/20 backdrop-blur-sm z-10 font-secondary"
+        className="h-fit flex flex-col justify-evenly items-start w-11/12 md:w-2/3 gap-2 sm:gap-4 text-white ml-2 my-4 md:ml-12 md:my-10 md:px-10 md:py-5 rounded-lg z-10 font-secondary"
       >
         <div
           className={`ml-10 sm:ml-0 text-3xl md:text-4xl xl:text-5xl animated-heading bold mb-5 md:mb-10 mt-2 sm:mt-0 ${spaceBoards.className}`}
@@ -27,7 +28,7 @@ const Skills: NextPage = () => {
           SKILLS
         </div>
         <>
-          <p className={tasaOrbiter.className}>
+          {/*<p className={tasaOrbiter.className}>
             As a <b className="font-semibold">full stack Web (3.0) developer</b>
             , I possess a diverse range of skills and a passion for creating
             beautiful and responsive web applications. I&apos;m a self-taught
@@ -83,7 +84,7 @@ const Skills: NextPage = () => {
             <b className="font-semibold">
               I&apos;m excited to see where this path leads me next.
             </b>
-          </p>
+          </p>*/}
         </>
       </div>
       <SkillSphereRenderer />

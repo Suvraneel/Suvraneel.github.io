@@ -2,6 +2,7 @@ import { type Metadata, NextPage } from "next";
 import Canvas from "@components/Particle";
 import { spaceBoards, tasaOrbiter } from "@font";
 import DownloadResumeBtn from "./DownloadResumeBtn";
+import { Glow, GlowCapture } from "@codaworks/react-glow";
 
 export const metadata: Metadata = {
   title: "About | Official Portfolio | Suvraneel",
@@ -12,13 +13,58 @@ export const metadata: Metadata = {
 const About: NextPage = () => {
   return (
     <>
-      <div className="h-fit w-full lg:w-3/5 xl:w-1/2 absolute left-2 sm:left-32 top-2 sm:top-10 z-100 text-white flex flex-col gap-5 sm:gap-6 px-5 sm:px-0">
+      <div className="h-fit w-full lg:w-3/5 xl:w-1/2 absolute left-2 sm:left-32 top-2 sm:top-10 z-100 text-white flex flex-col px-5 sm:px-0">
         <div
-          className={`ml-16 sm:ml-0 text-3xl md:text-4xl xl:text-5xl animated-heading bold md:mb-10 ${spaceBoards.className}`}
+          className={`ml-16 sm:ml-0 text-3xl md:text-4xl xl:text-5xl animated-heading bold md:mb-5 ${spaceBoards.className}`}
         >
           About Me
         </div>
-        <p className={tasaOrbiter.className}>
+        <GlowCapture className="w-full relative grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 justify-between py-5">
+          <Glow color={"blue"} className="bg-glow/10 w-full rounded-lg">
+            <div className="border border-neutral-500 glow:border-glow rounded-lg p-4 md:p-10 flex flex-col justify-evenly gap-3 hover:bg-neutral-900">
+              <span className="text-2xl md:text-5xl font-semibold">100+</span>
+              <span className="text-sm md:text-md text-nowrap">
+                Projects Completed
+              </span>
+            </div>
+          </Glow>
+          <Glow color={"lime"} className="bg-glow/10 w-full rounded-lg">
+            <div className="border border-neutral-500 glow:border-glow/20 rounded-lg p-4 md:p-10 flex flex-col justify-evenly gap-3 hover:bg-neutral-900">
+              <span className="text-2xl md:text-5xl font-semibold">20+</span>
+              <span className="text-sm md:text-md text-nowrap">
+                Hackathons 🏆
+              </span>
+            </div>
+          </Glow>
+          <Glow color={"red"} className="bg-glow/10 w-full rounded-lg">
+            <div className="border border-neutral-500 glow:border-glow rounded-lg p-4 md:p-10 flex flex-col justify-evenly gap-3 hover:bg-neutral-900">
+              <span className="text-2xl md:text-5xl font-semibold">
+                2<span className={"text-sm"}>YEARS</span>
+              </span>
+              <span className="text-sm md:text-md text-nowrap">Experience</span>
+            </div>
+          </Glow>
+          <div className="w-full rounded-lg col-span-3">
+            <Glow color={"cyan"} className="bg-glow/10 rounded-lg w-full">
+              <div className="w-full border border-neutral-500 glow:border-glow rounded-lg p-10 flex flex-col justify-evenly gap-3 hover:bg-neutral-900">
+                <span className="text-2xl md:text-2xl font-semibold uppercase">
+                  Clean Code &nbsp; &gt;/&lt; &nbsp; Future-Proof Design
+                </span>
+                <ul className="text-sm md:text-md list-inside list-[square]">
+                  <li>
+                    Craft responsive, accessible, and performant web apps.
+                  </li>
+                  <li>Design scalable, maintainable, and secure codebases.</li>
+                  <li>
+                    Push the boundaries of what&apos;s possible. 3D ? Web3 ?
+                    Bring it on!
+                  </li>
+                </ul>
+              </div>
+            </Glow>
+          </div>
+        </GlowCapture>
+        {/*<p className={tasaOrbiter.className}>
           I am a Full Stack Web3.0 Developer based in India. I recently
           graduated with a B.Tech in Computer Science & Engineering from UCSTA,
           University of Calcutta.
@@ -40,13 +86,13 @@ const About: NextPage = () => {
         </p>
         <p className={tasaOrbiter.className}>
           Awesome! Let&apos;s BUIDL the next big thing...
-        </p>
+        </p>*/}
         <p className="w-full h-5 hidden sm:block"></p>
         <a href="./docs/Suvraneel_Bhuin_Resume.pdf" target="_blank">
           <DownloadResumeBtn />
         </a>
       </div>
-      <div className="hidden h-screen w-1/2 lg:flex flex-grow flex-col flex-end absolute right-0 bottom-0">
+      <div className="hidden h-screen w-1/2 lg:flex flex-grow flex-col flex-end absolute right-0 bottom-0 pointer-events-none">
         <Canvas />
       </div>
     </>

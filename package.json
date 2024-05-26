@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@codaworks/react-glow": "^1.0.6",
     "@emailjs/browser": "^4.3.3",
     "@fortawesome/fontawesome-svg-core": "^6.5.2",
     "@fortawesome/free-brands-svg-icons": "^6.5.2",
@@ -24,6 +25,7 @@
     "react": "^18",
     "react-calendly": "^4.3.0",
     "react-dom": "^18",
+    "react-fast-marquee": "^1.6.4",
     "use-sound": "^4.0.1"
   },
   "devDependencies": {

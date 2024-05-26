@@ -7,10 +7,13 @@ import {
   useSpring,
   useTransform,
 } from "framer-motion";
+import Marquee from "react-fast-marquee";
 
 import React, { useEffect, useRef } from "react";
 import SplineObj from "@components/SplineObject";
 import { useRouter } from "next/navigation";
+import { spaceBoards } from "@font";
+import Image from "next/image";
 
 const LandingMotion = () => {
   const ref = useRef(null);
@@ -19,7 +22,7 @@ const LandingMotion = () => {
   const { scrollYProgress } = useScroll({
     container: ref,
     target: target_ref,
-    offset: ["center end", "end end"],
+    offset: ["start end", "end end"],
   });
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 50,
@@ -50,14 +53,35 @@ const LandingMotion = () => {
     <motion.div
       ref={ref}
       layoutScroll={true}
-      className="w-full overflow-auto relative"
+      className="w-full overflow-auto scoll-smooth snap-y snap-mandatory relative"
+      style={{
+        background: "radial-gradient(50% 80% at 50% 50%,#333 0,#000 100%)",
+      }}
     >
-      <motion.div className="progress-bar" style={{ scaleX }} />
-      <h1 className="h-[50vh]">
-        <code>useScroll</code> with spring smoothing
-      </h1>
       <motion.div
-        className="bg-red-400 h-[100vh] relative"
+        className="fixed h-0.5 bg-white top-0 bottom-0 left-0 right-0 origin-left z-[1000]"
+        style={{ scaleX }}
+      />
+      <div className="h-[10vh]" />
+      <div className={"h-full w-full flex snap-center relative"}>
+        <Image
+          src={"/images/Avatar.png"}
+          alt={"hero"}
+          fill={true}
+          objectFit={"contain"}
+          className={"h-full w-auto m-auto z-[1000] fixed pointer-events-none"}
+        />
+        <Marquee
+          play={true}
+          speed={50}
+          autoFill={true}
+          className={`w-full text-3xl md:text-5xl xl:text-9xl text-white bold ${spaceBoards.className}`}
+        >
+          Suvraneel Bhuin &nbsp;
+        </Marquee>
+      </div>
+      <motion.div
+        className="bg-black h-[100vh] relative snap-center"
         style={{ clipPath }}
         ref={target_ref}
       >
@@ -65,12 +89,10 @@ const LandingMotion = () => {
           scene={
             "https://draft.spline.design/K1kBXIwzikeebkVI/scene.splinecode"
           }
-          className={"bottom-0"}
+          className={"bottom-0 z-[5000]"}
         />
       </motion.div>
-      <code className="block text-center">
-        Scroll to the bottom to trigger a route change,
-      </code>
+      <div className="h-[10vh]" />
     </motion.div>
   );
 };
