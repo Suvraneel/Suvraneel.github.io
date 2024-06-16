@@ -1,6 +1,4 @@
-import SplineObj from "@components/SplineObject";
 import LandingMotion from "@components/LandingMotion";
-import React from "react";
 
 export default function Home() {
   return (

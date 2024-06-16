@@ -103,7 +103,7 @@ const Canvas: React.FC = () => {
         this.w = width;
         this.h = height;
         this.img = document.getElementById("image1") as HTMLImageElement;
-        this.gap = 2; // pixel gap between particles: Lower = more particles but slower performance
+        this.gap = 4; // pixel gap between particles: Lower = more particles but slower performance
         this.particleArray = [];
 
         this.centerx = this.w * 0.5;

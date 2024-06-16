@@ -9,11 +9,11 @@ import {
 } from "framer-motion";
 import Marquee from "react-fast-marquee";
 
-import React, { useEffect, useRef } from "react";
 import SplineObj from "@components/SplineObject";
-import { useRouter } from "next/navigation";
 import { spaceBoards } from "@font";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useRef } from "react";
 
 const LandingMotion = () => {
   const ref = useRef(null);
@@ -22,7 +22,7 @@ const LandingMotion = () => {
   const { scrollYProgress } = useScroll({
     container: ref,
     target: target_ref,
-    offset: ["start end", "end end"],
+    offset: ["start center", "end end"],
   });
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 50,
@@ -53,16 +53,11 @@ const LandingMotion = () => {
     <motion.div
       ref={ref}
       layoutScroll={true}
-      className="w-full overflow-auto scoll-smooth snap-y snap-mandatory relative"
+      className="w-full overflow-auto scroll-smooth snap-y snap-mandatory relative"
       style={{
         background: "radial-gradient(50% 80% at 50% 50%,#333 0,#000 100%)",
       }}
     >
-      <motion.div
-        className="fixed h-0.5 bg-white top-0 bottom-0 left-0 right-0 origin-left z-[1000]"
-        style={{ scaleX }}
-      />
-      <div className="h-[10vh]" />
       <div className={"h-full w-full flex snap-center relative"}>
         <Image
           src={"/images/Avatar.png"}
@@ -81,18 +76,20 @@ const LandingMotion = () => {
         </Marquee>
       </div>
       <motion.div
-        className="bg-black h-[100vh] relative snap-center"
-        style={{ clipPath }}
-        ref={target_ref}
-      >
-        <SplineObj
-          scene={
-            "https://draft.spline.design/K1kBXIwzikeebkVI/scene.splinecode"
-          }
-          className={"bottom-0 z-[5000]"}
-        />
-      </motion.div>
-      <div className="h-[10vh]" />
+        className="fixed h-0.5 bg-white top-0 bottom-0 left-0 right-0 origin-left z-[1000]"
+        style={{ scaleX }}
+      />
+      <div className="h-[100vh] relative snap-center z-[10000]">
+        <motion.div className="h-full" style={{ clipPath }} ref={target_ref}>
+          <SplineObj
+            scene={
+              "https://draft.spline.design/K1kBXIwzikeebkVI/scene.splinecode"
+            }
+            className={"bottom-0 z-[5000]"}
+          />
+        </motion.div>
+      </div>
+      <div className="h-[20vh]" />
     </motion.div>
   );
 };

@@ -1,14 +1,57 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@layer base {
+  :root {
+    --foreground-rgb: 0, 0, 0;
+    --background-start-rgb: 214, 219, 220;
+    --background-end-rgb: 255, 255, 255;
+    --nprogress-color: #B338FF;
+    --nprogress-height: 3px;
+    --font-TASAOrb: "TASAOrb";
+    --background: 279 55% 100%;
+    --foreground: 279 60% 4%;
+    --muted: 279 9% 87%;
+    --muted-foreground: 279 9% 25%;
+    --popover: 279 55% 100%;
+    --popover-foreground: 279 60% 4%;
+    --card: 279 55% 100%;
+    --card-foreground: 279 60% 4%;
+    --border: 279 7% 90%;
+    --input: 279 7% 90%;
+    --primary: 279 100% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 279 4% 88%;
+    --secondary-foreground: 279 4% 28%;
+    --accent: 279 4% 88%;
+    --accent-foreground: 279 4% 28%;
+    --destructive: 19 95% 25%;
+    --destructive-foreground: 19 95% 85%;
+    --ring: 279 100% 45%;
+    --radius: 0.5rem;
+  }
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-  --nprogress-color: #B338FF;
-  --nprogress-height: 3px;
-  --font-TASAOrb: "TASAOrb"
+  .dark {
+    --background: 279 43% 2%;
+    --foreground: 279 30% 100%;
+    --muted: 279 9% 13%;
+    --muted-foreground: 279 9% 75%;
+    --popover: 279 43% 2%;
+    --popover-foreground: 279 30% 100%;
+    --card: 279 43% 2%;
+    --card-foreground: 279 30% 100%;
+    --border: 276 6.67% 14.71%;
+    --input: 279 7.33% 14.76%;
+    --primary: 279 100% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 279 6% 13%;
+    --secondary-foreground: 279 6% 73%;
+    --accent: 279 6% 13%;
+    --accent-foreground: 279 6% 73%;
+    --destructive: 348.71 95% 49%;
+    --destructive-foreground: 0 0% 100%;
+    --ring: 279 100% 45%;
+  }
 }
 
 @media (prefers-color-scheme: dark) {

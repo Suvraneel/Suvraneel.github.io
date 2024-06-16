@@ -1,10 +1,9 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "@styles/globals.css";
 import Hamburger from "@components/Hamburger/Hamburger";
 import Navbar from "@components/Navbar/Navbar";
-import React from "react";
 import Providers from "@components/Providers";
+import "@styles/globals.css";
+import type { Metadata } from "next";
+import React from "react";
 
 export const metadata: Metadata = {
   title: "Official Portfolio | Suvraneel",

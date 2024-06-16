@@ -4,13 +4,14 @@ import { ThemeProvider } from "next-themes";
 import { type ThemeProviderProps } from "next-themes/dist/types";
 import { AnimatePresence } from "framer-motion";
 import { SoundEffectsProvider } from "@components/SoundEffectsContext";
-import NextNProgress from "@components/NextNProgress/NextNProgress";
+import AnimatedCursor from "react-animated-cursor";
 
 const Providers = ({ children, ...props }: ThemeProviderProps) => {
   return (
     <ThemeProvider {...props}>
       <AnimatePresence mode="wait" initial={false}>
         <SoundEffectsProvider>
+          <AnimatedCursor />
           {/*<NextNProgress />*/}
           {children}
         </SoundEffectsProvider>

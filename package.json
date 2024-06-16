@@ -23,6 +23,7 @@
     "next-nprogress-bar": "^2.3.11",
     "next-themes": "^0.3.0",
     "react": "^18",
+    "react-animated-cursor": "^2.11.2",
     "react-calendly": "^4.3.0",
     "react-dom": "^18",
     "react-fast-marquee": "^1.6.4",

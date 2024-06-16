@@ -19,25 +19,27 @@ const About: NextPage = () => {
         >
           About Me
         </div>
-        <GlowCapture className="w-full relative grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 justify-between py-5">
-          <Glow color={"blue"} className="bg-glow/10 w-full rounded-lg">
-            <div className="border border-neutral-500 glow:border-glow rounded-lg p-4 md:p-10 flex flex-col justify-evenly gap-3 hover:bg-neutral-900">
+        <GlowCapture
+          className={`w-full relative grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 justify-between py-5 ${tasaOrbiter.className}`}
+        >
+          <Glow color={"#B338FF"} className="bg-black/80 w-full rounded-lg">
+            <div className="bg-glow/15 border border-neutral-500 glow:border-glow rounded-lg p-4 md:p-10 flex flex-col justify-evenly gap-3">
               <span className="text-2xl md:text-5xl font-semibold">100+</span>
               <span className="text-sm md:text-md text-nowrap">
                 Projects Completed
               </span>
             </div>
           </Glow>
-          <Glow color={"lime"} className="bg-glow/10 w-full rounded-lg">
-            <div className="border border-neutral-500 glow:border-glow/20 rounded-lg p-4 md:p-10 flex flex-col justify-evenly gap-3 hover:bg-neutral-900">
+          <Glow color={"#B338FF"} className="bg-black/80 w-full rounded-lg">
+            <div className="bg-glow/15 border border-neutral-500 glow:border-glow rounded-lg p-4 md:p-10 flex flex-col justify-evenly gap-3">
               <span className="text-2xl md:text-5xl font-semibold">20+</span>
               <span className="text-sm md:text-md text-nowrap">
                 Hackathons 🏆
               </span>
             </div>
           </Glow>
-          <Glow color={"red"} className="bg-glow/10 w-full rounded-lg">
-            <div className="border border-neutral-500 glow:border-glow rounded-lg p-4 md:p-10 flex flex-col justify-evenly gap-3 hover:bg-neutral-900">
+          <Glow color={"#B338FF"} className="bg-black/80 w-full rounded-lg">
+            <div className="bg-glow/15 border border-neutral-500 glow:border-glow rounded-lg p-4 md:p-10 flex flex-col justify-evenly gap-3">
               <span className="text-2xl md:text-5xl font-semibold">
                 2<span className={"text-sm"}>YEARS</span>
               </span>
@@ -45,8 +47,8 @@ const About: NextPage = () => {
             </div>
           </Glow>
           <div className="w-full rounded-lg col-span-3">
-            <Glow color={"cyan"} className="bg-glow/10 rounded-lg w-full">
-              <div className="w-full border border-neutral-500 glow:border-glow rounded-lg p-10 flex flex-col justify-evenly gap-3 hover:bg-neutral-900">
+            <Glow color={"#B338FF"} className="bg-black/80 w-full rounded-lg">
+              <div className="w-full bg-glow/15 border border-neutral-500 glow:border-glow rounded-lg p-10 flex flex-col justify-evenly gap-3">
                 <span className="text-2xl md:text-2xl font-semibold uppercase">
                   Clean Code &nbsp; &gt;/&lt; &nbsp; Future-Proof Design
                 </span>
