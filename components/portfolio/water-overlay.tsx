@@ -9,6 +9,12 @@ type RipplePoint = {
   radius: number;
 };
 
+type StoneDrop = {
+  x: number;
+  y: number;
+  startedAt: number;
+};
+
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const smoothstep = (edge0: number, edge1: number, x: number) => {
@@ -57,6 +63,7 @@ export function WaterOverlay() {
       offscreenContext: null as CanvasRenderingContext2D | null,
       imageData: null as ImageData | null,
       ripples: [] as RipplePoint[],
+      stoneDrops: [] as StoneDrop[],
       animationId: 0,
     };
 
@@ -180,14 +187,85 @@ export function WaterOverlay() {
       }
     };
 
+    const injectStoneDrops = (now: number) => {
+      if (!state.stoneDrops.length) {
+        return;
+      }
+
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const maxViewport = Math.max(viewportWidth, viewportHeight);
+      const toGrid = Math.max(state.gridWidth, state.gridHeight) / maxViewport;
+      const waveVelocityPx = deviceState.reducedMotion ? 104 : deviceState.mobile ? 138 : 158;
+      const dropLifetimeMs = deviceState.reducedMotion ? 560 : deviceState.mobile ? 700 : 780;
+      const ringThicknessGrid = Math.max(1.45, (deviceState.mobile ? 13 : 11) * toGrid);
+
+      const activeDrops: StoneDrop[] = [];
+
+      for (const drop of state.stoneDrops) {
+        const elapsed = now - drop.startedAt;
+
+        if (elapsed >= dropLifetimeMs) {
+          continue;
+        }
+
+        const ageSeconds = elapsed / 1000;
+        const decay = Math.exp(-ageSeconds * 3.35);
+        const centerX = (drop.x / viewportWidth) * (state.gridWidth - 1);
+        const centerY = (drop.y / viewportHeight) * (state.gridHeight - 1);
+        const ringRadiusGrid = (26 + waveVelocityPx * ageSeconds) * toGrid;
+        const influenceRadius = Math.max(3, ringRadiusGrid + ringThicknessGrid * 2.4);
+
+        const minX = Math.max(1, Math.floor(centerX - influenceRadius));
+        const maxX = Math.min(state.gridWidth - 2, Math.ceil(centerX + influenceRadius));
+        const minY = Math.max(1, Math.floor(centerY - influenceRadius));
+        const maxY = Math.min(state.gridHeight - 2, Math.ceil(centerY + influenceRadius));
+
+        const corePull = elapsed < 190 ? -0.28 * (1 - elapsed / 190) : 0;
+        const coreSigma = Math.max(0.8, ringThicknessGrid * 0.9);
+        const ringFrequency = deviceState.reducedMotion ? 0.95 : 1.08;
+        const timeFrequency = deviceState.reducedMotion ? 3.6 : 4.2;
+
+        for (let y = minY; y <= maxY; y += 1) {
+          for (let x = minX; x <= maxX; x += 1) {
+            const deltaX = x - centerX;
+            const deltaY = y - centerY;
+            const distance = Math.hypot(deltaX, deltaY);
+
+            if (distance > influenceRadius) {
+              continue;
+            }
+
+            const ringDelta = distance - ringRadiusGrid;
+            const ringBand = Math.exp(-(ringDelta * ringDelta) / (2 * ringThicknessGrid * ringThicknessGrid));
+            const ringWave = Math.sin(ringDelta * ringFrequency - ageSeconds * timeFrequency);
+            const ringContribution = ringWave * ringBand * 0.72 * decay;
+            const coreContribution =
+              corePull === 0 ? 0 : corePull * Math.exp(-(distance * distance) / (2 * coreSigma * coreSigma));
+
+            const index = y * state.gridWidth + x;
+            state.front[index] += ringContribution + coreContribution;
+          }
+        }
+
+        activeDrops.push(drop);
+      }
+
+      state.stoneDrops = activeDrops;
+    };
+
     const updateFluid = () => {
       const width = state.gridWidth;
       const height = state.gridHeight;
-      const damping = deviceState.reducedMotion ? 0.91 : deviceState.mobile ? 0.956 : 0.982;
+      const damping = deviceState.reducedMotion ? 0.84 : deviceState.mobile ? 0.908 : 0.946;
+      const edgeAbsorbBand = 7;
 
       for (let y = 1; y < height - 1; y += 1) {
         for (let x = 1; x < width - 1; x += 1) {
           const index = y * width + x;
+          const distanceToEdge = Math.min(x, y, width - 1 - x, height - 1 - y);
+          const edgeMix = clamp(distanceToEdge / edgeAbsorbBand, 0, 1);
+          const localDamping = damping * (0.7 + edgeMix * 0.3);
 
           state.back[index] =
             ((state.front[index - 1] +
@@ -196,7 +274,7 @@ export function WaterOverlay() {
               state.front[index + width]) /
               2 -
               state.back[index]) *
-            damping;
+            localDamping;
         }
       }
 
@@ -292,6 +370,7 @@ export function WaterOverlay() {
     };
 
     const animate = () => {
+      injectStoneDrops(performance.now());
       applyRipples();
       updateFluid();
       drawFluid();
@@ -316,7 +395,16 @@ export function WaterOverlay() {
     };
 
     const onPointerDown = (event: PointerEvent) => {
-      addRipple(event.clientX, event.clientY, 0.36, 78);
+      addRipple(event.clientX, event.clientY, 0.42, 42);
+      state.stoneDrops.push({
+        x: event.clientX,
+        y: event.clientY,
+        startedAt: performance.now(),
+      });
+
+      if (state.stoneDrops.length > 7) {
+        state.stoneDrops.splice(0, state.stoneDrops.length - 7);
+      }
     };
 
     const onResize = () => {
