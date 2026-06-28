@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Premium 3D Portfolio
 
-## Getting Started
+An immersive single-page portfolio built with Next.js App Router, React, and Three.js.
 
-First, run the development server:
+## Stack
+
+- `next` + App Router for page composition and metadata
+- `react` for modular section architecture
+- `three`, `@react-three/fiber`, and `@react-three/drei` for the hero scene
+- Tailwind CSS v4 for visual styling and responsive utilities
+
+## Experience Design
+
+- Dark cinematic visual base with neon atmospheric glow
+- 3D hero centerpiece reacting to cursor and scroll
+- Scroll reveal cadence and parallax background layers
+- Glassmorphism cards with interactive 3D hover depth
+- Accessible section landmarks, skip-link, and reduced-motion support
+
+## Project Structure
+
+- `app/page.tsx`: entry route rendering the portfolio shell
+- `components/portfolio/portfolio-shell.tsx`: top-level client orchestrator for sections and scroll state
+- `components/portfolio/hero-scene.tsx`: isolated Three.js canvas scene
+- `components/portfolio/*.tsx`: section modules and reusable UI
+- `components/portfolio/data.ts`: structured content model for projects, skills, and timeline
+
+## Local Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Quality Check
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint
+```
