@@ -95,6 +95,7 @@ export function PortfolioShell() {
       return false;
     }
 
+
     const storedTheme = window.localStorage.getItem("portfolio-theme");
     const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
     return storedTheme ? storedTheme === "light" : prefersLight;
