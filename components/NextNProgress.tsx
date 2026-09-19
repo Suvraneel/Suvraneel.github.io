@@ -181,7 +181,7 @@ class NextNProgress extends React.Component<Props> {
           clear: both;
         }
 
-        span {
+        .loader > span {
           float: left;
           height: 100px;
           line-height: 120px;
