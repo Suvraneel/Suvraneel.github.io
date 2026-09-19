@@ -19,9 +19,9 @@ const Navbar = () => {
   const menu = [
     { name: "Home", href: "/", icon: faHouseChimney },
     { name: "About", href: "/about", icon: faSignature },
-    { name: "Skills", href: "/skills", icon: faCode },
     { name: "Work", href: "/work", icon: faChartPie },
     { name: "Projects", href: "/projects", icon: faCubes },
+    { name: "Skills", href: "/skills", icon: faCode },
     { name: "Contact", href: "/contact", icon: faPenFancy },
   ];
   const bgMusicSfx = "./sounds/RoadsideFlowers.mp3";
@@ -103,4 +103,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

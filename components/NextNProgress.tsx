@@ -19,16 +19,32 @@ class NextNProgress extends React.Component<Props> {
   };
 
   timer = null;
+  shouldShowProgress = false;
 
-  routeChangeStart = () => {
+  isDashboardTransition = (url: string) => {
+    const pathname = url.split("?")[0];
+    return (
+      (Router.pathname === "/" && pathname === "/about") ||
+      (Router.pathname === "/about" && pathname === "/")
+    );
+  };
+
+  routeChangeStart = (url = "") => {
+    this.shouldShowProgress = !this.isDashboardTransition(url);
+
+    if (!this.shouldShowProgress) return;
+
     NProgress.set(this.props.startPosition);
     NProgress.start();
   };
 
   routeChangeEnd = () => {
+    if (!this.shouldShowProgress) return;
+
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {
       NProgress.done(true);
+      this.shouldShowProgress = false;
     }, this.props.stopDelayMs);
   };
 

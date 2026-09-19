@@ -59,11 +59,11 @@ const variantsNav = {
 const Hamburger = () => {
   const [isOpen, toggleOpen] = useCycle(false, true);
   const menu = [
-    { name: "Home", href: "/about", icon: faHouseChimney },
+    { name: "Home", href: "/", icon: faHouseChimney },
     { name: "About", href: "/about", icon: faSignature },
-    { name: "Skills", href: "/skills", icon: faCode },
     { name: "Work", href: "/work", icon: faChartPie },
     { name: "Projects", href: "/projects", icon: faCubes },
+    { name: "Skills", href: "/skills", icon: faCode },
     { name: "Contact", href: "/contact", icon: faPenFancy },
   ];
   return (

@@ -32,4 +32,6 @@ yarn-error.log*
 # vercel
 .vercel
 
-.vercel
+# Local development
+.idea/*
+.vscode/*
