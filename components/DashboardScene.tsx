@@ -52,8 +52,9 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
       >
         {shouldMountDashboard && (
           <SplineObj
-            scene="https://prod.spline.design/bMG02F4Rm1UpL5wP/scene.splinecode"
-            onLoad={(loadedApp) => {
+            // scene="https://prod.spline.design/bMG02F4Rm1UpL5wP/scene.splinecode"
+              scene="./spline/sceneDACCORD_NEW.splinecode"
+              onLoad={(loadedApp) => {
               setApp(loadedApp);
               setReady(true);
             }}
