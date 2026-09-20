@@ -1,86 +1,187 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useRef, useState } from "react";
 import useSound from "use-sound";
 import ProjectModal from "@components/ProjectModal";
-import { framerLogger } from "@/stateLogger";
 import projectsData from "@data/projectsDat";
+import { spaceBoards, tasaOrbiter } from "@font";
 
-const Projects = () => {
-  const [projIndex, setProjIndex] = useState<any>(projectsData[0]);
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const close = () => setModalOpen(false);
-  const open = () => setModalOpen(true);
-  const snapSfx = "./sounds/snap.wav";
-  const popSfx = "./sounds/pop.wav";
-  const [playSnap, { stop: stopSnap }] = useSound(snapSfx, { volume: 0.5 });
-  const [playPop] = useSound(popSfx, { volume: 0.5 });
+type Project = (typeof projectsData)[number];
+
+const placeholderDemoId = "EKGJ-pzSEns";
+
+function getYouTubeId(url: string) {
+  const match = url.match(/embed\/([^?&#/]+)/);
+  return match?.[1] ?? null;
+}
+
+const cardLayout = [
+  "md:col-span-7 md:row-span-2",
+  "md:col-span-5",
+  "md:col-span-5",
+  "md:col-span-6 xl:col-span-4",
+  "md:col-span-6 xl:col-span-4",
+  "md:col-span-6 xl:col-span-4",
+];
+
+export default function ProjectsPage() {
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const reduceMotion = useReducedMotion();
+  const [playSnap, { stop: stopSnap }] = useSound("/sounds/snap.wav", { volume: 0.35 });
+  const [playPop] = useSound("/sounds/pop.wav", { volume: 0.45 });
+
+  const openProject = (project: Project) => {
+    setSelectedProject(project);
+    playPop();
+  };
+
   return (
-      <div className="h-screen flex flex-col items-center nav-gap">
-        {!modalOpen && (
-          <motion.main>
-            <div className="grid grid-cols-1 sm:grid-cols-2	 lg:grid-cols-3 col-auto justify-center">
-              {projectsData.map((project) => {
-                return (
-                  <div
-                    key={project.id}
-                    className="w-full relative z-5 hover:z-10"
-                    onClick={() => {
-                      setProjIndex(project);
-                      open();
-                      playPop();
-                    }}
-                    onMouseEnter={() => {
-                      playSnap();
-                    }}
-                    onMouseLeave={() => {
-                      stopSnap();
-                    }}
-                  >
-                    <div className="w-full h-full absolute z-0 bottom-0 left-0 bg-gradient-to-t from-black via-black/20 to-transparent text-white text-xl flex flex-col justify-end items-start p-3">
-                      {project.name}
-                    </div>
-                    <motion.video
-                      whileHover={{ scale: 1.2 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="save-button z-5"
-                      onClick={open}
-                      id="my-video"
-                      preload="auto"
-                      width="640"
-                      height="264"
-                      data-setup="{}"
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      src={"./images/project-assets/" + project.gif}
-                    ></motion.video>
-                  </div>
-                );
-              })}
-            </div>
-          </motion.main>
-        )}
+    <main className="nav-gap h-screen overflow-y-auto overflow-x-hidden bg-[#07090d] text-white">
+      <div className="mx-auto max-w-[1500px] px-5 pb-24 pt-14 sm:px-10 lg:px-14 lg:pt-16">
+        <header className="max-w-3xl">
+          <h1 className={`animated-heading text-4xl leading-[0.95] tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
+            Projects
+          </h1>
+          <p className={`mt-5 max-w-xl text-base leading-7 text-white/65 sm:text-lg ${tasaOrbiter.className}`}>
+            A selection of web products, open-source tools, and experiments across engineering, community, and Web3.
+          </p>
+        </header>
 
-        <ModalContainer>
-          {modalOpen && (
-            <ProjectModal handleClose={close} project={projIndex} />
-          )}
-        </ModalContainer>
+        <section className="mt-10 sm:mt-14" aria-label="Project gallery">
+          <div className="grid auto-rows-[15rem] gap-3 sm:auto-rows-[18rem] sm:gap-4 md:grid-cols-12 lg:auto-rows-[20rem]">
+            {projectsData.map((project, index) => (
+              <ProjectTile
+                key={("id" in project && project.id) || project.name}
+                project={project}
+                className={cardLayout[index] ?? "md:col-span-6 xl:col-span-4"}
+                reduceMotion={Boolean(reduceMotion)}
+                onOpen={() => openProject(project)}
+                onHoverStart={playSnap}
+                onHoverEnd={stopSnap}
+              />
+            ))}
+          </div>
+        </section>
       </div>
+
+      <AnimatePresence>
+        {selectedProject && (
+          <ProjectModal
+            key={("id" in selectedProject && selectedProject.id) || selectedProject.name}
+            project={selectedProject}
+            handleClose={() => setSelectedProject(null)}
+          />
+        )}
+      </AnimatePresence>
+    </main>
   );
-};
+}
 
-const ModalContainer = ({ children, label = "Modal Container" }) => (
-  <AnimatePresence
-    initial={false}
-    mode="wait"
-    onExitComplete={() => framerLogger(label)}
-  >
-    {children}
-  </AnimatePresence>
-);
+function ProjectTile({
+  project,
+  className,
+  reduceMotion,
+  onOpen,
+  onHoverStart,
+  onHoverEnd,
+}: {
+  project: Project;
+  className: string;
+  reduceMotion: boolean;
+  onOpen: () => void;
+  onHoverStart: () => void;
+  onHoverEnd: () => void;
+}) {
+  const previewVideo = useRef<HTMLVideoElement>(null);
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
+  const hasDedicatedPreview = project.gif !== "video-to-be-added.webm";
+  const youtubeId = getYouTubeId(project.video);
+  const hasVideoThumbnail = Boolean(youtubeId && youtubeId !== placeholderDemoId && !thumbnailFailed);
+  const overview = project.details.split("|")[0]?.trim();
 
-export default Projects;
+  const startPreview = () => {
+    previewVideo.current?.play().catch(() => undefined);
+    onHoverStart();
+  };
+
+  const stopPreview = () => {
+    previewVideo.current?.pause();
+    onHoverEnd();
+  };
+
+  return (
+    <motion.button
+      type="button"
+      aria-haspopup="dialog"
+      aria-label={`Open ${project.name}`}
+      className={`group relative min-h-0 overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#10141c] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd] ${className}`}
+      initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={reduceMotion ? undefined : { y: -4 }}
+      whileTap={{ scale: 0.985 }}
+      onClick={onOpen}
+      onHoverStart={startPreview}
+      onHoverEnd={stopPreview}
+      onFocus={startPreview}
+      onBlur={stopPreview}
+    >
+      {hasDedicatedPreview ? (
+        <video
+          ref={previewVideo}
+          className="h-full w-full object-cover opacity-75 transition duration-500 ease-out group-hover:scale-[1.035] group-hover:opacity-100 motion-reduce:transition-none"
+          preload="metadata"
+          muted
+          loop
+          playsInline
+          src={`/images/project-assets/${project.gif}`}
+        />
+      ) : hasVideoThumbnail ? (
+        // YouTube provides a project-specific still until a real walkthrough is available.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          className="h-full w-full object-cover opacity-80 transition duration-500 ease-out group-hover:scale-[1.035] group-hover:opacity-100 motion-reduce:transition-none"
+          src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`}
+          alt=""
+          onError={() => setThumbnailFailed(true)}
+        />
+      ) : (
+        <ProjectArchivePreview project={project} />
+      )}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#07090d] via-[#07090d]/80 to-transparent px-5 pb-5 pt-16 sm:px-6 sm:pb-6">
+        <h2 className="max-w-[22ch] text-xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-2xl">
+          {project.name}
+        </h2>
+      </div>
+      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[52%] translate-x-4 flex-col border-l border-white/10 bg-[#0a0f16]/90 p-5 opacity-0 backdrop-blur-md transition duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none md:flex sm:p-6">
+        <span className="font-mono text-[0.65rem] uppercase tracking-[0.22em] text-[#83d3dd]">Project brief</span>
+        <h3 className="mt-3 text-lg font-semibold leading-tight tracking-[-0.025em] text-white lg:text-xl">{project.name}</h3>
+        <p className="mt-3 line-clamp-4 text-sm leading-6 text-white/65">{overview}</p>
+        <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
+          {project.tech_stk.slice(0, 3).map((tech) => (
+            <span key={tech} className="rounded-full border border-white/10 px-2.5 py-1 text-[0.65rem] font-medium text-white/70">
+              {tech}
+            </span>
+          ))}
+        </div>
+        <span className="mt-4 text-xs font-semibold text-[#b8e4e8]">Open case notes ↗</span>
+      </div>
+    </motion.button>
+  );
+}
+
+function ProjectArchivePreview({ project }: { project: Project }) {
+  return (
+    <div className="relative flex h-full w-full overflow-hidden bg-[#0c1420] p-6 sm:p-8">
+      <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(rgba(131,211,221,0.09)_1px,transparent_1px),linear-gradient(90deg,rgba(131,211,221,0.09)_1px,transparent_1px)] [background-size:2rem_2rem]" />
+      <div className="relative flex w-full flex-col justify-between border border-[#83d3dd]/20 p-4 sm:p-5">
+        <span className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-[#83d3dd]">Project archive</span>
+        <div>
+          <span className="block text-4xl font-semibold tracking-[-0.08em] text-white/15">{project.name.slice(0, 2).toUpperCase()}</span>
+          <span className="mt-3 block max-w-[18ch] text-sm font-medium leading-6 text-white/75">Interactive walkthrough coming soon.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
