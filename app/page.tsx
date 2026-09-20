@@ -1,10 +1,12 @@
-import type { Metadata } from "next";
+import { createPageMetadata } from "@lib/seo";
 import HomePage from "./HomePage";
 
-export const metadata: Metadata = {
-  title: "Home",
-  description: "Official portfolio website of Suvraneel Bhuin.",
-};
+export const metadata = createPageMetadata({
+  title: "Software Engineer & Product Builder",
+  description:
+    "Portfolio of Suvraneel Bhuin, a software engineer building thoughtful digital products and enterprise systems.",
+  path: "/",
+});
 
 export default function Page() {
   return <HomePage />;

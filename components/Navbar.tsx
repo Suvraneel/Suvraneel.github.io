@@ -41,6 +41,24 @@ export default function Navbar() {
   const reduceMotion = useReducedMotion();
   const [isPlaying, setIsPlaying] = useState(false);
   const musicRef = useRef<HTMLAudioElement>(null);
+  const snapAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playEffect = (source: string) => {
+    const audio = new Audio(source);
+    audio.volume = 0.25;
+    void audio.play().catch(() => undefined);
+    return audio;
+  };
+
+  const playSnap = () => {
+    snapAudioRef.current?.pause();
+    snapAudioRef.current = playEffect("/sounds/snap.wav");
+  };
+
+  const stopSnap = () => {
+    snapAudioRef.current?.pause();
+    snapAudioRef.current = null;
+  };
 
   const toggleMusic = async () => {
     const music = musicRef.current;
@@ -64,25 +82,64 @@ export default function Navbar() {
   return (
     <nav className="sidebar-container portfolio-rail" aria-label="Primary navigation">
       <audio ref={musicRef} preload="none" src="/sounds/RoadsideFlowers.mp3" onEnded={() => setIsPlaying(false)} />
-      <button type="button" onClick={toggleMusic} className="rail-music" aria-label={isPlaying ? "Stop music" : "Play music"}>
+      <button
+        type="button"
+        onClick={() => {
+          playEffect("/sounds/confirm.wav");
+          void toggleMusic();
+        }}
+        onMouseEnter={playSnap}
+        onMouseLeave={stopSnap}
+        onFocus={playSnap}
+        onBlur={stopSnap}
+        className="rail-music"
+        aria-label={isPlaying ? "Stop music" : "Play music"}
+      >
         <Disc3Icon aria-hidden="true" size={24} animate={isPlaying && !reduceMotion} />
         <span className="rail-label">{isPlaying ? "Stop music" : "Play music"}</span>
       </button>
 
       <div className="rail-divider" aria-hidden="true" />
       <div className="rail-links">
-        {railItems.map((item) => <RailLink key={item.name} item={item} active={pathname === item.href} reduceMotion={reduceMotion} />)}
+        {railItems.map((item) => (
+          <RailLink
+            key={item.name}
+            item={item}
+            active={pathname === item.href}
+            reduceMotion={reduceMotion}
+            onSnap={playSnap}
+            onStopSnap={stopSnap}
+            onConfirm={() => playEffect("/sounds/confirm.wav")}
+          />
+        ))}
       </div>
 
       <div className="rail-footer">
         <div className="rail-socials"><Socials /></div>
-        <span className="rail-year">© 2026</span>
+        <small className="rail-copyright" aria-label="Copyright Suvraneel Bhuin 2026">
+          <span className="rail-copyright-mark" aria-hidden="true">©</span>
+          <span className="rail-label">Suvraneel Bhuin · 2026</span>
+        </small>
       </div>
     </nav>
   );
 }
 
-function RailLink({ item, active, reduceMotion }: { item: RailItem; active: boolean; reduceMotion: boolean | null }) {
+function RailLink({
+  item,
+  active,
+  reduceMotion,
+  onSnap,
+  onStopSnap,
+  onConfirm,
+}: {
+  item: RailItem;
+  active: boolean;
+  reduceMotion: boolean | null;
+  onSnap: () => void;
+  onStopSnap: () => void;
+  onConfirm: () => void;
+}) {
   const iconRef = useRef<AnimatedIconHandle>(null);
   const [isHovered, setIsHovered] = useState(false);
   const Icon = item.icon;
@@ -94,20 +151,25 @@ function RailLink({ item, active, reduceMotion }: { item: RailItem; active: bool
       className={`rail-link group ${active ? "rail-link-active" : ""}`}
       onMouseEnter={() => {
         setIsHovered(true);
+        onSnap();
         if (!item.animateWithState && !reduceMotion) iconRef.current?.startAnimation();
       }}
       onMouseLeave={() => {
         setIsHovered(false);
+        onStopSnap();
         if (!item.animateWithState && !reduceMotion) iconRef.current?.stopAnimation();
       }}
       onFocus={() => {
         setIsHovered(true);
+        onSnap();
         if (!item.animateWithState && !reduceMotion) iconRef.current?.startAnimation();
       }}
       onBlur={() => {
         setIsHovered(false);
+        onStopSnap();
         if (!item.animateWithState && !reduceMotion) iconRef.current?.stopAnimation();
       }}
+      onClick={onConfirm}
     >
       <span className="rail-icon transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105">
         {item.animateWithState ? (

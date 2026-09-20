@@ -232,12 +232,27 @@ a:hover {
   transform: translateY(0);
 }
 
-.rail-year {
+.rail-copyright {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  padding: 0 10px;
   color: rgba(255, 255, 255, 0.3);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.58rem;
   letter-spacing: 0.12em;
-  text-align: center;
+  white-space: nowrap;
+}
+
+.rail-copyright-mark {
+  display: grid;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+  font-size: 0.75rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

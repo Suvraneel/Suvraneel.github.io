@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import { createPageMetadata } from "@lib/seo";
 import AboutPage from "./AboutPage";
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: "About",
-  description: "About Suvraneel Bhuin.",
-};
+  description: "Learn about Suvraneel Bhuin, a software engineer and product builder.",
+  path: "/about",
+});
 
 export default function Page() {
   return <AboutPage />;

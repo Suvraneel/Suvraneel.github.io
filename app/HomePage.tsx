@@ -142,8 +142,15 @@ const Home = () => {
   }, [flipToAbout]);
 
   return (
-    <div className="h-screen">
-    </div>
+    <main className="h-screen">
+      <section className="sr-only" aria-label="Portfolio introduction">
+        <h1>Suvraneel Bhuin — Software Engineer and Product Builder</h1>
+        <p>
+          Suvraneel Bhuin builds thoughtful digital products, enterprise systems, and technical
+          communities.
+        </p>
+      </section>
+    </main>
   );
 };
 
