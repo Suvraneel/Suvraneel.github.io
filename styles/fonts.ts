@@ -1,19 +1,5 @@
-import { Raleway, Montserrat, Poppins } from "next/font/google";
 import localFont from 'next/font/local'
 
-const raleway = Raleway({
-  subsets: ['latin'],
-  display: 'swap',
-});
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  display: 'swap',
-});
-const poppins = Poppins({
-  subsets: ['latin'],
-  display: 'swap',
-  weight: "500",
-});
 const spaceBoards = localFont({
   src: './fonts/Spaceboards.otf',
   variable: '--font-spaceBoards'
@@ -23,7 +9,7 @@ const tasaOrbiter = localFont({
   variable: '--font-TASAOrb'
 });
 
-export { raleway, montserrat, poppins, spaceBoards, tasaOrbiter }
+export { spaceBoards, tasaOrbiter }
 
 // @import url("https://fonts.googleapis.com/css2?family=Playfair+Display&family=Poiret+One&family=Raleway&display=swap");
 

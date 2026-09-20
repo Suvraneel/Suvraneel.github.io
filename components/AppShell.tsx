@@ -16,6 +16,7 @@ const pageOrder = ["/", "/about", "/work", "/projects", "/skills", "/contact"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const hasAnalytics = Boolean(gtag.GA_TRACKING_ID);
   const previousPathname = useRef(pathname);
   // The prior route is intentionally read during render so directional page
   // transitions can be derived before the next screen enters.
@@ -34,18 +35,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <DashboardSceneProvider>
         <Layout>
           <AsciiArt />
-          <Script id="google-analytics-init" strategy="afterInteractive">
-            {`window.dataLayer = window.dataLayer || [];
+          {hasAnalytics && (
+            <>
+              <Script id="google-analytics-init" strategy="afterInteractive">
+                {`window.dataLayer = window.dataLayer || [];
 function gtag(){window.dataLayer.push(arguments);}
 window.gtag = window.gtag || gtag;
 gtag('js', new Date());
 gtag('config', '${gtag.GA_TRACKING_ID}', { page_path: window.location.pathname });`}
-          </Script>
-          <Script
-            id="google-analytics"
-            strategy="afterInteractive"
-            src={`https://www.googletagmanager.com/gtag/js?id=${gtag.GA_TRACKING_ID}`}
-          />
+              </Script>
+              <Script
+                id="google-analytics"
+                strategy="afterInteractive"
+                src={`https://www.googletagmanager.com/gtag/js?id=${gtag.GA_TRACKING_ID}`}
+              />
+            </>
+          )}
           <PageSequenceScroll />
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div

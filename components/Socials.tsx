@@ -35,7 +35,7 @@ const Socials = () => {
     <div className="flex flex-row justify-evenly content-center gap-2">
       {social.map(item => {
         return (
-          <Link href={item.link} key={item.name} target="_blank">
+          <Link href={item.link} key={item.name} target="_blank" rel="noreferrer" aria-label={item.name}>
             <FontAwesomeObj icon={item.icon} brandColor={item.brandColor} />
           </Link>
         );

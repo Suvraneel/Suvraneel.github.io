@@ -13,7 +13,6 @@ import { useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState, type ElementType } from "react";
-import useSound from "use-sound";
 import Socials from "./Socials";
 
 type RailItem = {
@@ -41,16 +40,30 @@ export default function Navbar() {
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playBGM, { stop: stopBGM }] = useSound("./sounds/RoadsideFlowers.mp3", { volume: 0.25 });
+  const musicRef = useRef<HTMLAudioElement>(null);
 
-  const toggleMusic = () => {
-    if (isPlaying) stopBGM();
-    else playBGM();
-    setIsPlaying((playing) => !playing);
+  const toggleMusic = async () => {
+    const music = musicRef.current;
+    if (!music) return;
+
+    if (isPlaying) {
+      music.pause();
+      music.currentTime = 0;
+      setIsPlaying(false);
+      return;
+    }
+
+    try {
+      await music.play();
+      setIsPlaying(true);
+    } catch {
+      setIsPlaying(false);
+    }
   };
 
   return (
     <nav className="sidebar-container portfolio-rail" aria-label="Primary navigation">
+      <audio ref={musicRef} preload="none" src="/sounds/RoadsideFlowers.mp3" onEnded={() => setIsPlaying(false)} />
       <button type="button" onClick={toggleMusic} className="rail-music" aria-label={isPlaying ? "Stop music" : "Play music"}>
         <Disc3Icon aria-hidden="true" size={24} animate={isPlaying && !reduceMotion} />
         <span className="rail-label">{isPlaying ? "Stop music" : "Play music"}</span>
