@@ -5,7 +5,7 @@ const pageOrder = ["/", "/about", "/work", "/projects", "/skills", "/contact"];
 const intentThreshold = 520;
 const intentWindowMs = 500;
 const minimumIntentEvents = 3;
-const postNavigationCooldownMs = 1000;
+const postNavigationCooldownMs = 999;
 
 const findScrollContainer = (target: EventTarget | null) => {
   let element = target instanceof Element ? target : null;
