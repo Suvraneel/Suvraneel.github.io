@@ -46,14 +46,14 @@ gtag('config', '${gtag.GA_TRACKING_ID}', { page_path: window.location.pathname }
             src={`https://www.googletagmanager.com/gtag/js?id=${gtag.GA_TRACKING_ID}`}
           />
           <PageSequenceScroll />
-          <AnimatePresence mode="wait" initial={false}>
+          <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={pathname}
               className="h-full w-full"
               initial={{ opacity: 0, y: transitionDirection * 28 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: transitionDirection * -28 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             >
               {children}
             </motion.div>

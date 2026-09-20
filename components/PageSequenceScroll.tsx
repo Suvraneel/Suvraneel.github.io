@@ -72,6 +72,22 @@ const PageSequenceScroll = () => {
     return () => window.removeEventListener("wheel", handleWheel, true);
   }, [pathname, router]);
 
+  useEffect(() => {
+    const pageIndex = pageOrder.indexOf(pathname);
+    if (pageIndex === -1) return;
+
+    const warmAdjacentRoutes = () => {
+      const previousPath = pageOrder[pageIndex - 1];
+      const nextPath = pageOrder[pageIndex + 1];
+
+      if (previousPath) router.prefetch(previousPath);
+      if (nextPath) router.prefetch(nextPath);
+    };
+
+    const timeoutId = window.setTimeout(warmAdjacentRoutes, 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [pathname, router]);
+
   return null;
 };
 
