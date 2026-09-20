@@ -1,15 +1,12 @@
-import {
-  faChartPie,
-  faCode,
-  faCubes,
-  faHouseChimney,
-  faPenFancy,
-  faSignature,
-} from "@fortawesome/free-solid-svg-icons";
+"use client";
+
+import { LayoutDashboardIcon, SendIcon, TerminalIcon } from "@animateicons/react/lucide";
+import { FingerprintIcon } from "@components/animate-ui/icons/fingerprint";
+import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
+import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
 import { motion, useCycle, type Variants } from "framer-motion";
 import Link from "next/link";
 import MenuToggle from "./DrawerToggler";
-import { FontAwesomeObj } from "./FontAwesomeObj";
 import Socials from "./Socials";
 
 const sidebar: Variants = {
@@ -59,12 +56,12 @@ const variantsNav = {
 const Hamburger = () => {
   const [isOpen, toggleOpen] = useCycle(false, true);
   const menu = [
-    { name: "Home", href: "/", icon: faHouseChimney },
-    { name: "About", href: "/about", icon: faSignature },
-    { name: "Work", href: "/work", icon: faChartPie },
-    { name: "Projects", href: "/projects", icon: faCubes },
-    { name: "Skills", href: "/skills", icon: faCode },
-    { name: "Contact", href: "/contact", icon: faPenFancy },
+    { name: "Home", href: "/", icon: LayoutDashboardIcon },
+    { name: "About", href: "/about", icon: FingerprintIcon, animateWithState: true },
+    { name: "Work", href: "/work", icon: PickaxeIcon, animateWithState: true },
+    { name: "Projects", href: "/projects", icon: LightbulbIcon, animateWithState: true },
+    { name: "Skills", href: "/skills", icon: TerminalIcon },
+    { name: "Contact", href: "/contact", icon: SendIcon },
   ];
   return (
     <motion.nav
@@ -81,31 +78,25 @@ const Hamburger = () => {
         variants={variantsNav}
         className="hamburger-menu w-fit h-fit flex flex-col gap-3 fixed top-16 left-5"
       >
-        {menu.map((item) => {
+        {menu.map(({ name, href, icon: Icon, animateWithState }) => {
           return (
             <motion.li
               variants={variantsItem}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              key={item.name}
+              key={name}
               className="sidebar-item flex justify-start"
               onClick={() => toggleOpen()}
             >
               <Link
-                href={item.href}
-                className="text-white flex flex-row gap-5 hover:text-cyan-300">
-
-                <div className="flex justify-start">
-                  <FontAwesomeObj
-                    icon={item.icon}
-                    brandColor="cyan"
-                    title={item.name}
-                    titleClassName="sidebar-title pl-2 text-xl"
-                    size="xs"
-                    className="sidebar-icon"
-                  />
-                </div>
-
+                href={href}
+                className="flex flex-row items-center gap-4 text-white transition hover:text-cyan-200">
+                {animateWithState ? (
+                  <Icon aria-hidden="true" size={21} animateOnHover />
+                ) : (
+                  <Icon aria-hidden="true" size={21} duration={0.7} />
+                )}
+                <span className="text-xl font-medium">{name}</span>
               </Link>
             </motion.li>
           );

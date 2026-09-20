@@ -50,13 +50,13 @@ export default function SkillsPage() {
 
   return (
     <main className="nav-gap relative h-screen overflow-x-hidden overflow-y-auto bg-[#07090d] text-white">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -right-32 top-16 h-[32rem] w-[32rem] rounded-full bg-[#183c53]/20 blur-[140px]" />
         <div className="absolute -bottom-48 left-[20%] h-[30rem] w-[30rem] rounded-full bg-[#0b727a]/10 blur-[150px]" />
         <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(184,214,218,0.8)_1px,transparent_1px),linear-gradient(90deg,rgba(184,214,218,0.8)_1px,transparent_1px)] [background-size:3rem_3rem]" />
       </div>
 
-      <div className="relative mx-auto max-w-[1440px] px-5 pb-24 pt-28 sm:px-10 lg:px-14 lg:pb-32 lg:pt-20 xl:px-20">
+      <div className="relative z-10 mx-auto max-w-[1440px] px-5 pb-24 pt-28 sm:px-10 lg:px-14 lg:pb-32 lg:pt-20 xl:px-20">
         <header className="grid gap-7 border-b border-white/10 pb-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(20rem,0.6fr)] lg:items-end lg:pb-16">
           <div>
             <p className={`text-xs font-medium uppercase tracking-[0.22em] text-[#9bb7c0] ${tasaOrbiter.className}`}>Capability map</p>

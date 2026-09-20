@@ -77,13 +77,14 @@ a:hover {
   height: 100%;
   width: 50px;
   background-color: #1f1c1c33;
-  box-shadow: 0px 0px 20px 1px rgba(0, 0, 0, 0.5);
-  /* backdrop-filter: blur(8px); */
-  /* webkit-backdrop-filter: blur(8px); */
+  box-shadow: 0 0 20px 1px rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   transition: width 0.6s;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  gap: 12px;
   padding: 20px 0;
 }
 .hamburger {
@@ -103,10 +104,148 @@ a:hover {
   width: 140px;
 }
 
-.sidebar-item {
-  background-color: transparent;
-  padding: 10px;
+.rail-music,
+.rail-link {
+  position: relative;
+  display: flex;
+  min-height: 42px;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 0;
+  color: white;
+  transition: color 420ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.rail-music {
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
   cursor: pointer;
+}
+
+.rail-music:hover,
+.rail-link:hover {
+  color: #67e8f9;
+  background: transparent;
+}
+
+.rail-music:focus-visible,
+.rail-link:focus-visible {
+  outline: 2px solid #83d3dd;
+  outline-offset: 2px;
+}
+
+.rail-icon,
+.rail-music > svg {
+  display: grid;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+}
+
+.rail-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.rail-label {
+  opacity: 0;
+  transform: translateX(-6px);
+  white-space: nowrap;
+  font-family: "Tasa Orbiter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: opacity 180ms ease 70ms, transform 220ms cubic-bezier(0.22, 1, 0.36, 1) 70ms;
+}
+
+.sidebar-container:hover .rail-label,
+.sidebar-container:focus-within .rail-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.rail-divider {
+  height: 132px;
+  flex: 0 0 132px;
+}
+
+.rail-links {
+  display: grid;
+  gap: 0;
+}
+
+.rail-link {
+  padding: 0 10px;
+}
+
+.rail-link-active {
+  color: #d8fbff;
+  text-shadow: 0 0 16px rgba(103, 232, 249, 0.22);
+}
+
+.rail-link-active::before {
+  position: absolute;
+  inset: 5px 0;
+  z-index: -1;
+  border-radius: 2px;
+  background: radial-gradient(circle at 22px 50%, rgba(157, 241, 247, 0.12), rgba(103, 232, 249, 0.035) 42%, transparent 76%);
+  box-shadow: inset 1px 0 rgba(199, 250, 255, 0.58);
+  content: "";
+  animation: rail-active-settle 520ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes rail-active-settle {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.rail-footer {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  padding: 0 4px 2px;
+}
+
+.rail-socials {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: max-height 220ms ease, opacity 160ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sidebar-container:hover .rail-socials,
+.sidebar-container:focus-within .rail-socials {
+  max-height: 32px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.rail-year {
+  color: rgba(255, 255, 255, 0.3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-container,
+  .rail-label,
+  .rail-socials {
+    transition: none;
+  }
 }
 
 /* About Page */

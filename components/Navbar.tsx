@@ -1,105 +1,109 @@
+"use client";
+
 import {
-  faChartPie,
-  faCode,
-  faCubes,
-  faHouseChimney,
-  faMusic,
-  faPenFancy,
-  faSignature,
-  faStop,
-} from "@fortawesome/free-solid-svg-icons";
+  LayoutDashboardIcon,
+  SendIcon,
+  TerminalIcon,
+} from "@animateicons/react/lucide";
+import { Disc3Icon } from "@components/animate-ui/icons/disc-3";
+import { FingerprintIcon } from "@components/animate-ui/icons/fingerprint";
+import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
+import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
+import { useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useRef, useState, type ElementType } from "react";
 import useSound from "use-sound";
-import Equalizer from "./Equalizer";
-import { FontAwesomeObj } from "./FontAwesomeObj";
 import Socials from "./Socials";
 
-const Navbar = () => {
-  const menu = [
-    { name: "Home", href: "/", icon: faHouseChimney },
-    { name: "About", href: "/about", icon: faSignature },
-    { name: "Work", href: "/work", icon: faChartPie },
-    { name: "Projects", href: "/projects", icon: faCubes },
-    { name: "Skills", href: "/skills", icon: faCode },
-    { name: "Contact", href: "/contact", icon: faPenFancy },
-  ];
-  const bgMusicSfx = "./sounds/RoadsideFlowers.mp3";
-  const [isShownHoverContent, setIsShownHoverContent] = useState<boolean>(false);
-  const [isHovering, setIsHovering] = useState<boolean>(false);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [playBGM, { stop: stopBGM }] = useSound(bgMusicSfx, { volume: 0.25 });
-  return <>
-    <div
-      className="h-screen flex flex-col gap-3 absolute sidebar-container z-[4000] backdrop-blur-sm"
-      onMouseEnter={() => setIsShownHoverContent(true)}
-      onMouseLeave={() => setIsShownHoverContent(false)}
-    >
-      <button
-        onClick={() => {
-          isPlaying ? stopBGM() : playBGM();
-          setIsPlaying(!isPlaying);
-        }}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
-        id="music"
-        aria-label="Music"
-      >
-        {isPlaying ? (
-          isHovering ? (
-            <FontAwesomeObj
-              icon={faStop}
-              brandColor="cyan"
-              size="2x"
-              className="sidebar-icon w-full flex items-center justify-center"
-            />
-          ) : (
-            <Equalizer />
-          )
-        ) : (
-          <FontAwesomeObj
-            icon={faMusic}
-            brandColor="cyan"
-            size="2x"
-            className="sidebar-icon w-full flex items-center justify-center"
-          />
-        )}
-      </button>
-      <div className="logo w-full h-36"></div>
-      <div className="gap-0">
-        {menu.map(item => {
-          return (
-            <div key={item.name} className="sidebar-item flex justify-start">
-              <Link
-                href={item.href}
-                className="text-white flex flex-row gap-3 hover:text-cyan-300">
-                <div className="flex justify-start">
-                  <FontAwesomeObj
-                    icon={item.icon}
-                    brandColor="cyan"
-                    title={item.name}
-                    titleClassName="sidebar-title pl-2 font-semibold"
-                    size="xs"
-                    className="sidebar-icon"
-                  />
-                </div>
-              </Link>
-            </div>
-          );
-        })}
-      </div>
-      {isShownHoverContent && <Socials />}
-      <div className="fixed bottom-2 text-2xl pl-3 flex flex-row gap-2 items-center justify-between">
-        &copy;
-        {isShownHoverContent && (
-          <div className="flex flex-col">
-            <div className="text-xs">Suvraneel</div>
-            <div className="text-xs flex gap-1 items-end justify-start align-baseline">Bhuin <div style={{ fontSize: "0.6rem" }}>2023</div></div>
-          </div>
-        )}
-      </div>
-    </div>
-  </>;
+type RailItem = {
+  name: string;
+  href: string;
+  icon: ElementType;
+  animateWithState?: boolean;
 };
 
-export default Navbar;
+type AnimatedIconHandle = {
+  startAnimation: () => void;
+  stopAnimation: () => void;
+};
+
+const railItems: RailItem[] = [
+  { name: "Home", href: "/", icon: LayoutDashboardIcon },
+  { name: "About", href: "/about", icon: FingerprintIcon, animateWithState: true },
+  { name: "Work", href: "/work", icon: PickaxeIcon, animateWithState: true },
+  { name: "Projects", href: "/projects", icon: LightbulbIcon, animateWithState: true },
+  { name: "Skills", href: "/skills", icon: TerminalIcon },
+  { name: "Contact", href: "/contact", icon: SendIcon },
+];
+
+export default function Navbar() {
+  const pathname = usePathname();
+  const reduceMotion = useReducedMotion();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playBGM, { stop: stopBGM }] = useSound("./sounds/RoadsideFlowers.mp3", { volume: 0.25 });
+
+  const toggleMusic = () => {
+    if (isPlaying) stopBGM();
+    else playBGM();
+    setIsPlaying((playing) => !playing);
+  };
+
+  return (
+    <nav className="sidebar-container portfolio-rail" aria-label="Primary navigation">
+      <button type="button" onClick={toggleMusic} className="rail-music" aria-label={isPlaying ? "Stop music" : "Play music"}>
+        <Disc3Icon aria-hidden="true" size={24} animate={isPlaying && !reduceMotion} />
+        <span className="rail-label">{isPlaying ? "Stop music" : "Play music"}</span>
+      </button>
+
+      <div className="rail-divider" aria-hidden="true" />
+      <div className="rail-links">
+        {railItems.map((item) => <RailLink key={item.name} item={item} active={pathname === item.href} reduceMotion={reduceMotion} />)}
+      </div>
+
+      <div className="rail-footer">
+        <div className="rail-socials"><Socials /></div>
+        <span className="rail-year">© 2026</span>
+      </div>
+    </nav>
+  );
+}
+
+function RailLink({ item, active, reduceMotion }: { item: RailItem; active: boolean; reduceMotion: boolean | null }) {
+  const iconRef = useRef<AnimatedIconHandle>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      className={`rail-link group ${active ? "rail-link-active" : ""}`}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        if (!item.animateWithState && !reduceMotion) iconRef.current?.startAnimation();
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        if (!item.animateWithState && !reduceMotion) iconRef.current?.stopAnimation();
+      }}
+      onFocus={() => {
+        setIsHovered(true);
+        if (!item.animateWithState && !reduceMotion) iconRef.current?.startAnimation();
+      }}
+      onBlur={() => {
+        setIsHovered(false);
+        if (!item.animateWithState && !reduceMotion) iconRef.current?.stopAnimation();
+      }}
+    >
+      <span className="rail-icon transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105">
+        {item.animateWithState ? (
+          <Icon aria-hidden="true" size={24} animate={isHovered && !reduceMotion} />
+        ) : (
+          <Icon ref={iconRef} aria-hidden="true" size={24} duration={0.7} isAnimated={false} />
+        )}
+      </span>
+      <span className="rail-label">{item.name}</span>
+    </Link>
+  );
+}
