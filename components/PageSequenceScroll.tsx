@@ -2,7 +2,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 const pageOrder = ["/", "/about", "/work", "/projects", "/skills", "/contact"];
-const intentThreshold = 80;
+const intentThreshold = 520;
+const intentWindowMs = 500;
+const minimumIntentEvents = 3;
+const boundaryPauseMs = 350;
 
 const findScrollContainer = (target: EventTarget | null) => {
   let element = target instanceof Element ? target : null;
@@ -24,6 +27,9 @@ const PageSequenceScroll = () => {
   const router = useRouter();
   const pathname = usePathname();
   const scrollIntent = useRef(0);
+  const scrollIntentEvents = useRef(0);
+  const scrollDirection = useRef<1 | -1 | null>(null);
+  const boundaryReachedAt = useRef<number | null>(null);
   const lastWheelAt = useRef(0);
   const isNavigating = useRef(false);
 
@@ -34,6 +40,9 @@ const PageSequenceScroll = () => {
     // one-shot navigation guard whenever a new screen has arrived.
     isNavigating.current = false;
     scrollIntent.current = 0;
+    scrollIntentEvents.current = 0;
+    scrollDirection.current = null;
+    boundaryReachedAt.current = null;
 
     if (pathname === "/" || pathname === "/about") return;
 
@@ -41,7 +50,14 @@ const PageSequenceScroll = () => {
     if (pageIndex === -1) return;
 
     const handleWheel = (event: WheelEvent) => {
-      if (event.ctrlKey || event.deltaY === 0 || isNavigating.current) return;
+      if (
+        event.ctrlKey ||
+        event.deltaY === 0 ||
+        isNavigating.current ||
+        document.querySelector("[role='dialog'][aria-modal='true']")
+      ) {
+        return;
+      }
 
       const scrollContainer = findScrollContainer(event.target);
       const maximumScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
@@ -50,19 +66,54 @@ const PageSequenceScroll = () => {
       const atBottom = scrollContainer.scrollTop >= maximumScroll - 2;
       const nextPath = movingForward ? pageOrder[pageIndex + 1] : pageOrder[pageIndex - 1];
 
-      if (!nextPath || (movingForward ? !atBottom : !atTop)) return;
+      const isAtBoundary = movingForward ? atBottom : atTop;
+
+      if (!nextPath || !isAtBoundary) {
+        boundaryReachedAt.current = null;
+        return;
+      }
 
       event.preventDefault();
       const now = window.performance.now();
 
-      if (now - lastWheelAt.current > 180) {
+      // Reaching an edge never changes pages immediately. Give the visitor a
+      // small elastic acknowledgement, then require a second deliberate push.
+      if (boundaryReachedAt.current === null) {
+        boundaryReachedAt.current = now;
         scrollIntent.current = 0;
+        scrollIntentEvents.current = 0;
+        scrollDirection.current = null;
+        scrollContainer.animate(
+          [
+            { transform: "translateY(0)" },
+            { transform: `translateY(${movingForward ? -8 : 8}px)` },
+            { transform: "translateY(0)" },
+          ],
+          { duration: 260, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+        );
+        return;
+      }
+
+      if (now - boundaryReachedAt.current < boundaryPauseMs) return;
+
+      const direction = movingForward ? 1 : -1;
+
+      if (now - lastWheelAt.current > intentWindowMs || scrollDirection.current !== direction) {
+        scrollIntent.current = 0;
+        scrollIntentEvents.current = 0;
       }
 
       lastWheelAt.current = now;
+      scrollDirection.current = direction;
       scrollIntent.current += Math.abs(event.deltaY);
+      scrollIntentEvents.current += 1;
 
-      if (scrollIntent.current < intentThreshold) return;
+      if (
+        scrollIntent.current < intentThreshold ||
+        scrollIntentEvents.current < minimumIntentEvents
+      ) {
+        return;
+      }
 
       isNavigating.current = true;
       router.push(nextPath);

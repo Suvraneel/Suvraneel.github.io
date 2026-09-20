@@ -9,6 +9,7 @@ import AsciiArt from "@components/AsciiArt";
 import Layout from "@components/Layout";
 import { DashboardSceneProvider } from "@components/DashboardScene";
 import PageSequenceScroll from "@components/PageSequenceScroll";
+import ScrollToExplore from "@components/ScrollToExplore";
 import * as gtag from "@lib/gtag";
 
 const pageOrder = ["/", "/about", "/work", "/projects", "/skills", "/contact"];
@@ -58,6 +59,7 @@ gtag('config', '${gtag.GA_TRACKING_ID}', { page_path: window.location.pathname }
               {children}
             </motion.div>
           </AnimatePresence>
+          <ScrollToExplore />
         </Layout>
       </DashboardSceneProvider>
     </ThemeProvider>

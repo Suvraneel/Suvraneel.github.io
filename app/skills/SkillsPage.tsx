@@ -49,7 +49,7 @@ export default function SkillsPage() {
   const activeArea = capabilityAreas.find((area) => area.id === activeId) ?? capabilityAreas[0];
 
   return (
-    <main className="nav-gap relative min-h-[100dvh] overflow-x-hidden bg-[#07090d] text-white">
+    <main className="nav-gap relative h-screen overflow-x-hidden overflow-y-auto bg-[#07090d] text-white">
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -right-32 top-16 h-[32rem] w-[32rem] rounded-full bg-[#183c53]/20 blur-[140px]" />
         <div className="absolute -bottom-48 left-[20%] h-[30rem] w-[30rem] rounded-full bg-[#0b727a]/10 blur-[150px]" />
