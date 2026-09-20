@@ -1,16 +1,16 @@
-import Head from "next/head";
+"use client";
+
 import Link from "next/link";
 import useSound from "use-sound";
 import { motion } from "framer-motion";
-import { NextPage } from "next";
 import Canvas from "@components/Particle";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import * as gtag from "@lib/gtag";
 import { useDashboardScene } from "@components/DashboardScene";
 
-const About: NextPage = () => {
+const About = () => {
   const router = useRouter();
   const { app: splineApp, revealForReturn } = useDashboardScene();
   const isReturning = useRef(false);
@@ -152,21 +152,6 @@ const About: NextPage = () => {
   }, [returnToDashboard, router]);
 
   return (
-    <>
-      <Head>
-        <title>About | Portfolio - Suvraneel</title>
-        <meta
-          name="description"
-          content="About | Official Portfolio Website | Suvraneel Bhuin"
-        />
-        <link rel="preconnect" href="https://prod.spline.design" />
-        <link
-          rel="preload"
-          as="fetch"
-          href="https://prod.spline.design/bMG02F4Rm1UpL5wP/scene.splinecode"
-          crossOrigin="anonymous"
-        />
-      </Head>
       <motion.div
         initial={false}
         animate={prefersReducedMotion ? undefined : isExiting ? { opacity: 0, y: 28 } : { opacity: 1, y: 0 }}
@@ -233,7 +218,6 @@ const About: NextPage = () => {
           </aside>
         </div>
       </motion.div>
-    </>
   );
 };
 

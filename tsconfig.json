@@ -12,10 +12,10 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "paths": {
       "@components/*": [
@@ -25,7 +25,10 @@
         "./styles/*"
       ],
       "@api/*": [
-        "./pages/api/*"
+        "./data/*"
+      ],
+      "@data/*": [
+        "./data/*"
       ],
       "@font": [
         "./styles/fonts"
@@ -34,13 +37,19 @@
         "./*"
       ]
     },
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "components/NextNProgress.tsx"
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

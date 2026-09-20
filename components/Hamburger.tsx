@@ -6,17 +6,17 @@ import {
   faPenFancy,
   faSignature,
 } from "@fortawesome/free-solid-svg-icons";
-import { motion, useCycle } from "framer-motion";
+import { motion, useCycle, type Variants } from "framer-motion";
 import Link from "next/link";
 import MenuToggle from "./DrawerToggler";
 import { FontAwesomeObj } from "./FontAwesomeObj";
 import Socials from "./Socials";
 
-const sidebar = {
+const sidebar: Variants = {
   open: (height = 1000) => ({
     clipPath: `circle(${height * 2 + 200}px at 40px 40px)`,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 20,
       restDelta: 2,
     },
@@ -25,7 +25,7 @@ const sidebar = {
     clipPath: "circle(30px at 40px 40px)",
     transition: {
       delay: 0.5,
-      type: "spring",
+      type: "spring" as const,
       stiffness: 400,
       damping: 40,
     },

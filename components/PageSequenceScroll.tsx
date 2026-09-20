@@ -1,4 +1,4 @@
-import { useRouter } from "next/router";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 const pageOrder = ["/", "/about", "/work", "/projects", "/skills", "/contact"];
@@ -22,6 +22,7 @@ const findScrollContainer = (target: EventTarget | null) => {
 
 const PageSequenceScroll = () => {
   const router = useRouter();
+  const pathname = usePathname();
   const scrollIntent = useRef(0);
   const lastWheelAt = useRef(0);
   const isNavigating = useRef(false);
@@ -29,9 +30,14 @@ const PageSequenceScroll = () => {
   useEffect(() => {
     // Home and About own their dashboard flip interaction. Every subsequent
     // page uses its physical scroll boundary to move through the sequence.
-    if (router.pathname === "/" || router.pathname === "/about") return;
+    // This component now persists in the App Router shell, so clear the
+    // one-shot navigation guard whenever a new screen has arrived.
+    isNavigating.current = false;
+    scrollIntent.current = 0;
 
-    const pageIndex = pageOrder.indexOf(router.pathname);
+    if (pathname === "/" || pathname === "/about") return;
+
+    const pageIndex = pageOrder.indexOf(pathname);
     if (pageIndex === -1) return;
 
     const handleWheel = (event: WheelEvent) => {
@@ -64,7 +70,7 @@ const PageSequenceScroll = () => {
 
     window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
     return () => window.removeEventListener("wheel", handleWheel, true);
-  }, [router, router.pathname]);
+  }, [pathname, router]);
 
   return null;
 };

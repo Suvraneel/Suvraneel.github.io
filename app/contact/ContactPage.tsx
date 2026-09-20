@@ -1,3 +1,5 @@
+"use client";
+
 import emailjs from "@emailjs/browser";
 import {
   faClose,
@@ -6,13 +8,11 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dynamic from "next/dynamic";
-import Head from "next/head";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { FontAwesomeObj } from "@components/FontAwesomeObj";
 import SplineObj from "@components/SplineObject";
 import useSound from "use-sound";
-import { NextPage } from "next";
 import { spaceBoards, tasaOrbiter } from "@font";
 
 const CalendlyModal = dynamic(() => import("@components/CalendlyModal"), {
@@ -40,7 +40,7 @@ const loaderSpinner = () => {
   );
 };
 
-const Contact: NextPage = () => {
+const Contact = () => {
   const [showModal, setShowModal] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   const snapSfx = "./sounds/snap.wav";
@@ -113,13 +113,6 @@ const Contact: NextPage = () => {
   );
   return (
     <div id="contact" className="h-screen w-screen">
-      <Head>
-        <title>Contact | Portfolio - Suvraneel</title>
-        <meta
-          name="description"
-          content="Contact | Official Portfolio Website | Suvraneel Bhuin"
-        />
-      </Head>
       <div className="h-screen">
         {/* <SplineObj
           scene={"https://prod.spline.design/shTSpaHWL9CC-uJA/scene.splinecode"}
@@ -240,7 +233,6 @@ const Contact: NextPage = () => {
                     target="_blank"
                     href={"https://suvraneel.bio.link"}
                     className="text-white flex flex-row gap-3 hover:text-cyan-300"
-                    legacyBehavior
                   >
                     <div className="flex justify-start">
                       <FontAwesomeObj
@@ -257,7 +249,6 @@ const Contact: NextPage = () => {
                     href={"mailto:bsuvraneel@gmail.com"}
                     className="text-white flex flex-row gap-3 hover:text-cyan-300"
                     target="_blank"
-                    legacyBehavior
                   >
                     <div className="flex justify-start">
                       <FontAwesomeObj

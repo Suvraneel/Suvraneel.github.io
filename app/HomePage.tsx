@@ -1,12 +1,12 @@
-import Head from "next/head";
+"use client";
+
 import "../styles/Home.module.css";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/router";
-import { NextPage } from "next";
+import { useRouter } from "next/navigation";
 import * as gtag from "@lib/gtag";
 import { useDashboardScene } from "@components/DashboardScene";
 
-const Home: NextPage = () => {
+const Home = () => {
   const router = useRouter();
   const { app: splineApp, isReady: isSceneReady } = useDashboardScene();
   const isTransitioning = useRef(false);
@@ -89,8 +89,10 @@ const Home: NextPage = () => {
   }, [animateFlipRig, prefersReducedMotion, router, splineApp]);
 
   useEffect(() => {
-    window.innerWidth < 550 && router.replace("https://suvraneel.bio.link/");
-  }, [router]);
+    if (window.innerWidth < 550) {
+      window.location.replace("https://suvraneel.bio.link/");
+    }
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -140,19 +142,7 @@ const Home: NextPage = () => {
   }, [flipToAbout]);
 
   return (
-    <>
-      <Head>
-        <title>Home | Portfolio - Suvraneel</title>
-        <meta
-          name="google-site-verification"
-          content="J9uDTeg3iujyef0pzqJ7s7xDlmizshJEn0767--L3nA"
-        />
-        <meta
-          name="description"
-          content="Home | Official Portfolio Website | Suvraneel Bhuin"
-        />
-      </Head>
-      <div className="h-screen">
+    <div className="h-screen">
         {isSceneReady && !isFlipping && (
           <div
             className="pointer-events-none fixed inset-x-0 bottom-7 z-10 flex justify-center"
@@ -164,8 +154,7 @@ const Home: NextPage = () => {
             </span>
           </div>
         )}
-      </div>
-    </>
+    </div>
   );
 };
 

@@ -1,13 +1,13 @@
+"use client";
+
 import { AnimatePresence, motion } from "framer-motion";
-import Head from "next/head";
 import { useState } from "react";
 import useSound from "use-sound";
 import ProjectModal from "@components/ProjectModal";
-import { framerLogger } from "../stateLogger";
-import projectsData from "./api/projectsDat";
-import { NextPage } from "next";
+import { framerLogger } from "@/stateLogger";
+import projectsData from "@data/projectsDat";
 
-const Projects: NextPage = () => {
+const Projects = () => {
   const [projIndex, setProjIndex] = useState<any>(projectsData[0]);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const close = () => setModalOpen(false);
@@ -17,14 +17,6 @@ const Projects: NextPage = () => {
   const [playSnap, { stop: stopSnap }] = useSound(snapSfx, { volume: 0.5 });
   const [playPop] = useSound(popSfx, { volume: 0.5 });
   return (
-    <>
-      <Head>
-        <title>Projects | Portfolio - Suvraneel</title>
-        <meta
-          name="description"
-          content="Projects | Official Portfolio Website | Suvraneel Bhuin"
-        />
-      </Head>
       <div className="h-screen flex flex-col items-center nav-gap">
         {!modalOpen && (
           <motion.main>
@@ -78,7 +70,6 @@ const Projects: NextPage = () => {
           )}
         </ModalContainer>
       </div>
-    </>
   );
 };
 

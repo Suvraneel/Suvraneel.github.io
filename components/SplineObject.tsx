@@ -1,7 +1,8 @@
-import dynamic from "next/dynamic";
-import { Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 
-const Spline = dynamic(() => import("@splinetool/react-spline"), { ssr: false });
+// Keep each scene out of the initial route bundle. React.lazy is the Spline
+// package's supported client-side loading path for App Router components.
+const Spline = lazy(() => import("@splinetool/react-spline"));
 const SplineObj = (props: {
   scene: string;
   onLoad?: (spline: any) => void;
@@ -10,19 +11,11 @@ const SplineObj = (props: {
   const [isDesktop, setDesktop] = useState(false);
 
   useEffect(() => {
-    if (window.innerWidth > 550) {
-      setDesktop(true);
-    } else {
-      setDesktop(false);
-    }
-
     const updateMedia = () => {
-      if (window.innerWidth > 550) {
-        setDesktop(true);
-      } else {
-        setDesktop(false);
-      }
+      setDesktop(window.innerWidth > 550);
     };
+
+    updateMedia();
     window.addEventListener('resize', updateMedia);
     return () => window.removeEventListener('resize', updateMedia);
   }, []);
@@ -39,7 +32,5 @@ const SplineObj = (props: {
     </Suspense>
   );
 };
-
-Spline.propTypes = {};
 
 export default SplineObj;

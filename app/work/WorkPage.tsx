@@ -1,21 +1,13 @@
-import Head from "next/head";
+"use client";
+
 import Image from "next/image";
 import ChronoCard from "@components/ChronoCard";
-import { communityLeadershipData, educationData, workData } from "./api/workData";
-import { NextPage } from "next";
+import { communityLeadershipData, educationData, workData } from "@data/workData";
 import SplineObj from "@components/SplineObject";
 import { spaceBoards } from "@font";
 
-const Work: NextPage = () => {
+const Work = () => {
   return (
-    <>
-      <Head>
-        <title>Work | Portfolio - Suvraneel</title>
-        <meta
-          name="description"
-          content="Work | Official Portfolio Website | Suvraneel Bhuin"
-        />
-      </Head>
       <main className="h-screen overflow-y-auto overflow-x-hidden text-gray-50">
         <div className="min-h-full md:grid md:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[24rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)]">
           <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen overflow-hidden border-r border-white/10 md:block">
@@ -95,7 +87,6 @@ const Work: NextPage = () => {
           </div>
         </div>
       </main>
-    </>
   );
 };
 
