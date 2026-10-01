@@ -216,15 +216,34 @@ a:hover {
   display: grid;
   gap: 10px;
   margin-top: auto;
-  padding: 0 4px 2px;
+  padding: 0 0 2px;
 }
 
 .rail-socials {
   display: none;
+  padding: 0 10px;
+}
+
+/* Override the shared Socials row so icons line up with the rail's icon column. */
+.rail-socials > div {
+  justify-content: flex-start;
+  gap: 12px;
 }
 
 .sidebar-container:hover .rail-socials {
   display: flex;
+  animation: rail-socials-in 220ms cubic-bezier(0.22, 1, 0.36, 1) 70ms both;
+}
+
+@keyframes rail-socials-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .rail-copyright {
@@ -241,13 +260,17 @@ a:hover {
   white-space: nowrap;
 }
 
-.rail-copyright-mark {
+.rail-copyright-text {
   display: grid;
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
-  place-items: center;
-  font-size: 0.75rem;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.5;
+}
+
+.rail-copyright-symbol {
+  font-size: 0.85rem;
+  line-height: 0;
+  vertical-align: -0.1em;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -255,6 +278,7 @@ a:hover {
   .rail-label,
   .rail-socials {
     transition: none;
+    animation: none !important;
   }
 }
 

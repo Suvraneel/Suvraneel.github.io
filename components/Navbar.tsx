@@ -36,6 +36,8 @@ const railItems: RailItem[] = [
   { name: "Contact", href: "/contact", icon: SendIcon },
 ];
 
+const currentYear = new Date().getFullYear();
+
 export default function Navbar() {
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
@@ -116,9 +118,14 @@ export default function Navbar() {
 
       <div className="rail-footer">
         <div className="rail-socials"><Socials /></div>
-        <small className="rail-copyright" aria-label="Copyright Suvraneel Bhuin 2026">
-          <span className="rail-copyright-mark" aria-hidden="true">©</span>
-          <span className="rail-label">Suvraneel Bhuin · 2026</span>
+        <small className="rail-copyright" aria-label={`Copyright Suvraneel Bhuin ${currentYear}`}>
+          <span className="rail-label rail-copyright-text" aria-hidden="true">
+            <span>Suvraneel Bhuin</span>
+            {/* Static build year can differ from the visitor's clock. */}
+            <span suppressHydrationWarning>
+              <span className="rail-copyright-symbol">&copy;</span> {currentYear}
+            </span>
+          </span>
         </small>
       </div>
     </nav>
