@@ -8,7 +8,7 @@ import SplineObj from "@components/SplineObject";
 import { spaceBoards } from "@font";
 
 const Work = () => {
-  const contentRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLElement>(null);
   const experienceSectionRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -47,13 +47,13 @@ const Work = () => {
   }, []);
 
   return (
-      <main className="h-screen overflow-y-auto overflow-x-hidden text-gray-50">
-        <div className="h-screen grid md:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[24rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)] gap-0">
-          <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen overflow-hidden border-r border-white/10 md:block">
+      <main ref={contentRef} className="h-screen overflow-y-auto overflow-x-hidden text-gray-50">
+        <div className="min-h-screen grid md:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[24rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)] gap-0">
+          <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen self-start overflow-hidden border-r border-white/10 md:block">
             {/*<SplineObj scene={"https://prod.spline.design/ZqRCvFgqp5-tcTea/scene.splinecode"} />*/}
             <SplineObj scene={"./spline/scene-PLANT.splinecode"} scrollProgress={scrollProgress} />
           </aside>
-          <div className="min-w-0 overflow-y-auto" ref={contentRef}>
+          <div className="min-w-0">
             <div className="max-w-6xl px-5 pb-20 pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:px-14">
           <header className="max-w-4xl">
             <h1 className={`animated-heading text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
