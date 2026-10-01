@@ -31,7 +31,7 @@ const capabilityAreas = [
     label: "Protocols & communities",
     title: "Technical systems people can participate in.",
     description:
-      "Open-source programmes and Web3 work taught me how product, documentation, incentives, and developer communities fit together. I bring that systems view to collaboration—not just code.",
+      "Open-source programmes and Web3 work taught me how product, documentation, incentives, and developer communities fit together. I bring that systems view to collaboration, not just code.",
     tools: ["Solidity", "IPFS", "Filecoin", "Ethers.js", "Git"],
     proof: "Useful when adoption, developer experience, and technical foundations need to move together.",
   },

@@ -131,7 +131,7 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
         )}
         {shouldMountDashboard && hasSceneError && (
           <div
-            className={`pointer-events-none absolute inset-0 transition-opacity duration-700 ease-out ${
+            className={`pointer-events-none absolute inset-0 hidden transition-opacity duration-700 ease-out min-[551px]:block ${
               isReady ? "opacity-0" : "opacity-100"
             }`}
           >

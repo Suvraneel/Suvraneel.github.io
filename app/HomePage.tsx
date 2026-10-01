@@ -1,10 +1,14 @@
 "use client";
 
 import "../styles/Home.module.css";
+import Image from "next/image";
+import Link from "next/link";
+import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import * as gtag from "@lib/gtag";
 import { useDashboardScene } from "@components/DashboardScene";
+import { spaceBoards, tasaOrbiter } from "@font";
 
 const Home = () => {
   const router = useRouter();
@@ -128,13 +132,59 @@ const Home = () => {
   }, [flipToAbout]);
 
   return (
-    <main className="min-h-[100dvh]">
-      <section className="sr-only" aria-label="Portfolio introduction">
-        <h1>Suvraneel Bhuin — Software Engineer and Product Builder</h1>
-        <p>
-          Suvraneel Bhuin builds thoughtful digital products, enterprise systems, and technical
-          communities.
-        </p>
+    <main className="min-h-[100dvh] max-[550px]:relative max-[550px]:z-10">
+      {/* Phones never load the 3D dashboard, so this hero is their landing view. */}
+      <section
+        aria-label="Portfolio introduction"
+        className="flex min-h-[100dvh] flex-col justify-center px-5 pb-24 pt-20 text-white min-[551px]:sr-only"
+      >
+        <motion.div
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="relative aspect-square w-40 overflow-hidden rounded-2xl"
+        >
+          <Image
+            src="/images/Suvraneel_DP.jpeg"
+            alt="Sketch portrait of Suvraneel Bhuin wearing headphones"
+            fill
+            priority
+            sizes="160px"
+            className="object-cover grayscale"
+          />
+        </motion.div>
+        <motion.div
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+          className="mt-8"
+        >
+          <h1 className={`text-[2.6rem] font-bold leading-[1.05] tracking-[-0.04em] ${spaceBoards.className}`}>
+            Suvraneel Bhuin<span className="sr-only">, Software Engineer and Product Builder</span>
+          </h1>
+          <p className={`mt-4 max-w-[32ch] text-base leading-7 text-white/70 ${tasaOrbiter.className}`}>
+            Software engineer at Accenture. I build dependable backend systems and the communities around them.
+          </p>
+        </motion.div>
+        <motion.div
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+          className="mt-8 flex flex-wrap gap-3"
+        >
+          <Link
+            href="/work"
+            className="inline-flex items-center rounded-full bg-[#d7eef2] px-6 py-3 text-sm font-bold text-[#05080c] transition active:scale-[0.98]"
+          >
+            View work
+          </Link>
+          <Link
+            href="/contact"
+            className="inline-flex items-center rounded-full border border-white/25 px-6 py-3 text-sm font-bold text-white transition active:scale-[0.98]"
+          >
+            Get in touch
+          </Link>
+        </motion.div>
       </section>
     </main>
   );

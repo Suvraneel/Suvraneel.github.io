@@ -20,7 +20,7 @@ export const workData: ExperienceEntry[] = [
   {
     role: "Advanced Application Engineering Senior Analyst",
     company: "Accenture",
-    duration: "2023 — Present",
+    duration: "2023 - Present",
     image: "ACN.svg",
     summary: "Building backend systems for enterprise-scale products.",
     highlights: [
@@ -35,7 +35,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
   {
     role: "Lead Organiser · Core Team",
     company: "Web3Conf India 2023",
-    duration: "Jun 2023 — Aug 2023",
+    duration: "Jun 2023 - Aug 2023",
     image: "Web3ConfIndia23.png",
     summary: "Produced a large community conference for India’s Web3 ecosystem.",
     highlights: [
@@ -47,7 +47,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
   {
     role: "Program Manager",
     company: "HyperEdge Winter of Blockchain 2023",
-    duration: "Jan 2023 — Apr 2023",
+    duration: "Jan 2023 - Apr 2023",
     image: "HyperEdgeWoB23.png",
     summary: "Ran a blockchain learning programme for an 800+ member community.",
     highlights: [
@@ -59,7 +59,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
   {
     role: "Technical Program Manager",
     company: "GirlScript Summer of Code 2022",
-    duration: "Jan 2022 — Aug 2022",
+    duration: "Jan 2022 - Aug 2022",
     image: "GSSoC22.png",
     summary: "Led programme delivery and the official platform for a national open-source initiative.",
     highlights: [
@@ -71,7 +71,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
   {
     role: "Full-stack Web Development Intern",
     company: "GEOGO TechSolutions",
-    duration: "Nov 2021 — Feb 2022",
+    duration: "Nov 2021 - Feb 2022",
     image: "GEOGO.png",
     summary: "Built responsive web experiences and APIs with an industry mentorship team.",
     highlights: [
@@ -82,7 +82,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
   {
     role: "Supervisor & Mentor · C/C++",
     company: "GirlScript Winter of Contributing 2021",
-    duration: "Sep 2021 — Dec 2021",
+    duration: "Sep 2021 - Dec 2021",
     image: "GWOC21.png",
     summary: "Maintained an open-source programme repository and mentored new contributors.",
     highlights: [
@@ -94,7 +94,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
   {
     role: "Open-source Contributor",
     company: "GirlScript Summer of Code 2021",
-    duration: "Mar 2021 — Jun 2021",
+    duration: "Mar 2021 - Jun 2021",
     image: "GSSoC21.png",
     summary: "Contributed to algorithm repositories while building an open-source practice.",
     highlights: [
@@ -108,7 +108,7 @@ export const educationData: EducationEntry = {
   degree: "B.Tech in Computer Science & Engineering",
   institution: "University of Calcutta",
   campus: "University College of Science, Technology & Agriculture",
-  duration: "2019 — 2023",
+  duration: "2019 - 2023",
   score: "9.24 CGPA",
   image: "UCSTA.png",
 };
