@@ -1,20 +1,59 @@
 "use client";
 
 import Image from "next/image";
+import { useRef, useEffect, useState } from "react";
 import ChronoCard from "@components/ChronoCard";
 import { communityLeadershipData, educationData, workData } from "@data/workData";
 import SplineObj from "@components/SplineObject";
 import { spaceBoards } from "@font";
 
 const Work = () => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const experienceSectionRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const scrollDiv = contentRef.current;
+    const experienceSection = experienceSectionRef.current;
+    if (!scrollDiv || !experienceSection) return;
+
+    const handleScroll = () => {
+      if (!experienceSection) return;
+
+      const scrollDiv = contentRef.current;
+      if (!scrollDiv) return;
+
+      // Get section's position in scroll container
+      const sectionTop = experienceSection.offsetTop;
+      const sectionHeight = experienceSection.offsetHeight;
+      const scrollTop = scrollDiv.scrollTop;
+      const scrollBottom = scrollTop + scrollDiv.clientHeight;
+
+      // Calculate how much of section is visible in viewport
+      const visibleStart = Math.max(scrollTop, sectionTop);
+      const visibleEnd = Math.min(scrollBottom, sectionTop + sectionHeight);
+      const visibleHeight = Math.max(0, visibleEnd - visibleStart);
+
+      // Progress: 0 when section starts entering, 1 when it finishes leaving
+      const totalVisibleRange = scrollDiv.clientHeight + sectionHeight;
+      const scrolledDistance = scrollTop - sectionTop + scrollDiv.clientHeight;
+      const progress = scrolledDistance / totalVisibleRange;
+
+      setScrollProgress(Math.max(0, Math.min(1, progress)));
+    };
+
+    scrollDiv.addEventListener("scroll", handleScroll);
+    return () => scrollDiv.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-      <main className="min-h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
-        <div className="min-h-full md:grid md:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[24rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)]">
-          <aside aria-label="Growing plant illustration" className="sticky top-0 hidden min-h-[100dvh] overflow-hidden border-r border-white/10 md:block">
+      <main className="h-screen overflow-y-auto overflow-x-hidden text-gray-50">
+        <div className="h-screen grid md:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[24rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)] gap-0">
+          <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen overflow-hidden border-r border-white/10 md:block">
             {/*<SplineObj scene={"https://prod.spline.design/ZqRCvFgqp5-tcTea/scene.splinecode"} />*/}
-            <SplineObj scene={"./spline/scene-PLANT.splinecode"} />
+            <SplineObj scene={"./spline/scene-PLANT.splinecode"} scrollProgress={scrollProgress} />
           </aside>
-          <div className="min-w-0">
+          <div className="min-w-0 overflow-y-auto" ref={contentRef}>
             <div className="max-w-6xl px-5 pb-20 pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:px-14">
           <header className="max-w-4xl">
             <h1 className={`animated-heading text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
@@ -23,9 +62,10 @@ const Work = () => {
             <p className="mt-5 max-w-2xl text-base leading-7 text-white/65 sm:text-lg">
               Enterprise engineering, open-source leadership, and the communities that shaped how I build.
             </p>
-          </header>
+           </header>
 
-          <section className="mt-10 sm:mt-12" aria-labelledby="professional-work">
+           <div ref={experienceSectionRef}>
+           <section className="mt-10 sm:mt-12" aria-labelledby="professional-work">
             <h2 id="professional-work" className="text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
               Professional experience
             </h2>
@@ -46,10 +86,10 @@ const Work = () => {
               {communityLeadershipData.map((curElem) => (
                 <ChronoCard key={`${curElem.company}-${curElem.duration}`} curElem={curElem} variant="community" />
               ))}
-            </div>
-          </section>
+             </div>
+           </section>
 
-          <section className="mt-16 border-t border-white/10 pt-10 sm:mt-20 sm:pt-12" aria-labelledby="education">
+           <section className="mt-16 border-t border-white/10 pt-10 sm:mt-20 sm:pt-12" aria-labelledby="education">
             <h2 id="education" className="text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
               Education
             </h2>
@@ -82,8 +122,10 @@ const Work = () => {
                   <dd className="text-[#9bb7c0]">{educationData.score}</dd>
                 </div>
               </dl>
-            </article>
-          </section>
+             </article>
+           </section>
+           </div>
+
             </div>
           </div>
         </div>

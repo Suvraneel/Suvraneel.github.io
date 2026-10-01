@@ -86,6 +86,7 @@ a:hover {
   overflow: hidden;
   gap: 12px;
   padding: 20px 0;
+  z-index: 50;
 }
 .hamburger {
   display: none;

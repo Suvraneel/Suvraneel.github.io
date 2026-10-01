@@ -212,7 +212,7 @@ const About = () => {
           </section>
           <aside aria-label="Portrait of Suvraneel Bhuin" className="relative hidden min-h-[100dvh] overflow-hidden border-l border-white/10 lg:block">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_54%,rgba(139,205,215,0.13),transparent_48%)]" />
-            <div className="absolute inset-0 flex items-end justify-center opacity-90">
+            <div className="absolute inset-0 flex items-end justify-center opacity-90 pointer-events-none">
               <Canvas />
             </div>
           </aside>
