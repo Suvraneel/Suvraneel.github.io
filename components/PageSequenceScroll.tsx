@@ -6,6 +6,7 @@ const intentThreshold = 520;
 const intentWindowMs = 500;
 const minimumIntentEvents = 3;
 const postNavigationCooldownMs = 999;
+const swipeThreshold = 80;
 
 const findScrollContainer = (target: EventTarget | null) => {
   let element = target instanceof Element ? target : null;
@@ -149,14 +150,74 @@ const PageSequenceScroll = () => {
     return () => window.removeEventListener("wheel", handleWheel, true);
   }, [pathname, router]);
 
+  // Touch devices: a deliberate swipe that starts at a scroll edge moves through the sequence.
+  useEffect(() => {
+    const pageIndex = pageOrder.indexOf(pathname);
+    if (pageIndex === -1) return;
+
+    let gesture: { x: number; y: number; atTop: boolean; atBottom: boolean } | null = null;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1 || document.querySelector("[role='dialog'][aria-modal='true']")) {
+        gesture = null;
+        return;
+      }
+
+      const touch = event.touches[0];
+      const scrollContainer = findScrollContainer(event.target);
+      const maximumScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      gesture = {
+        x: touch.clientX,
+        y: touch.clientY,
+        atTop: scrollContainer.scrollTop <= 2,
+        atBottom: scrollContainer.scrollTop >= maximumScroll - 2,
+      };
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const start = gesture;
+      gesture = null;
+      if (!start || isNavigating.current) return;
+      if (window.performance.now() < navigationCooldownUntil.current) return;
+
+      const touch = event.changedTouches[0];
+      const deltaY = start.y - touch.clientY;
+      const deltaX = start.x - touch.clientX;
+      if (Math.abs(deltaY) < swipeThreshold || Math.abs(deltaY) < Math.abs(deltaX) * 1.5) return;
+
+      const movingForward = deltaY > 0;
+      if (movingForward ? !start.atBottom : !start.atTop) return;
+
+      const nextPath = movingForward ? pageOrder[pageIndex + 1] : pageOrder[pageIndex - 1];
+      if (!nextPath) return;
+
+      isNavigating.current = true;
+      navigationCooldownUntil.current = window.performance.now() + postNavigationCooldownMs;
+      if (!movingForward) pendingBottomScroll.current = nextPath;
+
+      router.push(nextPath, { scroll: false });
+    };
+
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [pathname, router]);
+
   useLayoutEffect(() => {
     if (pendingBottomScroll.current !== pathname) return;
 
     const scrollContainer = document.querySelector(`[data-page="${pathname}"] main`);
-    if (!scrollContainer) return;
-
-    scrollContainer.scrollTop = scrollContainer.scrollHeight;
     pendingBottomScroll.current = null;
+
+    if (scrollContainer && scrollContainer.scrollHeight > scrollContainer.clientHeight) {
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      return;
+    }
+
+    window.scrollTo(0, document.documentElement.scrollHeight);
   }, [pathname]);
 
   useEffect(() => {
