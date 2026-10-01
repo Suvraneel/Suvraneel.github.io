@@ -164,7 +164,8 @@ a:hover {
 }
 
 .sidebar-container:hover .rail-label,
-.sidebar-container:focus-within .rail-label {
+.rail-link:focus-visible .rail-label,
+.rail-music:focus-visible .rail-label {
   opacity: 1;
   transform: translateX(0);
 }
@@ -218,18 +219,11 @@ a:hover {
 }
 
 .rail-socials {
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transform: translateY(4px);
-  transition: max-height 220ms ease, opacity 160ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  display: none;
 }
 
-.sidebar-container:hover .rail-socials,
-.sidebar-container:focus-within .rail-socials {
-  max-height: 32px;
-  opacity: 1;
-  transform: translateY(0);
+.sidebar-container:hover .rail-socials {
+  display: flex;
 }
 
 .rail-copyright {

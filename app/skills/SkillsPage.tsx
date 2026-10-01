@@ -49,7 +49,7 @@ export default function SkillsPage() {
   const activeArea = capabilityAreas.find((area) => area.id === activeId) ?? capabilityAreas[0];
 
   return (
-    <main className="nav-gap relative h-screen overflow-x-hidden overflow-y-auto bg-[#07090d] text-white">
+    <main className="nav-gap relative min-h-[100dvh] overflow-x-hidden overflow-y-auto bg-[#07090d] text-white">
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -right-32 top-16 h-[32rem] w-[32rem] rounded-full bg-[#183c53]/20 blur-[140px]" />
         <div className="absolute -bottom-48 left-[20%] h-[30rem] w-[30rem] rounded-full bg-[#0b727a]/10 blur-[150px]" />
@@ -60,7 +60,7 @@ export default function SkillsPage() {
         <header className="grid gap-7 border-b border-white/10 pb-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(20rem,0.6fr)] lg:items-end lg:pb-16">
           <div>
             <p className={`text-xs font-medium uppercase tracking-[0.22em] text-[#9bb7c0] ${tasaOrbiter.className}`}>Capability map</p>
-            <h1 className={`animated-heading mt-5 text-5xl font-bold leading-[0.9] tracking-[-0.055em] sm:text-6xl xl:text-7xl ${spaceBoards.className}`}>Skills</h1>
+            <h1 className={`animated-heading mt-5 text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>Skills</h1>
           </div>
           <p className={`max-w-xl text-lg leading-8 text-white/70 sm:text-xl ${tasaOrbiter.className}`}>
             Skills matter only when they help a team ship, operate, and improve a real system.

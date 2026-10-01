@@ -8,9 +8,9 @@ import { spaceBoards } from "@font";
 
 const Work = () => {
   return (
-      <main className="h-screen overflow-y-auto overflow-x-hidden text-gray-50">
+      <main className="min-h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
         <div className="min-h-full md:grid md:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[24rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)]">
-          <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen overflow-hidden border-r border-white/10 md:block">
+          <aside aria-label="Growing plant illustration" className="sticky top-0 hidden min-h-[100dvh] overflow-hidden border-r border-white/10 md:block">
             {/*<SplineObj scene={"https://prod.spline.design/ZqRCvFgqp5-tcTea/scene.splinecode"} />*/}
             <SplineObj scene={"./spline/scene-PLANT.splinecode"} />
           </aside>

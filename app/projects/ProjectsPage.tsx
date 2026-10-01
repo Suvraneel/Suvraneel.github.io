@@ -37,7 +37,7 @@ export default function ProjectsPage() {
   };
 
   return (
-    <main className="nav-gap h-screen overflow-y-auto overflow-x-hidden bg-[#07090d] text-white">
+    <main className="nav-gap min-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[#07090d] text-white">
       <div className="mx-auto max-w-[1500px] px-5 pb-24 pt-14 sm:px-10 lg:px-14 lg:pt-16">
         <header className="max-w-3xl">
           <h1 className={`animated-heading text-4xl leading-[0.95] tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>

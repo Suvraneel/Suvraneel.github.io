@@ -4,31 +4,31 @@ import { LayoutDashboardIcon, SendIcon, TerminalIcon } from "@animateicons/react
 import { FingerprintIcon } from "@components/animate-ui/icons/fingerprint";
 import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
 import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
-import { motion, useCycle, type Variants } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import Link from "next/link";
+import { useState } from "react";
 import MenuToggle from "./DrawerToggler";
 import Socials from "./Socials";
 
-const sidebar: Variants = {
-  open: (height = 1000) => ({
-    clipPath: `circle(${height * 2 + 200}px at 40px 40px)`,
+const sheet: Variants = {
+  open: {
+    x: 0,
     transition: {
       type: "spring" as const,
-      stiffness: 20,
-      restDelta: 2,
+      stiffness: 120,
+      damping: 20,
     },
-  }),
+  },
   closed: {
-    clipPath: "circle(30px at 40px 40px)",
+    x: "100%",
     transition: {
-      delay: 0.5,
       type: "spring" as const,
-      stiffness: 400,
-      damping: 40,
+      stiffness: 140,
+      damping: 24,
     },
   },
 };
-const variantsItem = {
+const variantsItem: Variants = {
   open: {
     y: 0,
     opacity: 1,
@@ -54,7 +54,7 @@ const variantsNav = {
 };
 
 const Hamburger = () => {
-  const [isOpen, toggleOpen] = useCycle(false, true);
+  const [isOpen, setIsOpen] = useState(false);
   const menu = [
     { name: "Home", href: "/", icon: LayoutDashboardIcon },
     { name: "About", href: "/about", icon: FingerprintIcon, animateWithState: true },
@@ -63,55 +63,83 @@ const Hamburger = () => {
     { name: "Skills", href: "/skills", icon: TerminalIcon },
     { name: "Contact", href: "/contact", icon: SendIcon },
   ];
+
+  const openDrawer = () => setIsOpen(true);
+  const closeDrawer = () => setIsOpen(false);
+
+
   return (
-    <motion.nav
-      initial={false}
-      animate={isOpen ? "open" : "closed"}
-      custom="100%"
-      className="z-[2001] hamburger text-white"
-    >
-      <motion.div
-        className="h-4/5 w-1/2 bg-black absolute top-0 left-0"
-        variants={sidebar}
-      />
-      <motion.ul
-        variants={variantsNav}
-        className="hamburger-menu w-fit h-fit flex flex-col gap-3 fixed top-16 left-5"
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.button
+            type="button"
+            aria-label="Close navigation drawer"
+            className="fixed inset-0 z-[2000] cursor-default bg-black/50 backdrop-blur-[2px]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            onClick={closeDrawer}
+          />
+        )}
+      </AnimatePresence>
+      <motion.nav
+        initial={false}
+        animate="open"
+        custom="100%"
+        className="hamburger fixed inset-0 z-[2001] pointer-events-none text-white"
       >
-        {menu.map(({ name, href, icon: Icon, animateWithState }) => {
-          return (
-            <motion.li
-              variants={variantsItem}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              key={name}
-              className="sidebar-item flex justify-start"
-              onClick={() => toggleOpen()}
+        <MenuToggle toggle={isOpen ? closeDrawer : openDrawer} isOpen={isOpen} />
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <motion.aside
+              key="drawer-sheet"
+              className="pointer-events-auto absolute inset-y-0 right-0 flex h-full w-[min(86vw,22rem)] flex-col border-l border-white/10 bg-black/95 shadow-[-24px_0_48px_rgba(0,0,0,0.35)]"
+              variants={sheet}
+              initial="closed"
+              animate="open"
+              exit="closed"
             >
-              <Link
-                href={href}
-                className="flex flex-row items-center gap-4 text-white transition hover:text-cyan-200">
-                {animateWithState ? (
-                  <Icon aria-hidden="true" size={21} animateOnHover />
-                ) : (
-                  <Icon aria-hidden="true" size={21} duration={0.7} />
-                )}
-                <span className="text-xl font-medium">{name}</span>
-              </Link>
-            </motion.li>
-          );
-        })}
-        <motion.li
-          variants={variantsItem}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          className="mt-2"
-        >
-          <Socials />
-        </motion.li>
-      </motion.ul>
-      <MenuToggle toggle={() => toggleOpen()} />
-    </motion.nav>
+              <motion.ul
+                key="drawer-menu"
+                variants={variantsNav}
+                initial="closed"
+                animate="open"
+                exit="closed"
+                className="mt-20 flex flex-1 flex-col gap-2 px-5"
+              >
+                {menu.map(({ name, href, icon: Icon, animateWithState }) => (
+                  <motion.li
+                    key={name}
+                    variants={variantsItem}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="sidebar-item flex justify-start"
+                  >
+                    <Link
+                      href={href}
+                      className="flex w-full items-center gap-4 rounded-2xl border border-white/8 px-4 py-3 text-white transition hover:border-white/16 hover:bg-white/[0.04] hover:text-cyan-200"
+                      onClick={closeDrawer}
+                    >
+                      {animateWithState ? (
+                        <Icon aria-hidden="true" size={21} animateOnHover />
+                      ) : (
+                        <Icon aria-hidden="true" size={21} duration={0.7} />
+                      )}
+                      <span className="text-lg font-medium">{name}</span>
+                    </Link>
+                  </motion.li>
+                ))}
+              </motion.ul>
+              <motion.div variants={variantsItem} initial="closed" animate="open" exit="closed" className="border-t border-white/10 px-5 py-5">
+                <Socials />
+              </motion.div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+      </motion.nav>
+    </>
   );
 }
 

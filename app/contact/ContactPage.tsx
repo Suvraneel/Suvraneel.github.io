@@ -6,7 +6,6 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { FormEvent, useRef, useState } from "react";
 import useSound from "use-sound";
-import SplineObj from "@components/SplineObject";
 import { spaceBoards, tasaOrbiter } from "@font";
 
 const CalendlyModal = dynamic(() => import("@components/CalendlyModal"), { ssr: false });
@@ -50,10 +49,10 @@ export default function ContactPage() {
       {/*  <SplineObj scene="./spline/sceneCONTACT.splinecode" />*/}
       {/*</div>*/}
 
-      <div className="relative z-10 mx-auto grid min-h-[100dvh] max-w-[1440px] items-center gap-12 px-5 pb-16 pt-28 sm:px-10 lg:grid-cols-[minmax(18rem,0.78fr)_minmax(28rem,1.05fr)] lg:gap-20 lg:px-14 lg:py-20 xl:px-20">
+      <div className="relative z-10 mx-auto grid min-h-[100dvh] max-w-[1440px] items-center gap-12 px-5 pb-12 pt-20 sm:px-10 sm:pb-16 sm:pt-24 lg:grid-cols-[minmax(18rem,0.78fr)_minmax(28rem,1.05fr)] lg:gap-20 lg:px-14 lg:py-20 xl:px-20">
         <section className="max-w-xl">
           <p className={`text-xs font-medium uppercase tracking-[0.22em] text-[#9bb7c0] ${tasaOrbiter.className}`}>Reach out</p>
-          <h1 className={`animated-heading mt-5 whitespace-nowrap text-[clamp(3.25rem,5vw,4.5rem)] font-bold leading-[0.9] tracking-[-0.055em] ${spaceBoards.className}`}>
+          <h1 className={`animated-heading mt-5 text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
             Contact
           </h1>
           <p className={`mt-7 max-w-[36rem] text-lg leading-8 text-white/70 sm:text-xl ${tasaOrbiter.className}`}>

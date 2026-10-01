@@ -12,7 +12,6 @@ const Home = () => {
   const isTransitioning = useRef(false);
   const scrollIntent = useRef(0);
   const lastWheelAt = useRef(0);
-  const [isFlipping, setFlipping] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   const animateFlipRig = useCallback(
@@ -45,7 +44,6 @@ const Home = () => {
     if (isTransitioning.current) return;
 
     isTransitioning.current = true;
-    setFlipping(true);
     gtag.event({
       action: "dashboard_flip_started",
       category: "portfolio_navigation",
@@ -60,7 +58,6 @@ const Home = () => {
 
     if (!splineApp) {
       isTransitioning.current = false;
-      setFlipping(false);
       return;
     }
 
@@ -69,13 +66,8 @@ const Home = () => {
     if (!flipRig) {
       console.warn("Dashboard flip rig is not ready; keeping the visitor on Home.");
       isTransitioning.current = false;
-      setFlipping(false);
       return;
     }
-
-    const blob = splineApp.findObjectByName("Blob | Primary");
-
-    // if (blob) blob.visible = false;
 
     animateFlipRig(flipRig, -Math.PI, () => {
       gtag.event({
@@ -87,12 +79,6 @@ const Home = () => {
       router.push("/about");
     });
   }, [animateFlipRig, prefersReducedMotion, router, splineApp]);
-
-  useEffect(() => {
-    if (window.innerWidth < 550) {
-      window.location.replace("https://suvraneel.bio.link/");
-    }
-  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -142,7 +128,7 @@ const Home = () => {
   }, [flipToAbout]);
 
   return (
-    <main className="h-screen">
+    <main className="min-h-[100dvh]">
       <section className="sr-only" aria-label="Portfolio introduction">
         <h1>Suvraneel Bhuin — Software Engineer and Product Builder</h1>
         <p>

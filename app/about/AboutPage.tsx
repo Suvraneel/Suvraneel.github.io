@@ -159,34 +159,34 @@ const About = () => {
         className="relative min-h-[100dvh] overflow-hidden bg-black text-white"
       >
         <div className="relative z-10 grid min-h-[100dvh] grid-cols-1 lg:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.82fr)]">
-          <section className="flex min-h-[100dvh] items-center px-5 pb-16 pt-24 sm:px-10 lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
+          <section className="flex min-h-[100dvh] items-start px-5 pb-12 pt-16 sm:px-10 sm:pb-16 sm:pt-20 lg:items-center lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
             <div className="max-w-2xl">
-              <p className="mb-5 !font-[var(--font-TASAOrb)] text-xs font-medium uppercase tracking-[0.2em] text-[#9bb7c0]">
+              <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-[#9bb7c0]">
                 Profile
               </p>
-              <h1 className={`animated-heading max-w-xl text-5xl font-bold leading-[0.95] tracking-[-0.055em] sm:text-6xl xl:text-7xl ${spaceBoards.className}`}>
+              <h1 className={`animated-heading max-w-xl text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
                 About Me
               </h1>
               <div className="mt-8 max-w-2xl space-y-5">
-                <p className={`!font-[var(--font-TASAOrb)] text-xl font-medium leading-8 tracking-[-0.025em] text-white sm:text-2xl ${tasaOrbiter.className}`}>
+                <p className={`text-xl font-medium leading-8 tracking-[-0.025em] text-white sm:text-2xl ${tasaOrbiter.className}`}>
                   Building systems that hold up in the real world.
                 </p>
-                <p className={`!font-[var(--font-TASAOrb)] text-base leading-7 text-white/75 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
+                <p className={`text-base leading-7 text-white/75 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
                   I&apos;m Suvraneel Bhuin, an Advanced Application Engineering Senior Analyst at Accenture. I build dependable backend services, integrations, and workflows for enterprise-scale products.
                 </p>
-                <p className={`!font-[var(--font-TASAOrb)] text-base leading-7 text-white/60 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
+                <p className={`text-base leading-7 text-white/60 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
                   I studied Computer Science &amp; Engineering at the University of Calcutta. Open-source programmes and Web3 communities taught me to pair technical depth with clear ownership, useful documentation, and thoughtful collaboration.
                 </p>
-                <p className={`!font-[var(--font-TASAOrb)] text-base leading-7 text-white/60 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
+                <p className={`text-base leading-7 text-white/60 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
                   I enjoy turning ambiguous requirements into clear, maintainable systems, then working closely with the people who rely on them.
                 </p>
               </div>
               <div className="mt-9 flex flex-wrap gap-3">
                 <a
-                  href="./docs/Suvraneel_Bhuin_Resume.pdf"
+                  href="/docs/Suvraneel_Bhuin_Resume.pdf"
                   target="_blank"
                   rel="noreferrer"
-                  className="resume-button inline-flex items-center px-6 py-3 !font-[var(--font-TASAOrb)] text-sm font-bold tracking-[0.02em] text-white transition duration-300 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-100 motion-reduce:transform-none motion-reduce:transition-none"
+                  className="resume-button inline-flex items-center px-6 py-3 text-sm font-bold tracking-[0.02em] text-white transition duration-300 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-100 motion-reduce:transform-none motion-reduce:transition-none"
                   onMouseEnter={() => playSnap()}
                   onMouseLeave={() => stopSnap()}
                   onClick={() => {
@@ -203,7 +203,7 @@ const About = () => {
                 </a>
                 <Link
                   href="/contact"
-                  className="inline-flex items-center border border-white/25 px-5 py-3 !font-[var(--font-TASAOrb)] text-sm font-bold tracking-[0.02em] text-white transition duration-300 hover:-translate-y-0.5 hover:border-white/60 hover:bg-white/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-100 motion-reduce:transform-none motion-reduce:transition-none"
+                  className="inline-flex items-center border border-white/25 px-5 py-3 text-sm font-bold tracking-[0.02em] text-white transition duration-300 hover:-translate-y-0.5 hover:border-white/60 hover:bg-white/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-100 motion-reduce:transform-none motion-reduce:transition-none"
                 >
                   Get in touch
                 </Link>

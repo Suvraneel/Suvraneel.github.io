@@ -33,7 +33,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider defaultTheme="dark" attribute="class">
       <DashboardSceneProvider>
-        <Layout>
+        <Layout drawerKey={pathname}>
           <AsciiArt />
           {hasAnalytics && (
             <>
@@ -56,7 +56,7 @@ gtag('config', '${gtag.GA_TRACKING_ID}', { page_path: window.location.pathname }
             <motion.div
               key={pathname}
               data-page={pathname}
-              className="h-full w-full"
+              className="min-h-full w-full"
               initial={{ opacity: 0, y: transitionDirection * 28 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: transitionDirection * -28 }}
