@@ -25,3 +25,7 @@ Auto-Clarity: drop caveman for security warnings, irreversible actions, user con
 
 Boundaries: code/commits/PRs written normal.
 <!-- caveman-end -->
+
+## Copy and content tasks
+
+Before drafting or editing portfolio copy, read `.agents/product-marketing.md` and `PRODUCT.md`, then verify claims against the target route and its source data. Do not invent metrics, customer language, project outcomes, or credentials; ask before adding unsupported claims.
