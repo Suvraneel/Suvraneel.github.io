@@ -35,3 +35,9 @@ yarn-error.log*
 # Local development
 .idea/*
 .vscode/*
+.ai/
+.clinerules/
+.cursor/
+.impeccable/
+.opencode/
+.windsurf/
