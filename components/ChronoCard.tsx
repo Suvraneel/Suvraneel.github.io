@@ -38,7 +38,7 @@ const ChronoCard = ({
           <p className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/40">
             {curElem.duration}
           </p>
-          <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:hidden ${isWork ? "text-cyan-100/70" : "text-white/45"}`}>
+          <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:hidden ${isWork ? "text-cyan-100/70" : "text-white/45"} ${tasaOrbiter.className}`}>
             {curElem.company}
           </p>
         </div>
@@ -51,7 +51,7 @@ const ChronoCard = ({
             isWork ? "bg-cyan-200 shadow-[0_0_18px_rgba(165,243,252,0.9)]" : "bg-white/50"
           }`}
         />
-        <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:block ${isWork ? "text-cyan-100/70" : "text-white/45"}`}>
+        <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:block ${isWork ? "text-cyan-100/70" : "text-white/45"} ${tasaOrbiter.className}`}>
           {curElem.company}
         </p>
         <h3 className={`mt-2 max-w-3xl font-semibold leading-tight tracking-[-0.035em] text-white ${isWork ? "text-3xl sm:text-4xl" : "text-xl sm:text-2xl"}`}>

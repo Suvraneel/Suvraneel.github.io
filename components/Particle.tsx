@@ -198,6 +198,7 @@ const Canvas: React.FC = () => {
     <div className="pointer-events-none h-full w-full">
       <div className="h-full w-full canvas-container pointer-events-none">
         <canvas id="Canvas" ref={canvasRef} className="pointer-events-none"></canvas>
+        {/* eslint-disable-next-line @next/next/no-img-element -- hidden image is used as a canvas texture */}
         <img alt="avatar" className='hidden' id="image1" src="./images/Speaker.png" />
       </div>
     </div>

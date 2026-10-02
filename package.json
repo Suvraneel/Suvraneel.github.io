@@ -19,6 +19,7 @@
     "@fortawesome/free-regular-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.6",
+    "@paper-design/shaders": "^0.0.81",
     "@splinetool/react-spline": "^4.1.0",
     "@splinetool/runtime": "^2.0.55",
     "@types/react-dom": "^19.3.0",

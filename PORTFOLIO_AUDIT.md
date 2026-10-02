@@ -1,5 +1,48 @@
 # Portfolio audit — September 2026
 
+## Review rubric
+
+Use this rubric for future portfolio reviews so scores remain comparable. Assess the experience on the routes and device sizes actually reviewed; record scope, browser/device, and any material limitations. Ratings describe observed usability, not personal visual preference.
+
+### Heuristics
+
+Rate each applicable heuristic from 1 to 4:
+
+| Score | Meaning |
+| ---: | --- |
+| 1 | Major breakdown: users cannot reliably understand status or complete an important action. |
+| 2 | Significant friction: the experience works, but a notable obstacle or missing state undermines it. |
+| 3 | Effective: the heuristic is generally satisfied, with limited issues that do not derail the main task. |
+| 4 | Strong: the experience supports the heuristic clearly and consistently across reviewed states. |
+
+Evaluate these ten Nielsen usability heuristics in the portfolio context:
+
+1. Visibility of system status
+2. Match between the system and the real world
+3. User control and freedom
+4. Consistency and standards
+5. Error prevention
+6. Recognition rather than recall
+7. Flexibility and efficiency of use
+8. Aesthetic and minimalist design
+9. Help users recognize, diagnose, and recover from errors
+10. Help and documentation
+
+Mark an item N/A only when it does not apply to the reviewed experience, and briefly state why. Exclude N/A items from both the earned points and maximum. Calculate the percentage as `earned points / (4 × applicable heuristics) × 100`, rounded to the nearest whole percent.
+
+### Overall bands
+
+| Percentage | Label |
+| ---: | --- |
+| 85–100% | Strong |
+| 70–84% | Good |
+| 50–69% | Acceptable |
+| Below 50% | Needs attention |
+
+For example, 19 points across 8 applicable heuristics is 19/32 = 59%, or Acceptable. The band is a summary, not a substitute for findings: report high-priority blockers separately and explain the evidence behind each rating.
+
+Automated detector results are supporting evidence only. State what the detector scanned and its limits; a zero-finding result does not establish that content, visual hierarchy, task flow, media states, or responsive behavior are effective.
+
 ## Executive read
 
 The portfolio is unusually memorable. It communicates curiosity, visual craft, and the willingness to build beyond a standard developer site. Its strongest impression is currently **creative Web3 builder / visual technologist**, rather than the equally valid professional story: **Advanced Application Engineering Senior Analyst who builds dependable systems**.

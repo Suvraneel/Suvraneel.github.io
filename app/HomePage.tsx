@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import LiquidMetalButton from "@components/LiquidMetalButton";
 import * as gtag from "@lib/gtag";
 import { useDashboardScene } from "@components/DashboardScene";
 import { spaceBoards, tasaOrbiter } from "@font";
@@ -160,27 +161,27 @@ const Home = () => {
           className="mt-8"
         >
           <h1 className={`text-[2.6rem] font-bold leading-[1.05] tracking-[-0.04em] ${spaceBoards.className}`}>
-            Suvraneel Bhuin<span className="sr-only">, Software Engineer and Product Builder</span>
+            Suvraneel Bhuin
           </h1>
           <p className={`mt-4 max-w-[32ch] text-base leading-7 text-white/70 ${tasaOrbiter.className}`}>
-            Software engineer at Accenture. I build dependable backend systems and the communities around them.
+            <span className="block">Sr. Software Engineer at Accenture.</span>
+            <span className="mt-4 block">I build backend systems beyond the happy path, turning complex problems into software people can trust.</span>
           </p>
         </motion.div>
         <motion.div
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-8 flex flex-wrap gap-3"
+          className="mt-10 grid w-full grid-cols-2 gap-3"
         >
-          <Link
-            href="/work"
-            className="inline-flex items-center rounded-full bg-[#d7eef2] px-6 py-3 text-sm font-bold text-[#05080c] transition active:scale-[0.98]"
-          >
+          <LiquidMetalButton href="/work" mobileOnly className="h-[54px] w-full">
             View work
-          </Link>
+          </LiquidMetalButton>
           <Link
-            href="/contact"
-            className="inline-flex items-center rounded-full border border-white/25 px-6 py-3 text-sm font-bold text-white transition active:scale-[0.98]"
+            href="https://suvraneel.bio.link"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-[54px] w-full items-center justify-center rounded-full border border-white/25 px-3 py-0 text-sm font-bold text-white transition active:scale-[0.98]"
           >
             Get in touch
           </Link>

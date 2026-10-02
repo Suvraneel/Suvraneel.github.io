@@ -59,7 +59,7 @@ const Work = () => {
             <h1 className={`animated-heading text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
               Work &amp; experience
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-white/65 sm:text-lg">
+            <p className={`mt-5 max-w-2xl text-base leading-7 text-white/65 sm:text-lg ${tasaOrbiter.className}`}>
               Enterprise engineering, open-source leadership, and the communities that shaped how I build.
             </p>
            </header>
@@ -108,7 +108,7 @@ const Work = () => {
                   <p className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/40">
                     {educationData.duration}
                   </p>
-                  <p className="mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] text-[#9bb7c0] sm:hidden">
+                  <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] text-[#9bb7c0] sm:hidden ${tasaOrbiter.className}`}>
                     {educationData.institution}
                   </p>
                 </div>
@@ -116,7 +116,7 @@ const Work = () => {
               <div className="relative grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-8 sm:pl-5">
                 <div aria-hidden="true" className="absolute left-0 top-1 hidden h-2 w-2 rounded-full bg-white/50 sm:block" />
                 <div>
-                  <p className="hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] text-[#9bb7c0] sm:block">
+                  <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] text-[#9bb7c0] sm:block ${tasaOrbiter.className}`}>
                     {educationData.institution}
                   </p>
                   <h3 className="mt-2 text-xl font-semibold leading-tight tracking-[-0.035em] text-white sm:text-2xl">

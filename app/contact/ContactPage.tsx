@@ -1,12 +1,13 @@
 "use client";
 
-import { faArrowUpRightFromSquare, faCalendarDays, faEnvelope, faPaperPlane, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faArrowUpRightFromSquare, faCalendarDays, faEnvelope, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { SyntheticEvent, useRef, useState } from "react";
 import useSound from "use-sound";
 import { spaceBoards, tasaOrbiter } from "@font";
+import LiquidMetalButton from "@components/LiquidMetalButton";
 
 const CalendlyModal = dynamic(() => import("@components/CalendlyModal"), { ssr: false });
 
@@ -77,10 +78,11 @@ export default function ContactPage() {
               }}
               onMouseEnter={() => playSnap()}
               onMouseLeave={() => stopSnap()}
-              className="mt-7 inline-flex min-h-12 items-center gap-3 border-b border-[#83d3dd] pb-2 text-sm font-semibold text-[#b8e4e8] transition-[color,border-color,transform] duration-300 hover:border-white hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd] active:translate-y-px"
+              className="mt-7 inline-flex min-h-11 w-full items-center justify-center gap-3 rounded-full border border-white/20 bg-[linear-gradient(180deg,#1b1c1d_0%,#090909_100%)] px-4 text-sm font-medium text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_8px_rgba(0,0,0,0.25)] transition-[color,border-color,transform,box-shadow] duration-300 hover:border-white/40 hover:text-white hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_12px_rgba(0,0,0,0.35)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd] active:translate-y-px motion-reduce:transition-none sm:w-auto"
             >
-              <FontAwesomeIcon icon={faCalendarDays} aria-hidden="true" />
-              Book a conversation
+              <FontAwesomeIcon icon={faCalendarDays} aria-hidden="true" className="text-white/55" />
+              <span>Book a conversation</span>
+              <span className="text-xs font-normal text-white/45">via Calendly</span>
             </button>
           </section>
 
@@ -102,21 +104,21 @@ export default function ContactPage() {
               <Field label="What are you working on?" name="message" textarea />
 
               <div className="flex flex-col gap-4 border-t border-white/15 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                <button
+                <LiquidMetalButton
                   type="submit"
                   disabled={submissionState === "sending"}
                   onMouseEnter={() => playSnap()}
                   onMouseLeave={() => stopSnap()}
-                  className="inline-flex min-h-12 items-center justify-center gap-3 self-start rounded-full bg-[#83d3dd] px-5 text-sm font-semibold text-[#071014] transition-[background-color,transform] duration-300 hover:bg-[#b8e4e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd] disabled:cursor-wait disabled:opacity-70 active:translate-y-px"
+                  className="min-w-[11rem] w-full sm:w-auto"
                 >
-                  {submissionState === "sending" ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#071014]/25 border-t-[#071014]" aria-hidden="true" /> : <FontAwesomeIcon icon={faPaperPlane} aria-hidden="true" />}
+                  {submissionState === "sending" && <span aria-hidden="true" className="block h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" />}
                   {submissionState === "sending" ? "Sending" : "Send message"}
-                </button>
-                <p className="max-w-xs text-sm leading-5 text-white/60">A short note is enough. I&apos;ll reply by email.</p>
+                </LiquidMetalButton>
+                <p className={`max-w-xs text-sm leading-5 text-white/60 ${tasaOrbiter.className}`}>A short note is enough. I&apos;ll reply by email.</p>
               </div>
 
               {submissionState === "success" && <output className="block border-l border-[#83d3dd] pl-3 text-sm leading-6 text-[#c9eaed]" aria-live="polite">Message sent. I&apos;ll get back to you soon.</output>}
-              {submissionState === "error" && <p className="border-l border-[#d58d8d] pl-3 text-sm leading-6 text-[#f0b6b6]" role="alert">Your message could not be sent. Please email me directly instead.</p>}
+              {submissionState === "error" && <p className={`border-l border-[#d58d8d] pl-3 text-sm leading-6 text-[#f0b6b6] ${tasaOrbiter.className}`} role="alert">Your message could not be sent. Please email me directly instead.</p>}
             </form>
           </section>
         </div>

@@ -157,7 +157,7 @@ function ProjectTile({
       <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[52%] translate-x-4 flex-col border-l border-white/10 bg-[#0a0f16]/90 p-5 opacity-0 backdrop-blur-md transition duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none md:flex sm:p-6">
         <span className="font-mono text-[0.65rem] uppercase tracking-[0.22em] text-[#83d3dd]">Project brief</span>
         <h3 className="mt-3 text-lg font-semibold leading-tight tracking-[-0.025em] text-white lg:text-xl">{project.name}</h3>
-        <p className="mt-3 line-clamp-4 text-sm leading-6 text-white/65">{overview}</p>
+        <p className={`mt-3 line-clamp-4 text-sm leading-6 text-white/65 ${tasaOrbiter.className}`}>{overview}</p>
         <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
           {project.tech_stk.slice(0, 3).map((tech) => (
             <span key={tech} className="rounded-full border border-white/10 px-2.5 py-1 text-[0.65rem] font-medium text-white/70">

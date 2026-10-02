@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import { tasaOrbiter } from "@font";
 import { useEffect, useRef, useState } from "react";
 
 const STAIR_COUNT = 6;
@@ -10,7 +11,7 @@ const SEEN_KEY = "preloader-seen";
 
 export default function StairsPreloader({ progress }: { progress: number | null }) {
   const reduceMotion = useReducedMotion();
-  const [index, setIndex] = useState(0);
+  const [wordIndex, setWordIndex] = useState(0);
   const isRepeatVisit = useRef(false);
 
   useEffect(() => {
@@ -21,12 +22,11 @@ export default function StairsPreloader({ progress }: { progress: number | null 
   useEffect(() => {
     if (reduceMotion) return;
 
-    // Quick first sweep, then a calmer loop since load time is unknown.
     const firstHold = isRepeatVisit.current ? 150 : 1000;
-    const delay = index === 0 ? firstHold : index < WORDS.length ? 150 : 900;
-    const timeoutId = window.setTimeout(() => setIndex((i) => i + 1), delay);
+    const delay = wordIndex === 0 ? firstHold : wordIndex < WORDS.length ? 150 : 900;
+    const timeoutId = window.setTimeout(() => setWordIndex((index) => index + 1), delay);
     return () => window.clearTimeout(timeoutId);
-  }, [index, reduceMotion]);
+  }, [reduceMotion, wordIndex]);
 
   return (
     <motion.div
@@ -53,14 +53,14 @@ export default function StairsPreloader({ progress }: { progress: number | null 
         transition={{ duration: 0.2 }}
       >
         <motion.p
-          className="flex items-center text-4xl font-medium text-white md:text-5xl lg:text-6xl"
+          className={`flex items-center text-4xl font-medium text-white md:text-5xl lg:text-6xl ${tasaOrbiter.className}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.75 }}
           transition={{ duration: reduceMotion ? 0.3 : 1, delay: 0.2 }}
           aria-hidden="true"
         >
-          <span className="mr-2.5 block h-2.5 w-2.5 rounded-full bg-[#83d3dd] shadow-[0_0_12px_2px_rgba(131,211,221,0.6)]" />
-          {WORDS[index % WORDS.length]}
+          <span className="mr-3 block h-2 w-2 rounded-full bg-[#83d3dd]" />
+          {WORDS[wordIndex % WORDS.length]}
         </motion.p>
 
         {progress !== null && (

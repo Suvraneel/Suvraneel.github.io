@@ -282,14 +282,6 @@ a:hover {
   }
 }
 
-/* About Page */
-p {
-  font-size: 1.2em;
-  line-height: 1.5;
-  font-weight: 300;
-  font-family: "Poiret One", "Raleway", "Playfair Display", serif;
-}
-
 .resume-button,
 .resume-button:after {
   background: linear-gradient(45deg, transparent 5%, #9200ba 5%);

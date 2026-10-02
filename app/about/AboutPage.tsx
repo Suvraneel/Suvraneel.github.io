@@ -161,7 +161,7 @@ const About = () => {
         <div className="relative z-10 grid min-h-[100dvh] grid-cols-1 lg:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.82fr)]">
           <section className="flex min-h-[100dvh] items-start px-5 pb-12 pt-16 sm:px-10 sm:pb-16 sm:pt-20 lg:items-center lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
             <div className="max-w-2xl">
-              <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-[#9bb7c0]">
+              <p className={`mb-3 text-xs font-medium uppercase tracking-[0.2em] text-[#9bb7c0] ${tasaOrbiter.className}`}>
                 Profile
               </p>
               <h1 className={`animated-heading max-w-xl text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
