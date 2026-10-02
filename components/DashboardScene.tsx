@@ -35,6 +35,7 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   const [hasSceneError, setSceneError] = useState(false);
   const [isVisible, setVisible] = useState(pathname === "/");
   const [isReturnOverlay, setReturnOverlay] = useState(false);
+  const [isSplineViewport, setSplineViewport] = useState(false);
   const shouldMountDashboard =
     pathname === "/" || pathname === "/about" || isReturnOverlay;
   // Only gate the very first visit; later route changes reuse or skip the scene.
@@ -42,6 +43,14 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   const [sceneUrl, setSceneUrl] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const needsScene = shouldMountDashboard && !sceneUrl;
+
+  useEffect(() => {
+    const viewport = window.matchMedia(`(min-width: ${SPLINE_MIN_WIDTH + 1}px)`);
+    const updateViewport = () => setSplineViewport(viewport.matches);
+    updateViewport();
+    viewport.addEventListener("change", updateViewport);
+    return () => viewport.removeEventListener("change", updateViewport);
+  }, []);
 
   // Download the scene ourselves for real progress, then hand Spline the same bytes.
   useEffect(() => {
@@ -140,7 +149,7 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
         )}
       </div>
       <AnimatePresence>
-        {isInitialLoad && (
+        {isInitialLoad && isSplineViewport && (
           <StairsPreloader
             progress={
               isReady ? 1 : downloadProgress === null ? null : Math.min(downloadProgress, 0.99)

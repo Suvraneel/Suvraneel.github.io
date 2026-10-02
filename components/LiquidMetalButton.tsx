@@ -74,7 +74,7 @@ export default function LiquidMetalButton({
             u_offsetY: -0.1,
           },
           undefined,
-          0,
+          container.parentElement?.matches(":hover, :focus-within") ? 0 : 0.7,
         );
       } catch {
         shaderMount.current = null;
@@ -104,13 +104,14 @@ export default function LiquidMetalButton({
     };
   }, [mobileOnly]);
 
-  const startMotion = () => {
-    shaderMount.current?.setSpeed(0.7);
+  const pauseMotion = () => {
+    shaderMount.current?.setSpeed(0);
     onMouseEnter?.();
   };
 
-  const stopMotion = () => {
-    shaderMount.current?.setSpeed(0);
+  const resumeMotion = () => {
+    const interacting = shaderContainer.current?.parentElement?.matches(":hover, :focus-within");
+    shaderMount.current?.setSpeed(interacting ? 0 : 0.7);
     onMouseLeave?.();
   };
 
@@ -126,14 +127,14 @@ export default function LiquidMetalButton({
 
   if (href) {
     return (
-      <Link href={href} className={sharedClassName} onMouseEnter={startMotion} onMouseLeave={stopMotion} onFocus={startMotion} onBlur={stopMotion}>
+      <Link href={href} className={sharedClassName} onMouseEnter={pauseMotion} onMouseLeave={resumeMotion} onFocus={pauseMotion} onBlur={resumeMotion}>
         {surface}
       </Link>
     );
   }
 
   return (
-    <button type={type} disabled={disabled} className={sharedClassName} onMouseEnter={startMotion} onMouseLeave={stopMotion} onFocus={startMotion} onBlur={stopMotion}>
+    <button type={type} disabled={disabled} className={sharedClassName} onMouseEnter={pauseMotion} onMouseLeave={resumeMotion} onFocus={pauseMotion} onBlur={resumeMotion}>
       {surface}
     </button>
   );

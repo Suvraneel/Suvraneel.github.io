@@ -31,6 +31,7 @@ const PageSequenceScroll = () => {
   const scrollIntentEvents = useRef(0);
   const scrollDirection = useRef<1 | -1 | null>(null);
   const boundaryReachedAt = useRef<number | null>(null);
+  const pendingTopScroll = useRef<string | null>(null);
   const pendingBottomScroll = useRef<string | null>(null);
   const navigationCooldownUntil = useRef(0);
   const cooldownSpringShown = useRef(false);
@@ -71,6 +72,11 @@ const PageSequenceScroll = () => {
       const nextPath = movingForward ? pageOrder[pageIndex + 1] : pageOrder[pageIndex - 1];
 
       const isAtBoundary = movingForward ? atBottom : atTop;
+
+      if (window.performance.now() < navigationCooldownUntil.current && !isAtBoundary) {
+        event.preventDefault();
+        return;
+      }
 
       if (!nextPath || !isAtBoundary) {
         boundaryReachedAt.current = null;
@@ -141,7 +147,8 @@ const PageSequenceScroll = () => {
       navigationCooldownUntil.current = now + postNavigationCooldownMs;
       cooldownSpringShown.current = false;
 
-      if (!movingForward) pendingBottomScroll.current = nextPath;
+      if (movingForward) pendingTopScroll.current = nextPath;
+      else pendingBottomScroll.current = nextPath;
 
       router.push(nextPath, { scroll: false });
     };
@@ -193,7 +200,8 @@ const PageSequenceScroll = () => {
 
       isNavigating.current = true;
       navigationCooldownUntil.current = window.performance.now() + postNavigationCooldownMs;
-      if (!movingForward) pendingBottomScroll.current = nextPath;
+      if (movingForward) pendingTopScroll.current = nextPath;
+      else pendingBottomScroll.current = nextPath;
 
       router.push(nextPath, { scroll: false });
     };
@@ -207,6 +215,14 @@ const PageSequenceScroll = () => {
   }, [pathname, router]);
 
   useLayoutEffect(() => {
+    if (pendingTopScroll.current === pathname) {
+      pendingTopScroll.current = null;
+      const main = document.querySelector(`[data-page="${pathname}"] main`);
+      if (main) main.scrollTop = 0;
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      return;
+    }
+
     if (pendingBottomScroll.current !== pathname) return;
 
     const scrollContainer = document.querySelector(`[data-page="${pathname}"] main`);
