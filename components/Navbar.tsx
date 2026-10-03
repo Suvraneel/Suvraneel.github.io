@@ -118,8 +118,8 @@ export default function Navbar() {
 
       <div className="rail-footer">
         <div className="rail-socials"><Socials /></div>
-        <small className="rail-copyright" aria-label={`Copyright Suvraneel Bhuin ${currentYear}`}>
-          <span className="rail-label rail-copyright-text" aria-hidden="true">
+        <small className="rail-copyright">
+          <span className="rail-label rail-copyright-text">
             <span>Suvraneel Bhuin</span>
             {/* Static build year can differ from the visitor's clock. */}
             <span suppressHydrationWarning>
