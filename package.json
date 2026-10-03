@@ -23,6 +23,7 @@
     "@splinetool/react-spline": "^4.1.0",
     "@splinetool/runtime": "^2.0.55",
     "@types/react-dom": "^19.3.0",
+    "@vercel/speed-insights": "^2.0.0",
     "cn": "^0.3.0",
     "countapi-js": "^1.0.2",
     "framer-motion": "^13.4.0",
