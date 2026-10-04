@@ -93,6 +93,13 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   }, []);
 
   useEffect(() => {
+    if (pathname !== "/" || !app) return;
+
+    const flipRig = app.findObjectByName("Dashboard Flip Rig");
+    if (flipRig) flipRig.rotation.x = 0;
+  }, [app, pathname]);
+
+  useEffect(() => {
     setVisible(pathname === "/");
     setReturnOverlay(false);
 

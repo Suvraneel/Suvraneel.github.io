@@ -137,20 +137,20 @@ const Home = () => {
       {/* Phones never load the 3D dashboard, so this hero is their landing view. */}
       <section
         aria-label="Portfolio introduction"
-        className="flex min-h-[100dvh] flex-col justify-center px-5 pb-24 pt-20 text-white min-[551px]:sr-only"
+        className="flex min-h-[100dvh] flex-col justify-start px-5 pb-10 pt-8 text-white min-[551px]:sr-only"
       >
         <motion.div
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="relative aspect-square w-40 overflow-hidden rounded-2xl"
+          className="relative aspect-square w-40 max-w-full overflow-hidden rounded-2xl"
         >
           <Image
             src="/images/Suvraneel_DP.jpeg"
             alt="Sketch portrait of Suvraneel Bhuin wearing headphones"
             fill
             priority
-            sizes="160px"
+            sizes="180px"
             className="object-cover grayscale"
           />
         </motion.div>
@@ -158,9 +158,9 @@ const Home = () => {
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-8"
+          className="mt-4"
         >
-          <h1 className={`text-[2.6rem] font-bold leading-[1.05] tracking-[-0.04em] ${spaceBoards.className}`}>
+          <h1 className={`text-[1.5rem] font-bold leading-[1.05] tracking-normal min-[320px]:text-[1.8rem] min-[360px]:text-[2.1rem] min-[390px]:text-[2.4rem] min-[480px]:text-[2.6rem] ${spaceBoards.className}`}>
             Suvraneel Bhuin
           </h1>
           <p className={`mt-4 max-w-[32ch] text-base leading-7 text-white/70 ${tasaOrbiter.className}`}>
@@ -172,7 +172,7 @@ const Home = () => {
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-10 grid w-full grid-cols-2 gap-3"
+          className="mt-6 grid w-full grid-cols-2 gap-3"
         >
           <LiquidMetalButton href="/work" mobileOnly className="h-[54px] w-full">
             View work
