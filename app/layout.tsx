@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "../styles/globals.css";
 import AppShell from "@components/AppShell";
 import { siteDescription, siteName, siteUrl } from "@lib/seo";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
@@ -67,6 +68,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
         <AppShell>{children}</AppShell>
+        <SpeedInsights />
       </body>
     </html>
   );
