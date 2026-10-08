@@ -17,12 +17,20 @@ function getYouTubeId(url: string) {
 }
 
 const cardLayout = [
-  "md:col-span-7 md:row-span-2",
+  "md:col-span-7",
   "md:col-span-5",
+  "md:col-span-8",
+  "md:col-span-4",
+  "md:col-span-4",
+  "md:col-span-8",
   "md:col-span-5",
-  "md:col-span-6 xl:col-span-4",
-  "md:col-span-6 xl:col-span-4",
-  "md:col-span-6 xl:col-span-4",
+  "md:col-span-7",
+  "md:col-span-7",
+  "md:col-span-5",
+  "md:col-span-4",
+  "md:col-span-8",
+  "md:col-span-5",
+  "md:col-span-7",
 ];
 
 export default function ProjectsPage() {
@@ -49,7 +57,7 @@ export default function ProjectsPage() {
         </header>
 
         <section className="mt-10 sm:mt-14" aria-label="Project gallery">
-          <div className="grid auto-rows-[15rem] gap-3 sm:auto-rows-[18rem] sm:gap-4 md:grid-cols-12 lg:auto-rows-[20rem]">
+          <div className="grid grid-cols-1 auto-rows-[15rem] gap-3 sm:auto-rows-[18rem] sm:gap-4 md:grid-cols-12 md:grid-rows-[24rem] lg:auto-rows-[20rem]">
             {projectsData.map((project, index) => (
               <ProjectTile
                 key={("id" in project && project.id) || project.name}
@@ -98,6 +106,7 @@ function ProjectTile({
   const hasDedicatedPreview = project.gif !== "video-to-be-added.webm";
   const youtubeId = getYouTubeId(project.video);
   const hasVideoThumbnail = Boolean(youtubeId && youtubeId !== placeholderDemoId && !thumbnailFailed);
+  const thumbnail = "thumbnail" in project ? project.thumbnail : undefined;
   const overview = project.details.split("|")[0]?.trim();
 
   const startPreview = () => {
@@ -127,7 +136,30 @@ function ProjectTile({
       onFocus={startPreview}
       onBlur={stopPreview}
     >
-      {hasDedicatedPreview ? (
+      {thumbnail && !thumbnailFailed ? (
+        <div className="relative z-0 h-full w-full overflow-hidden bg-[#060606]">
+          {/* Let the thumbnail's colours soften into the tile behind its crisp, uncropped copy. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-2xl"
+            src={thumbnail}
+            alt=""
+            aria-hidden="true"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-[#060606]/35" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="relative z-10 h-full w-full object-contain opacity-95 transition duration-500 ease-out group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
+            src={thumbnail}
+            alt=""
+            onError={() => setThumbnailFailed(true)}
+            style={{
+              maskImage: "radial-gradient(ellipse at center, #000 82%, transparent 100%)",
+              WebkitMaskImage: "radial-gradient(ellipse at center, #000 82%, transparent 100%)",
+            }}
+          />
+        </div>
+      ) : hasDedicatedPreview ? (
         <video
           ref={previewVideo}
           className="h-full w-full object-cover opacity-75 transition duration-500 ease-out group-hover:scale-[1.035] group-hover:opacity-100 motion-reduce:transition-none"
@@ -149,12 +181,12 @@ function ProjectTile({
       ) : (
         <ProjectArchivePreview project={project} />
       )}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#07090d] via-[#07090d]/80 to-transparent px-5 pb-5 pt-16 sm:px-6 sm:pb-6">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[#07090d] via-[#07090d]/80 to-transparent px-5 pb-5 pt-16 sm:px-6 sm:pb-6">
         <h2 className="max-w-[22ch] text-xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-2xl">
           {project.name}
         </h2>
       </div>
-      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[52%] translate-x-4 flex-col border-l border-white/10 bg-[#0a0f16]/90 p-5 opacity-0 backdrop-blur-md transition duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none md:flex sm:p-6">
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-20 hidden w-[52%] translate-x-4 flex-col border-l border-white/10 bg-[#0a0f16]/90 p-5 opacity-0 backdrop-blur-md transition duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none md:flex sm:p-6">
         <span className="font-mono text-[0.65rem] uppercase tracking-[0.22em] text-[#83d3dd]">Project brief</span>
         <h3 className="mt-3 text-lg font-semibold leading-tight tracking-[-0.025em] text-white lg:text-xl">{project.name}</h3>
         <p className={`mt-3 line-clamp-4 text-sm leading-6 text-white/65 ${tasaOrbiter.className}`}>{overview}</p>

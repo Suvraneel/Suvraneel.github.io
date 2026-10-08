@@ -22,26 +22,27 @@ export const workData: ExperienceEntry[] = [
     company: "Accenture",
     duration: "2023 - Present",
     image: "ACN.svg",
-    summary: "Building backend systems for enterprise-scale products.",
+    summary: "Build backend services and integrations for a business-intelligence portal serving a global media client.",
     highlights: [
-      "Design and deliver production services with an emphasis on reliable integrations and maintainable system boundaries.",
-      "Work across APIs, data flows, and deployment workflows with cross-functional teams.",
-      "Turn product requirements into pragmatic, supportable engineering decisions.",
+      "Designed and deployed Java Spring Boot microservices for the portal.",
+      "Improved data validation and error handling, reducing support tickets by 60%.",
+      "Improved Elasticsearch query speed by 30%.",
+      "Worked with product and data teams to turn ambiguous requirements into pragmatic technical solutions.",
     ],
   },
 ];
 
 export const communityLeadershipData: ExperienceEntry[] = [
   {
-    role: "Lead Organiser · Core Team",
+    role: "Organiser · Core Team",
     company: "Web3Conf India 2023",
     duration: "Jun 2023 - Aug 2023",
     image: "Web3ConfIndia23.png",
-    summary: "Produced a large community conference for India’s Web3 ecosystem.",
+    summary: "Produced a Web3 developer conference in India.",
     highlights: [
-      "Built the speaker, sponsor, media-partner, and event operations workflow from planning through on-site delivery.",
+      "Built speaker, sponsor, and media-partner workflows from planning through delivery.",
       "Helped convene 2,500+ attendees, 100+ speakers, and 150+ companies and sponsors.",
-      "Maintained the event app and the feedback loop that supported registration, networking, and post-event learning.",
+      "Managed the event app and feedback loop for registration, networking, and post-event learning.",
     ],
   },
   {
@@ -51,9 +52,9 @@ export const communityLeadershipData: ExperienceEntry[] = [
     image: "HyperEdgeWoB23.png",
     summary: "Ran a blockchain learning programme for an 800+ member community.",
     highlights: [
-      "Hosted 10+ sessions and workshops with community partners and industry practitioners.",
-      "Led partnerships, sponsorships, social content, email, and livestream programming.",
-      "Managed Discord moderation, programming, and community operations end to end.",
+      "Hosted 10+ sessions and workshops, including livestreams with industry practitioners.",
+      "Led community partnerships, sponsorships, social media, and email campaigns.",
+      "Managed Discord moderation and cohort operations end to end.",
     ],
   },
   {
@@ -61,10 +62,11 @@ export const communityLeadershipData: ExperienceEntry[] = [
     company: "GirlScript Summer of Code 2022",
     duration: "Jan 2022 - Aug 2022",
     image: "GSSoC22.png",
-    summary: "Led programme delivery and the official platform for a national open-source initiative.",
+    summary: "Led delivery of the official platform and contributor programme for a national open-source initiative.",
     highlights: [
-      "Managed a cross-functional team of 30 and the end-to-end contributor programme workflow.",
-      "Mentored 6,000+ contributors during the three-month programme.",
+      "Managed a 30-person team and the end-to-end contributor workflow.",
+      "Built and maintained the official Next.js website for 8,000+ contributors, supporting applications and registration.",
+      "Mentored 6,000+ contributors and hosted 15+ hours of workshops and community events.",
       "Secured 10+ organisational partnerships and more than $10k in sponsorships.",
     ],
   },
@@ -73,10 +75,10 @@ export const communityLeadershipData: ExperienceEntry[] = [
     company: "GEOGO TechSolutions",
     duration: "Nov 2021 - Feb 2022",
     image: "GEOGO.png",
-    summary: "Built responsive web experiences and APIs with an industry mentorship team.",
+    summary: "Built responsive web applications and APIs under industry mentorship.",
     highlights: [
-      "Developed responsive interfaces with HTML, CSS, JavaScript, and the MERN stack.",
-      "Participated in code reviews, user testing, API documentation, and peer review.",
+      "Developed full-stack projects, including a CoWIN vaccination-booking clone, using the MERN stack.",
+      "Integrated and tested third-party APIs; contributed to code reviews, user testing, and technical documentation.",
     ],
   },
   {
@@ -86,9 +88,9 @@ export const communityLeadershipData: ExperienceEntry[] = [
     image: "GWOC21.png",
     summary: "Maintained an open-source programme repository and mentored new contributors.",
     highlights: [
-      "Reviewed contributions for a repository with roughly 900 stars and 1.6k forks.",
-      "Helped 6,000+ contributors learn Git, GitHub, and open-source workflows.",
-      "Built GitHub Actions automation and reviewed Hacktoberfest-accepted contributions.",
+      "Reviewed contributions to an open-source repository with roughly 900 stars and 1.6k forks.",
+      "Mentored 6,000+ participants in Git, GitHub, and open-source workflows.",
+      "Built GitHub Actions automation and reviewed Hacktoberfest contributions.",
     ],
   },
   {
@@ -96,7 +98,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
     company: "GirlScript Summer of Code 2021",
     duration: "Mar 2021 - Jun 2021",
     image: "GSSoC21.png",
-    summary: "Contributed to algorithm repositories while building an open-source practice.",
+    summary: "Contributed algorithm code to NeoAlgo and AlgoTree.",
     highlights: [
       "Made 14 merged pull requests across NeoAlgo and AlgoTree.",
       "Recognised among the top 100 active contributors from 7,000+ participants.",
@@ -107,7 +109,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
 export const educationData: EducationEntry = {
   degree: "B.Tech in Computer Science & Engineering",
   institution: "University of Calcutta",
-  campus: "University College of Science, Technology & Agriculture",
+  campus: "University College of Science, Technology & Agriculture (UCSTA)",
   duration: "2019 - 2023",
   score: "9.24 CGPA",
   image: "UCSTA.png",

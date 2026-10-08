@@ -3,7 +3,7 @@ import SkillsPage from "./SkillsPage";
 
 export const metadata = createPageMetadata({
   title: "Skills",
-  description: "Technical skills, tools, and interests of Suvraneel Bhuin.",
+  description: "Full-stack engineering across backend systems, product interfaces, agentic workflows, and Web3.",
   path: "/skills",
 });
 

@@ -41,3 +41,4 @@ yarn-error.log*
 .impeccable/
 .opencode/
 .windsurf/
+.playwright-mcp/

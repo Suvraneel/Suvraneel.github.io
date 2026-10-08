@@ -169,7 +169,7 @@ const About = () => {
               </h1>
               <div className="mt-8 max-w-2xl space-y-5">
                 <p className={`text-xl font-medium leading-8 tracking-[-0.025em] text-white sm:text-2xl ${tasaOrbiter.className}`}>
-                  Building systems that hold up in the real world.
+                  I like building things that are useful, not just impressive.
                 </p>
                 <p className={`text-base leading-7 text-white/75 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
                   I&apos;m Suvraneel Bhuin, an Advanced Application Engineering Senior Analyst at Accenture. I build dependable backend services, integrations, and workflows for enterprise-scale products.
@@ -178,7 +178,7 @@ const About = () => {
                   I studied Computer Science &amp; Engineering at the University of Calcutta. Open-source programmes and Web3 communities taught me to pair technical depth with clear ownership, useful documentation, and thoughtful collaboration.
                 </p>
                 <p className={`text-base leading-7 text-white/60 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
-                  I enjoy turning ambiguous requirements into clear, maintainable systems, then working closely with the people who rely on them.
+                  I like turning ambiguous requirements into clear, maintainable systems and working closely with the people who rely on them.
                 </p>
               </div>
               <div className="mt-9 flex flex-wrap gap-3">

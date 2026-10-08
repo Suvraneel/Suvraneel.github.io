@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useEffect, useState } from "react";
 import ChronoCard from "@components/ChronoCard";
+import TimelineDate from "@components/TimelineDate";
 import { communityLeadershipData, educationData, workData } from "@data/workData";
 import SplineObj from "@components/SplineObject";
 import { spaceBoards, tasaOrbiter } from "@font";
@@ -93,25 +94,26 @@ const Work = () => {
             <h2 id="education" className="text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
               Education
             </h2>
-            <article className="relative mt-2 grid gap-4 py-8 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-8 sm:py-7">
-              <div className="flex items-start gap-3 sm:block">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] p-2.5 sm:mb-5">
+            <article className="relative mt-2 grid gap-4 py-8 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-6 sm:py-7">
+              <div className="flex items-start gap-3 sm:flex-col sm:items-start sm:gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] p-1">
                   <Image
                     src={`/images/work-assets/${educationData.image}`}
                     alt="University College of Science, Technology & Agriculture emblem"
                     width={56}
                     height={56}
-                    className="h-full w-full object-contain opacity-80 invert"
+                    className="h-full w-full object-contain invert"
                   />
                 </div>
-                <div className="pt-2 sm:pt-0">
+                <div className="pt-2 sm:hidden">
                   <p className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/40">
                     {educationData.duration}
                   </p>
-                  <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] text-[#9bb7c0] sm:hidden ${tasaOrbiter.className}`}>
+                  <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] text-[#9bb7c0] ${tasaOrbiter.className}`}>
                     {educationData.institution}
                   </p>
                 </div>
+                <TimelineDate duration={educationData.duration} />
               </div>
               <div className="relative grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-8 sm:pl-5">
                 <div aria-hidden="true" className="absolute left-0 top-1 hidden h-2 w-2 rounded-full bg-white/50 sm:block" />
