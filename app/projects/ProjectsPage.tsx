@@ -16,21 +16,27 @@ function getYouTubeId(url: string) {
   return match?.[1] ?? null;
 }
 
+// Bento rhythm, in gallery order. Rows alternate which side gets the wide card and
+// step down in height toward the end; at lg the last six cards move into two
+// narrower 3-up rows so the final projects are the smallest. Each row sums to 12
+// columns at md and lg. Literal class names keep Tailwind's scanner happy.
 const cardLayout = [
-  "md:col-span-7",
-  "md:col-span-5",
-  "md:col-span-8",
-  "md:col-span-4",
-  "md:col-span-4",
-  "md:col-span-8",
-  "md:col-span-5",
-  "md:col-span-7",
-  "md:col-span-7",
-  "md:col-span-5",
-  "md:col-span-4",
-  "md:col-span-8",
-  "md:col-span-5",
-  "md:col-span-7",
+  // lg rows: 7/5 · 8/4 · 4/8 · 5/7 · 4/5/3 · 5/3/4
+  // md rows: 7/5 · 8/4 · 4/8 · 5/7 · 7/5 · 4/8 · 7/5
+  "md:col-span-7 lg:col-span-7",
+  "md:col-span-5 lg:col-span-5",
+  "md:col-span-8 lg:col-span-8",
+  "md:col-span-4 lg:col-span-4",
+  "md:col-span-4 lg:col-span-4",
+  "md:col-span-8 lg:col-span-8",
+  "md:col-span-5 lg:col-span-5",
+  "md:col-span-7 lg:col-span-7",
+  "md:col-span-7 lg:col-span-4",
+  "md:col-span-5 lg:col-span-5",
+  "md:col-span-4 lg:col-span-3",
+  "md:col-span-8 lg:col-span-5",
+  "md:col-span-7 lg:col-span-3",
+  "md:col-span-5 lg:col-span-4",
 ];
 
 export default function ProjectsPage() {
@@ -57,7 +63,7 @@ export default function ProjectsPage() {
         </header>
 
         <section className="mt-10 sm:mt-14" aria-label="Project gallery">
-          <div className="grid grid-cols-1 auto-rows-[15rem] gap-3 sm:auto-rows-[18rem] sm:gap-4 md:grid-cols-12 md:grid-rows-[24rem] lg:auto-rows-[20rem]">
+          <div className="grid grid-cols-1 auto-rows-[15rem] gap-3 sm:auto-rows-[18rem] sm:gap-4 md:grid-cols-12 md:grid-rows-[24rem_20rem_18rem_17rem_16rem_14rem_13rem] lg:grid-rows-[24rem_21rem_19rem_17.5rem_16rem_12.5rem]">
             {projectsData.map((project, index) => (
               <ProjectTile
                 key={("id" in project && project.id) || project.name}
@@ -119,6 +125,15 @@ function ProjectTile({
     onHoverEnd();
   };
 
+  // Keyboard focus previews the tile silently; the snap sound is for pointer hover.
+  const startFocusPreview = () => {
+    previewVideo.current?.play().catch(() => undefined);
+  };
+
+  const stopFocusPreview = () => {
+    previewVideo.current?.pause();
+  };
+
   return (
     <motion.button
       type="button"
@@ -133,8 +148,8 @@ function ProjectTile({
       onClick={onOpen}
       onHoverStart={startPreview}
       onHoverEnd={stopPreview}
-      onFocus={startPreview}
-      onBlur={stopPreview}
+      onFocus={startFocusPreview}
+      onBlur={stopFocusPreview}
     >
       {thumbnail && !thumbnailFailed ? (
         <div className="relative z-0 h-full w-full overflow-hidden bg-[#060606]">
