@@ -6,17 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "export": "next export"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@animateicons/react": "^0.5.0",
     "@emailjs/browser": "^3.12.1",
-    "@fontsource/playfair-display": "^4.5.13",
-    "@fontsource/raleway": "^4.5.12",
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
-    "@fortawesome/free-brands-svg-icons": "^6.7.2",
-    "@fortawesome/free-regular-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.6",
     "@paper-design/shaders": "^0.0.81",
@@ -24,14 +19,12 @@
     "@splinetool/runtime": "^2.0.55",
     "@types/react-dom": "^19.3.0",
     "cn": "^0.3.0",
-    "countapi-js": "^1.0.2",
     "framer-motion": "^13.4.0",
     "gsap": "^3.15.0",
     "motion": "^13.4.0",
-    "next": "^16.3.3",
+    "next": "~16.3.8",
     "next-themes": "^0.4.6",
     "react": "^19.2.3",
-    "react-bottom-scroll-listener": "^5.2.0",
     "react-calendly": "^4.4.0",
     "react-dom": "^19.2.3",
     "use-sound": "^4.0.4"
@@ -41,12 +34,11 @@
     "@types/react": "^19.3.0",
     "autoprefixer": "^10.6.1",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.3",
+    "eslint-config-next": "~16.3.8",
     "postcss": "^8.5.28",
     "shadcn": "^4.21.0",
     "tailwindcss": "^3.4.19",
-    "typescript": "^6.0.3",
-    "video.js": "^8.24.1"
+    "typescript": "^6.0.3"
   },
   "keywords": [],
   "description": ""
