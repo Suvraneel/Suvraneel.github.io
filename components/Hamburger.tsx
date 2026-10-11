@@ -1,37 +1,34 @@
-import {
-  faChartPie,
-  faCode,
-  faCubes,
-  faHouseChimney,
-  faPenFancy,
-  faSignature,
-} from "@fortawesome/free-solid-svg-icons";
-import { motion, useCycle } from "framer-motion";
+"use client";
+
+import { LayoutDashboardIcon, SendIcon, TerminalIcon } from "@animateicons/react/lucide";
+import { FingerprintIcon } from "@components/animate-ui/icons/fingerprint";
+import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
+import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import MenuToggle from "./DrawerToggler";
-import { FontAwesomeObj } from "./FontAwesomeObj";
 import Socials from "./Socials";
 
-const sidebar = {
-  open: (height = 1000) => ({
-    clipPath: `circle(${height * 2 + 200}px at 40px 40px)`,
+const sheet: Variants = {
+  open: {
+    x: 0,
     transition: {
-      type: "spring",
-      stiffness: 20,
-      restDelta: 2,
+      type: "spring" as const,
+      stiffness: 120,
+      damping: 20,
     },
-  }),
+  },
   closed: {
-    clipPath: "circle(30px at 40px 40px)",
+    x: "100%",
     transition: {
-      delay: 0.5,
-      type: "spring",
-      stiffness: 400,
-      damping: 40,
+      type: "spring" as const,
+      stiffness: 140,
+      damping: 24,
     },
   },
 };
-const variantsItem = {
+const variantsItem: Variants = {
   open: {
     y: 0,
     opacity: 1,
@@ -57,70 +54,134 @@ const variantsNav = {
 };
 
 const Hamburger = () => {
-  const [isOpen, toggleOpen] = useCycle(false, true);
+  const [isOpen, setIsOpen] = useState(false);
   const menu = [
-    { name: "Home", href: "/", icon: faHouseChimney },
-    { name: "About", href: "/about", icon: faSignature },
-    { name: "Work", href: "/work", icon: faChartPie },
-    { name: "Projects", href: "/projects", icon: faCubes },
-    { name: "Skills", href: "/skills", icon: faCode },
-    { name: "Contact", href: "/contact", icon: faPenFancy },
+    { name: "Home", href: "/", icon: LayoutDashboardIcon },
+    { name: "About", href: "/about", icon: FingerprintIcon, animateWithState: true },
+    { name: "Work", href: "/work", icon: PickaxeIcon, animateWithState: true },
+    { name: "Projects", href: "/projects", icon: LightbulbIcon, animateWithState: true },
+    { name: "Skills", href: "/skills", icon: TerminalIcon },
+    { name: "Contact", href: "/contact", icon: SendIcon },
   ];
+
+  const navRef = useRef<HTMLElement>(null);
+  const openDrawer = () => setIsOpen(true);
+  const closeDrawer = () => setIsOpen(false);
+
+  // Keyboard support while the drawer is open: Escape closes it and returns
+  // focus to the toggle, and Tab cycles within the toggle + drawer.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const nav = navRef.current;
+      if (!nav) return;
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsOpen(false);
+        nav.querySelector<HTMLElement>("button")?.focus();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const focusable = Array.from(
+        nav.querySelectorAll<HTMLElement>("a[href], button:not([disabled])")
+      );
+      if (!focusable.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && (active === first || !nav.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (active === last || !nav.contains(active))) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
+
   return (
-    <motion.nav
-      initial={false}
-      animate={isOpen ? "open" : "closed"}
-      custom="100%"
-      className="z-[2001] hamburger text-white"
-    >
-      <motion.div
-        className="h-4/5 w-1/2 bg-black absolute top-0 left-0"
-        variants={sidebar}
-      />
-      <motion.ul
-        variants={variantsNav}
-        className="hamburger-menu w-fit h-fit flex flex-col gap-3 fixed top-16 left-5"
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.button
+            type="button"
+            aria-label="Close navigation drawer"
+            className="fixed inset-0 z-[2000] cursor-default bg-black/50 backdrop-blur-[2px]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            onClick={closeDrawer}
+          />
+        )}
+      </AnimatePresence>
+      <motion.nav
+        ref={navRef}
+        initial={false}
+        animate="open"
+        custom="100%"
+        className="hamburger fixed inset-0 z-[2001] pointer-events-none text-white"
       >
-        {menu.map((item) => {
-          return (
-            <motion.li
-              variants={variantsItem}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              key={item.name}
-              className="sidebar-item flex justify-start"
-              onClick={() => toggleOpen()}
+        <MenuToggle toggle={isOpen ? closeDrawer : openDrawer} isOpen={isOpen} />
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <motion.aside
+              key="drawer-sheet"
+              className="pointer-events-auto absolute inset-y-0 right-0 flex h-full w-[min(86vw,22rem)] flex-col border-l border-white/10 bg-black/95 shadow-[-24px_0_48px_rgba(0,0,0,0.35)]"
+              variants={sheet}
+              initial="closed"
+              animate="open"
+              exit="closed"
             >
-              <Link
-                href={item.href}
-                className="text-white flex flex-row gap-5 hover:text-cyan-300">
-
-                <div className="flex justify-start">
-                  <FontAwesomeObj
-                    icon={item.icon}
-                    brandColor="cyan"
-                    title={item.name}
-                    titleClassName="sidebar-title pl-2 text-xl"
-                    size="xs"
-                    className="sidebar-icon"
-                  />
-                </div>
-
-              </Link>
-            </motion.li>
-          );
-        })}
-        <motion.li
-          variants={variantsItem}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          className="mt-2"
-        >
-          <Socials />
-        </motion.li>
-      </motion.ul>
-      <MenuToggle toggle={() => toggleOpen()} />
-    </motion.nav>
+              <motion.ul
+                key="drawer-menu"
+                variants={variantsNav}
+                initial="closed"
+                animate="open"
+                exit="closed"
+                className="mt-20 flex flex-1 flex-col gap-2 px-5"
+              >
+                {menu.map(({ name, href, icon: Icon, animateWithState }) => (
+                  <motion.li
+                    key={name}
+                    variants={variantsItem}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="sidebar-item flex justify-start"
+                  >
+                    <Link
+                      href={href}
+                      className="flex w-full items-center gap-4 rounded-2xl border border-white/8 px-4 py-3 text-white transition hover:border-white/16 hover:bg-white/[0.04] hover:text-cyan-200"
+                      onClick={closeDrawer}
+                    >
+                      {animateWithState ? (
+                        <Icon aria-hidden="true" size={21} animateOnHover />
+                      ) : (
+                        <Icon aria-hidden="true" size={21} duration={0.7} />
+                      )}
+                      <span className="text-lg font-medium">{name}</span>
+                    </Link>
+                  </motion.li>
+                ))}
+              </motion.ul>
+              <motion.div variants={variantsItem} initial="closed" animate="open" exit="closed" className="border-t border-white/10 px-5 py-5">
+                <Socials />
+              </motion.div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+      </motion.nav>
+    </>
   );
 }
 

@@ -1,7 +1,6 @@
 import { IconProp, SizeProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useState } from "react";
-import useSound from "use-sound";
+import { useRef, useState } from "react";
 
 interface Props {
   icon: IconProp;
@@ -16,22 +15,27 @@ export const FontAwesomeObj = (props: Props) => {
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const { icon, brandColor, title, titleClassName, size="1x", className } = props;
   const [hasTitle] = useState(title);
-  const snapSfx = "./sounds/snap.wav";
-  const confirmSfx = "./sounds/confirm.wav";
-  const [playSnap, { stop: stopSnap }] = useSound(snapSfx, { volume: 0.25 });
-  const [playConfirm] = useSound(confirmSfx, { volume: 0.25 });
+  const snapAudio = useRef<HTMLAudioElement | null>(null);
+
+  const playEffect = (source: string) => {
+    const audio = new Audio(source);
+    audio.volume = 0.25;
+    void audio.play().catch(() => undefined);
+    return audio;
+  };
   return (
     <div
       className={`text-sm flex w-full gap-2 items-center ${className}`}
       onMouseEnter={() => {
         setIsFocused(true);
-        playSnap();
+        snapAudio.current = playEffect("/sounds/snap.wav");
       }}
       onMouseLeave={() => {
         setIsFocused(false);
-        stopSnap();
+        snapAudio.current?.pause();
+        snapAudio.current = null;
       }}
-      onClick={() => playConfirm()}
+      onClick={() => playEffect("/sounds/confirm.wav")}
     >
       <FontAwesomeIcon
         icon={icon}

@@ -6,6 +6,10 @@ const Canvas: React.FC = () => {
   useEffect(() => {
     const canvas = canvasRef.current;
     const c = canvas?.getContext('2d', { willReadFrequently: true });
+    // Torn down on unmount so each visit to About doesn't leave a loop running.
+    let rafId = 0;
+    let disposed = false;
+    let handleMouseMove: ((e: MouseEvent) => void) | null = null;
 
     function canvas_sizes(canvas: HTMLCanvasElement) {
       if (window.innerWidth < 800) {
@@ -99,35 +103,54 @@ const Canvas: React.FC = () => {
         y: number;
       };
 
-      constructor(width: number, height: number) {
-        this.w = width;
-        this.h = height;
-        this.img = document.getElementById('image1') as HTMLImageElement;
-        this.gap = 3;
-        this.particleArray = [];
+       constructor(width: number, height: number) {
+         this.w = width;
+         this.h = height;
+         this.img = document.getElementById('image1') as HTMLImageElement;
+         this.gap = 3;
+         this.particleArray = [];
 
-        this.centerx = this.w * 0.5;
-        this.centery = this.h * 0.5;
-        this.x = this.centerx - this.img.width;
-        this.y = this.centery - this.img.height;
+         this.centerx = this.w * 0.5;
+         this.centery = this.h * 0.5;
+         this.x = this.centerx - this.img.width;
+         this.y = this.centery - this.img.height;
 
-        this.mouse = {
-          radius: 1000,
-          x: 0,
-          y: 0,
-        };
+         this.mouse = {
+           radius: 1000,
+           x: -10000,
+           y: -10000,
+         };
 
-        window.addEventListener('mousemove', (e) => {
-          const bounds = canvas.getBoundingClientRect();
-          this.mouse.x = e.clientX - bounds.left;
-          this.mouse.y = e.clientY - bounds.top;
-        });
-      }
+         handleMouseMove = (e: MouseEvent) => {
+           const bounds = canvas.getBoundingClientRect();
+           const x = e.clientX - bounds.left;
+           const y = e.clientY - bounds.top;
+
+           // Add padding around canvas bounds
+           const padding = 150;
+           const minX = -padding;
+           const maxX = bounds.width + padding;
+           const minY = -padding;
+           const maxY = bounds.height + padding;
+
+           // Only update if mouse is within padded bounds
+           if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+             this.mouse.x = x;
+             this.mouse.y = y;
+           } else {
+             // Move mouse far away when outside bounds
+             this.mouse.x = -10000;
+             this.mouse.y = -10000;
+           }
+         };
+         window.addEventListener('mousemove', handleMouseMove);
+       }
 
       init(ctx: CanvasRenderingContext2D) {
         const image1 = new Image();
-        image1.src = './images/Speaker.png';
+        image1.src = '/images/Speaker.png';
         image1.onload = () => {
+          if (disposed) return;
           this.img = image1;
 
           ctx.drawImage(this.img, 0, 0, this.w, this.h);
@@ -170,18 +193,25 @@ const Canvas: React.FC = () => {
         c.clearRect(0, 0, canvas.width, canvas.height);
         effect.draw(c);
         effect.update();
-        requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
       }
     }
 
     animate();
+
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(rafId);
+      if (handleMouseMove) window.removeEventListener('mousemove', handleMouseMove);
+    };
   }, []);
 
   return (
-    <div>
-      <div className="h-full w-full canvas-container">
-        <canvas id="Canvas" ref={canvasRef}></canvas>
-        <img alt="avatar" className='hidden' id="image1" src="./images/Speaker.png" />
+    <div className="pointer-events-none h-full w-full">
+      <div className="h-full w-full canvas-container pointer-events-none">
+        <canvas id="Canvas" ref={canvasRef} className="pointer-events-none"></canvas>
+        {/* eslint-disable-next-line @next/next/no-img-element -- hidden image is used as a canvas texture */}
+        <img alt="avatar" className='hidden' id="image1" src="/images/Speaker.png" />
       </div>
     </div>
   );

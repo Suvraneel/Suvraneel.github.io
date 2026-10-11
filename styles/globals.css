@@ -25,7 +25,8 @@ img {
 }
 
 body {
-  font-family: "Montserrat", sans-serif;
+  /* Unclassed headings and UI text use Helvetica on purpose (Arial where Helvetica is unavailable). */
+  font-family: Helvetica, Arial, sans-serif;
   font-weight: 300;
   font-size: 15px;
   line-height: 1.7;
@@ -77,14 +78,16 @@ a:hover {
   height: 100%;
   width: 50px;
   background-color: #1f1c1c33;
-  box-shadow: 0px 0px 20px 1px rgba(0, 0, 0, 0.5);
-  /* backdrop-filter: blur(8px); */
-  /* webkit-backdrop-filter: blur(8px); */
+  box-shadow: 0 0 20px 1px rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   transition: width 0.6s;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  gap: 12px;
   padding: 20px 0;
+  z-index: 50;
 }
 .hamburger {
   display: none;
@@ -103,18 +106,181 @@ a:hover {
   width: 140px;
 }
 
-.sidebar-item {
-  background-color: transparent;
-  padding: 10px;
+.rail-music,
+.rail-link {
+  position: relative;
+  display: flex;
+  min-height: 42px;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 0;
+  color: white;
+  transition: color 420ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.rail-music {
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
   cursor: pointer;
 }
 
-/* About Page */
-p {
-  font-size: 1.2em;
+.rail-music:hover,
+.rail-link:hover {
+  color: #67e8f9;
+  background: transparent;
+}
+
+.rail-music:focus-visible,
+.rail-link:focus-visible {
+  outline: 2px solid #83d3dd;
+  outline-offset: 2px;
+}
+
+.rail-icon,
+.rail-music > svg {
+  display: grid;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+}
+
+.rail-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.rail-label {
+  opacity: 0;
+  transform: translateX(-6px);
+  white-space: nowrap;
+  font-family: "Tasa Orbiter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: opacity 180ms ease 70ms, transform 220ms cubic-bezier(0.22, 1, 0.36, 1) 70ms;
+}
+
+.sidebar-container:hover .rail-label,
+.rail-link:focus-visible .rail-label,
+.rail-music:focus-visible .rail-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.rail-divider {
+  height: 132px;
+  flex: 0 0 132px;
+}
+
+.rail-links {
+  display: grid;
+  gap: 0;
+}
+
+.rail-link {
+  padding: 0 10px;
+}
+
+.rail-link-active {
+  color: #d8fbff;
+  text-shadow: 0 0 16px rgba(103, 232, 249, 0.22);
+}
+
+.rail-link-active::before {
+  position: absolute;
+  inset: 5px 0;
+  z-index: -1;
+  border-radius: 2px;
+  background: radial-gradient(circle at 22px 50%, rgba(157, 241, 247, 0.12), rgba(103, 232, 249, 0.035) 42%, transparent 76%);
+  box-shadow: inset 1px 0 rgba(199, 250, 255, 0.58);
+  content: "";
+  animation: rail-active-settle 520ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes rail-active-settle {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.rail-footer {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  padding: 0 0 2px;
+}
+
+.rail-socials {
+  display: none;
+  padding: 0 10px;
+}
+
+/* Override the shared Socials row so icons line up with the rail's icon column. */
+.rail-socials > div {
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.sidebar-container:hover .rail-socials {
+  display: flex;
+  animation: rail-socials-in 220ms cubic-bezier(0.22, 1, 0.36, 1) 70ms both;
+}
+
+@keyframes rail-socials-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.rail-copyright {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  padding: 0 10px;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+.rail-copyright-text {
+  display: grid;
+  font-family: inherit;
+  font-size: inherit;
   line-height: 1.5;
-  font-weight: 300;
-  font-family: "Poiret One", "Raleway", "Playfair Display", serif;
+}
+
+.rail-copyright-symbol {
+  font-size: 0.85rem;
+  line-height: 0;
+  vertical-align: -0.1em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-container,
+  .rail-label,
+  .rail-socials {
+    transition: none;
+    animation: none !important;
+  }
 }
 
 .resume-button,
@@ -137,8 +303,12 @@ p {
   --slice-4: inset(40% -6px 43% 0);
   --slice-5: inset(80% -6px 5% 0);
 
-  content: "ALTERNATE TEXT";
-  display: block;
+  content: attr(data-text);
+  /* Decorative copy of the label; keep it out of the accessible name. */
+  content: attr(data-text) / "";
+  display: flex;
+  align-items: center;
+  padding: inherit;
   position: absolute;
   top: 0;
   left: 0;
@@ -215,7 +385,7 @@ p {
 
 /* Animated Heading */
 .animated-heading {
-  background: url("https://i.ibb.co/mhpzvXk/seed-46867.png") repeat;
+  background: url("/images/seed-46867.png") repeat;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

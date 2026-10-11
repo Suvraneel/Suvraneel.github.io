@@ -1,8 +1,17 @@
-import { useRouter } from "next/router";
-import { useEffect, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 const pageOrder = ["/", "/about", "/work", "/projects", "/skills", "/contact"];
-const intentThreshold = 80;
+const intentThreshold = 520;
+const intentWindowMs = 500;
+const minimumIntentEvents = 3;
+const postNavigationCooldownMs = 999;
+const swipeThreshold = 80;
+
+// Native <dialog> elements (ProjectModal) expose their role implicitly, so match
+// open dialogs as well as explicit ARIA modals.
+const isDialogOpen = () =>
+  Boolean(document.querySelector("dialog[open], [role='dialog'][aria-modal='true']"));
 
 const findScrollContainer = (target: EventTarget | null) => {
   let element = target instanceof Element ? target : null;
@@ -22,20 +31,43 @@ const findScrollContainer = (target: EventTarget | null) => {
 
 const PageSequenceScroll = () => {
   const router = useRouter();
+  const pathname = usePathname();
   const scrollIntent = useRef(0);
+  const scrollIntentEvents = useRef(0);
+  const scrollDirection = useRef<1 | -1 | null>(null);
+  const boundaryReachedAt = useRef<number | null>(null);
+  const pendingTopScroll = useRef<string | null>(null);
+  const pendingBottomScroll = useRef<string | null>(null);
+  const navigationCooldownUntil = useRef(0);
+  const cooldownSpringShown = useRef(false);
   const lastWheelAt = useRef(0);
   const isNavigating = useRef(false);
 
   useEffect(() => {
     // Home and About own their dashboard flip interaction. Every subsequent
     // page uses its physical scroll boundary to move through the sequence.
-    if (router.pathname === "/" || router.pathname === "/about") return;
+    // This component now persists in the App Router shell, so clear the
+    // one-shot navigation guard whenever a new screen has arrived.
+    isNavigating.current = false;
+    scrollIntent.current = 0;
+    scrollIntentEvents.current = 0;
+    scrollDirection.current = null;
+    boundaryReachedAt.current = null;
 
-    const pageIndex = pageOrder.indexOf(router.pathname);
+    if (pathname === "/" || pathname === "/about") return;
+
+    const pageIndex = pageOrder.indexOf(pathname);
     if (pageIndex === -1) return;
 
     const handleWheel = (event: WheelEvent) => {
-      if (event.ctrlKey || event.deltaY === 0 || isNavigating.current) return;
+      if (
+        event.ctrlKey ||
+        event.deltaY === 0 ||
+        isNavigating.current ||
+        isDialogOpen()
+      ) {
+        return;
+      }
 
       const scrollContainer = findScrollContainer(event.target);
       const maximumScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
@@ -44,27 +76,188 @@ const PageSequenceScroll = () => {
       const atBottom = scrollContainer.scrollTop >= maximumScroll - 2;
       const nextPath = movingForward ? pageOrder[pageIndex + 1] : pageOrder[pageIndex - 1];
 
-      if (!nextPath || (movingForward ? !atBottom : !atTop)) return;
+      const isAtBoundary = movingForward ? atBottom : atTop;
+
+      if (window.performance.now() < navigationCooldownUntil.current && !isAtBoundary) {
+        event.preventDefault();
+        return;
+      }
+
+      if (!nextPath || !isAtBoundary) {
+        boundaryReachedAt.current = null;
+        return;
+      }
 
       event.preventDefault();
       const now = window.performance.now();
 
-      if (now - lastWheelAt.current > 180) {
+      // Absorb carried trackpad momentum for a short, fixed handoff window.
+      // The next route may still use its first edge gesture once it expires.
+      if (now < navigationCooldownUntil.current) {
         scrollIntent.current = 0;
+        scrollIntentEvents.current = 0;
+        scrollDirection.current = null;
+
+        if (!cooldownSpringShown.current) {
+          cooldownSpringShown.current = true;
+          scrollContainer.animate(
+            [
+              { transform: "translateY(0)" },
+              { transform: `translateY(${movingForward ? -8 : 8}px)` },
+              { transform: "translateY(0)" },
+            ],
+            { duration: 260, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+          );
+        }
+        return;
+      }
+
+      // Reaching an edge gives a small elastic acknowledgement. This first
+      // overscroll still counts toward the same continuous gesture.
+      if (boundaryReachedAt.current === null) {
+        boundaryReachedAt.current = now;
+        scrollIntent.current = 0;
+        scrollIntentEvents.current = 0;
+        scrollDirection.current = null;
+        scrollContainer.animate(
+          [
+            { transform: "translateY(0)" },
+            { transform: `translateY(${movingForward ? -8 : 8}px)` },
+            { transform: "translateY(0)" },
+          ],
+          { duration: 260, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+        );
+      }
+
+      const direction = movingForward ? 1 : -1;
+
+      if (now - lastWheelAt.current > intentWindowMs || scrollDirection.current !== direction) {
+        scrollIntent.current = 0;
+        scrollIntentEvents.current = 0;
       }
 
       lastWheelAt.current = now;
+      scrollDirection.current = direction;
       scrollIntent.current += Math.abs(event.deltaY);
+      scrollIntentEvents.current += 1;
 
-      if (scrollIntent.current < intentThreshold) return;
+      if (
+        scrollIntent.current < intentThreshold ||
+        scrollIntentEvents.current < minimumIntentEvents
+      ) {
+        return;
+      }
 
       isNavigating.current = true;
-      router.push(nextPath);
+      navigationCooldownUntil.current = now + postNavigationCooldownMs;
+      cooldownSpringShown.current = false;
+
+      if (movingForward) pendingTopScroll.current = nextPath;
+      else pendingBottomScroll.current = nextPath;
+
+      router.push(nextPath, { scroll: false });
     };
 
     window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
     return () => window.removeEventListener("wheel", handleWheel, true);
-  }, [router, router.pathname]);
+  }, [pathname, router]);
+
+  // Touch devices: a deliberate swipe that starts at a scroll edge moves through the sequence.
+  useEffect(() => {
+    const pageIndex = pageOrder.indexOf(pathname);
+    if (pageIndex === -1) return;
+
+    let gesture: { x: number; y: number; atTop: boolean; atBottom: boolean } | null = null;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1 || isDialogOpen()) {
+        gesture = null;
+        return;
+      }
+
+      const touch = event.touches[0];
+      const scrollContainer = findScrollContainer(event.target);
+      const maximumScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      gesture = {
+        x: touch.clientX,
+        y: touch.clientY,
+        atTop: scrollContainer.scrollTop <= 2,
+        atBottom: scrollContainer.scrollTop >= maximumScroll - 2,
+      };
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const start = gesture;
+      gesture = null;
+      if (!start || isNavigating.current) return;
+      if (window.performance.now() < navigationCooldownUntil.current) return;
+
+      if (isDialogOpen()) return;
+
+      const touch = event.changedTouches[0];
+      const deltaY = start.y - touch.clientY;
+      const deltaX = start.x - touch.clientX;
+      if (Math.abs(deltaY) < swipeThreshold || Math.abs(deltaY) < Math.abs(deltaX) * 1.5) return;
+
+      const movingForward = deltaY > 0;
+      if (movingForward ? !start.atBottom : !start.atTop) return;
+
+      const nextPath = movingForward ? pageOrder[pageIndex + 1] : pageOrder[pageIndex - 1];
+      if (!nextPath) return;
+
+      isNavigating.current = true;
+      navigationCooldownUntil.current = window.performance.now() + postNavigationCooldownMs;
+      if (movingForward) pendingTopScroll.current = nextPath;
+      else pendingBottomScroll.current = nextPath;
+
+      router.push(nextPath, { scroll: false });
+    };
+
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [pathname, router]);
+
+  useLayoutEffect(() => {
+    if (pendingTopScroll.current === pathname) {
+      pendingTopScroll.current = null;
+      const main = document.querySelector(`[data-page="${pathname}"] main`);
+      if (main) main.scrollTop = 0;
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      return;
+    }
+
+    if (pendingBottomScroll.current !== pathname) return;
+
+    const scrollContainer = document.querySelector(`[data-page="${pathname}"] main`);
+    pendingBottomScroll.current = null;
+
+    if (scrollContainer && scrollContainer.scrollHeight > scrollContainer.clientHeight) {
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      return;
+    }
+
+    window.scrollTo(0, document.documentElement.scrollHeight);
+  }, [pathname]);
+
+  useEffect(() => {
+    const pageIndex = pageOrder.indexOf(pathname);
+    if (pageIndex === -1) return;
+
+    const warmAdjacentRoutes = () => {
+      const previousPath = pageOrder[pageIndex - 1];
+      const nextPath = pageOrder[pageIndex + 1];
+
+      if (previousPath) router.prefetch(previousPath);
+      if (nextPath) router.prefetch(nextPath);
+    };
+
+    const timeoutId = window.setTimeout(warmAdjacentRoutes, 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [pathname, router]);
 
   return null;
 };

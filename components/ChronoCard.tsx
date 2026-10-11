@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { tasaOrbiter } from "@font";
 import { ExperienceEntry } from "@api/workData";
+import TimelineDate from "@components/TimelineDate";
 
 const ChronoCard = ({
   curElem,
@@ -13,16 +14,15 @@ const ChronoCard = ({
   const isRoundMark = ["Web3ConfIndia23.png", "HyperEdgeWoB23.png"].includes(
     curElem.image ?? ""
   );
-
   return (
     <article
-      className={`group relative grid gap-4 border-b border-white/10 py-8 transition-colors duration-300 motion-reduce:transition-none sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-8 ${
+      className={`group relative grid gap-4 border-b border-white/10 py-8 transition-colors duration-300 motion-reduce:transition-none sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-6 ${
         isWork ? "sm:py-10" : "sm:py-7"
       }`}
     >
-      <div className="flex items-start gap-3 sm:block">
+      <div className="flex items-start gap-3 sm:flex-col sm:items-start sm:gap-4">
         {curElem.image && (
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] p-2 sm:mb-5">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] p-2">
             <img
               className={`h-full w-full opacity-80 transition-opacity duration-300 group-hover:opacity-100 ${
                 isRoundMark ? "rounded-full object-cover" : "object-contain"
@@ -34,19 +34,25 @@ const ChronoCard = ({
             />
           </div>
         )}
-        <p className="pt-2 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/40 sm:pt-0">
-          {curElem.duration}
-        </p>
+        <div className="pt-2 sm:hidden">
+          <p className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/40">
+            {curElem.duration}
+          </p>
+          <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:hidden ${isWork ? "text-cyan-100/70" : "text-white/45"} ${tasaOrbiter.className}`}>
+            {curElem.company}
+          </p>
+        </div>
+        <TimelineDate duration={curElem.duration} />
       </div>
 
-      <div className={`relative ${isWork ? "sm:pl-7" : "sm:pl-5"}`}>
+      <div className="relative sm:pl-5">
         <div
           aria-hidden="true"
-          className={`absolute left-0 top-1 h-2 w-2 rounded-full transition-transform duration-300 group-hover:scale-150 ${
+          className={`absolute left-0 top-1 hidden h-2 w-2 rounded-full sm:block transition-transform duration-300 group-hover:scale-150 ${
             isWork ? "bg-cyan-200 shadow-[0_0_18px_rgba(165,243,252,0.9)]" : "bg-white/50"
           }`}
         />
-        <p className={`text-[0.68rem] font-medium uppercase tracking-[0.2em] ${isWork ? "text-cyan-100/70" : "text-white/45"}`}>
+        <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:block ${isWork ? "text-cyan-100/70" : "text-white/45"} ${tasaOrbiter.className}`}>
           {curElem.company}
         </p>
         <h3 className={`mt-2 max-w-3xl font-semibold leading-tight tracking-[-0.035em] text-white ${isWork ? "text-3xl sm:text-4xl" : "text-xl sm:text-2xl"}`}>

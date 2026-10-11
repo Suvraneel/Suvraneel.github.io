@@ -1,0 +1,21 @@
+# Suvraneel Bhuin
+
+> Software engineer and product builder focused on thoughtful digital products and enterprise systems.
+
+## Portfolio
+
+- [Home](https://suvraneel.github.io/): Portfolio overview.
+- [About](https://suvraneel.github.io/about): Background and approach.
+- [Work](https://suvraneel.github.io/work): Professional experience, community work, and education.
+- [Projects](https://suvraneel.github.io/projects): Selected software projects.
+- [Skills](https://suvraneel.github.io/skills): Technical skills, tools, and interests.
+- [Contact](https://suvraneel.github.io/contact): Contact details.
+
+## Identity and contact
+
+- Name: Suvraneel Bhuin
+- Email: bsuvraneel@gmail.com
+- GitHub: https://github.com/Suvraneel
+- LinkedIn: https://www.linkedin.com/in/suvraneel-bhuin/
+
+The canonical portfolio URL is https://suvraneel.github.io/. The site is also intentionally available on Vercel.
