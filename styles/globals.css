@@ -748,3 +748,20 @@ hr {
     height: 2px;
   }
 }
+
+/* LiquidMetalButton click ripple */
+.liquid-metal-ripple {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 70%);
+  animation: liquid-metal-ripple 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes liquid-metal-ripple {
+  from {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.6;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(4);
+    opacity: 0;
+  }
+}
