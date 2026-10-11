@@ -1,22 +1,38 @@
+import { execFileSync } from "node:child_process";
 import type { MetadataRoute } from "next";
 import { siteUrl } from "@lib/seo";
 
+// Required for metadata routes under output: "export" (GitHub Pages).
+export const dynamic = "force-static";
+
+// Each route lists the sources that change what the page shows, so lastmod
+// reflects real content edits (search engines only trust an accurate lastmod).
 const routes = [
-  { path: "/", priority: 1 },
-  { path: "/about", priority: 0.8 },
-  { path: "/work", priority: 0.9 },
-  { path: "/projects", priority: 0.9 },
-  { path: "/skills", priority: 0.7 },
-  { path: "/contact", priority: 0.7 },
+  { path: "/", sources: ["app/page.tsx", "app/HomePage.tsx", "public/spline/sceneDACCORD_NEW.splinecode"] },
+  { path: "/about", sources: ["app/about", "components/Particle.tsx"] },
+  { path: "/work", sources: ["app/work", "data/workData.ts", "components/ChronoCard.tsx"] },
+  { path: "/projects", sources: ["app/projects", "data/projectsDat.ts", "components/ProjectModal.tsx"] },
+  { path: "/skills", sources: ["app/skills"] },
+  { path: "/contact", sources: ["app/contact"] },
 ] as const;
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date("2026-09-21T00:00:00.000Z");
+// Date of the last commit touching any of the sources; needs full git history
+// in CI (actions/checkout fetch-depth: 0). Falls back to the build time.
+function lastCommitDate(sources: readonly string[]) {
+  try {
+    const iso = execFileSync("git", ["log", "-1", "--format=%cI", "--", ...sources], {
+      encoding: "utf8",
+    }).trim();
+    if (iso) return new Date(iso);
+  } catch {
+    // Not a git checkout (e.g. a tarball build).
+  }
+  return new Date();
+}
 
-  return routes.map(({ path, priority }) => ({
+export default function sitemap(): MetadataRoute.Sitemap {
+  return routes.map(({ path, sources }) => ({
     url: new URL(path, siteUrl).toString(),
-    lastModified,
-    changeFrequency: "monthly",
-    priority,
+    lastModified: lastCommitDate(sources),
   }));
 }
