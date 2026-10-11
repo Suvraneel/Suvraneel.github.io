@@ -40,8 +40,10 @@ export const communityLeadershipData: ExperienceEntry[] = [
     image: "Web3ConfIndia23.png",
     summary: "Produced a Web3 developer conference in India.",
     highlights: [
-      "Built speaker, sponsor, and media-partner workflows from planning through delivery.",
+      "Coordinated speakers, sponsors, and media partners from first outreach to event day.",
+      "Secured sponsorships from blockchain startups, Web3 gaming platforms, and enterprises.",
       "Helped convene 2,500+ attendees, 100+ speakers, and 150+ companies and sponsors.",
+      "Anchored a conference stage and led on-site operations with event staff and the venue team.",
       "Managed the event app and feedback loop for registration, networking, and post-event learning.",
     ],
   },
@@ -54,6 +56,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
     highlights: [
       "Hosted 10+ sessions and workshops, including livestreams with industry practitioners.",
       "Led community partnerships, sponsorships, social media, and email campaigns.",
+      "Wrote technical content and designed graphics for social media, email, and YouTube.",
       "Managed Discord moderation and cohort operations end to end.",
     ],
   },
@@ -64,10 +67,11 @@ export const communityLeadershipData: ExperienceEntry[] = [
     image: "GSSoC22.png",
     summary: "Led delivery of the official platform and contributor programme for a national open-source initiative.",
     highlights: [
-      "Managed a 30-person team and the end-to-end contributor workflow.",
+      "Recruited and managed a 30-person team and ran the end-to-end contributor workflow.",
       "Built and maintained the official Next.js website for 8,000+ contributors, supporting applications and registration.",
       "Mentored 6,000+ contributors and hosted 15+ hours of workshops and community events.",
       "Secured 10+ organisational partnerships and more than $10k in sponsorships.",
+      "Served as the primary point of contact for stakeholders throughout the programme.",
     ],
   },
   {
@@ -78,7 +82,8 @@ export const communityLeadershipData: ExperienceEntry[] = [
     summary: "Built responsive web applications and APIs under industry mentorship.",
     highlights: [
       "Developed full-stack projects, including a CoWIN vaccination-booking clone, using the MERN stack.",
-      "Integrated and tested third-party APIs; contributed to code reviews, user testing, and technical documentation.",
+      "Built and consumed APIs and maintained their documentation.",
+      "Took part in code reviews and user testing with industry mentors.",
     ],
   },
   {
