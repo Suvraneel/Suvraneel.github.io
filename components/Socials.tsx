@@ -25,10 +25,11 @@ function AnimatedSocialLink({ name, href, brandColor, icon: Icon }: AnimatedSoci
     return audio;
   };
 
-  const startInteraction = () => {
+  // Sound is a pointer-hover flourish; keyboard focus stays silent.
+  const startInteraction = (withSound = true) => {
     setIsHovered(true);
     snapAudioRef.current?.pause();
-    snapAudioRef.current = playEffect("/sounds/snap.wav");
+    snapAudioRef.current = withSound ? playEffect("/sounds/snap.wav") : null;
     iconRef.current?.startAnimation();
   };
 
@@ -45,9 +46,9 @@ function AnimatedSocialLink({ name, href, brandColor, icon: Icon }: AnimatedSoci
       target="_blank"
       rel="noreferrer"
       aria-label={name}
-      onMouseEnter={startInteraction}
+      onMouseEnter={() => startInteraction()}
       onMouseLeave={endInteraction}
-      onFocus={startInteraction}
+      onFocus={() => startInteraction(false)}
       onBlur={endInteraction}
       onClick={() => playEffect("/sounds/confirm.wav")}
       className="transition-colors duration-200"

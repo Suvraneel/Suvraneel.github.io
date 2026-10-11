@@ -196,7 +196,7 @@ const projectsData = [
   },
   {
     id: "meteorologyly",
-    name: "Meterologyly",
+    name: "Meteorologyly",
     details:
       "Minimalist Weather Forecasting Web Application Dashboard that fetches & visualizes data using a collection of APIs.|Fetches detailed current weather data or 7 day forecast using OpenWeatherMap API, GoogleMapEmbed API, and visualizations using Chart.js|Manifests all weather data by Geolocation, Top Searched Cities or City Search",
     github: "https://github.com/Suvraneel/Meteorologyly",

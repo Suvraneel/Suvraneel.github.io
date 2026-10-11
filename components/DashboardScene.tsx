@@ -137,6 +137,11 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
             <SplineObj
               // scene="https://prod.spline.design/bMG02F4Rm1UpL5wP/scene.splinecode"
               scene={sceneUrl}
+              onError={() => {
+                // Show the static fallback right away instead of waiting out the timers.
+                setSceneError(true);
+                setInitialLoad(false);
+              }}
               onLoad={(loadedApp) => {
                 setApp(loadedApp);
                 // Canvas is unhidden and first frames compiled only after load resolves.

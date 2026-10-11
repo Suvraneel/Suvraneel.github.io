@@ -121,8 +121,11 @@ const Home = () => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const isTyping = target?.matches("input, textarea, select, [contenteditable='true']");
+      // Space and arrows belong to a focused control (e.g. Space activates a button).
+      const isControl = target?.matches("a[href], button, summary, [role='button'], [role='link']");
 
-      if (isTyping || !["ArrowDown", "PageDown", " "].includes(event.key)) return;
+      if (isTyping || isControl || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (!["ArrowDown", "PageDown", " "].includes(event.key)) return;
 
       event.preventDefault();
       flipToAbout();

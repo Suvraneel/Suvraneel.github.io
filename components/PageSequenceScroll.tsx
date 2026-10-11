@@ -8,6 +8,11 @@ const minimumIntentEvents = 3;
 const postNavigationCooldownMs = 999;
 const swipeThreshold = 80;
 
+// Native <dialog> elements (ProjectModal) expose their role implicitly, so match
+// open dialogs as well as explicit ARIA modals.
+const isDialogOpen = () =>
+  Boolean(document.querySelector("dialog[open], [role='dialog'][aria-modal='true']"));
+
 const findScrollContainer = (target: EventTarget | null) => {
   let element = target instanceof Element ? target : null;
 
@@ -59,7 +64,7 @@ const PageSequenceScroll = () => {
         event.ctrlKey ||
         event.deltaY === 0 ||
         isNavigating.current ||
-        document.querySelector("[role='dialog'][aria-modal='true']")
+        isDialogOpen()
       ) {
         return;
       }
@@ -165,7 +170,7 @@ const PageSequenceScroll = () => {
     let gesture: { x: number; y: number; atTop: boolean; atBottom: boolean } | null = null;
 
     const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1 || document.querySelector("[role='dialog'][aria-modal='true']")) {
+      if (event.touches.length !== 1 || isDialogOpen()) {
         gesture = null;
         return;
       }
@@ -186,6 +191,8 @@ const PageSequenceScroll = () => {
       gesture = null;
       if (!start || isNavigating.current) return;
       if (window.performance.now() < navigationCooldownUntil.current) return;
+
+      if (isDialogOpen()) return;
 
       const touch = event.changedTouches[0];
       const deltaY = start.y - touch.clientY;

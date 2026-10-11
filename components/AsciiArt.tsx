@@ -27,9 +27,13 @@ const AsciiArt = () => {
         `
     useEffect(() => {
         const storageKey = "portfolio-ascii-easter-egg";
-        if (window.sessionStorage.getItem(storageKey)) return;
-
-        window.sessionStorage.setItem(storageKey, "true");
+        // sessionStorage throws when site data is blocked; the easter egg must never break the app.
+        try {
+            if (window.sessionStorage.getItem(storageKey)) return;
+            window.sessionStorage.setItem(storageKey, "true");
+        } catch {
+            return;
+        }
         console.log('%c Well, hello Sherlock... You found an Easter Egg! ', 'background: #222; color: #bada55');
         console.log('%c '+asciiArt+' ', cssMono);
     }, [asciiArt]);

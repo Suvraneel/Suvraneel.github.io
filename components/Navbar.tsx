@@ -92,8 +92,6 @@ export default function Navbar() {
         }}
         onMouseEnter={playSnap}
         onMouseLeave={stopSnap}
-        onFocus={playSnap}
-        onBlur={stopSnap}
         className="rail-music"
         aria-label={isPlaying ? "Stop music" : "Play music"}
       >
@@ -167,13 +165,12 @@ function RailLink({
         if (!item.animateWithState && !reduceMotion) iconRef.current?.stopAnimation();
       }}
       onFocus={() => {
+        // Keyboard focus animates the icon but stays silent.
         setIsHovered(true);
-        onSnap();
         if (!item.animateWithState && !reduceMotion) iconRef.current?.startAnimation();
       }}
       onBlur={() => {
         setIsHovered(false);
-        onStopSnap();
         if (!item.animateWithState && !reduceMotion) iconRef.current?.stopAnimation();
       }}
       onClick={onConfirm}

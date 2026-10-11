@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useEffect, useState } from "react";
 import ChronoCard from "@components/ChronoCard";
 import TimelineDate from "@components/TimelineDate";
 import { communityLeadershipData, educationData, workData } from "@data/workData";
@@ -9,50 +8,12 @@ import SplineObj from "@components/SplineObject";
 import { spaceBoards, tasaOrbiter } from "@font";
 
 const Work = () => {
-  const contentRef = useRef<HTMLElement>(null);
-  const experienceSectionRef = useRef<HTMLDivElement>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
-
-  useEffect(() => {
-    const scrollDiv = contentRef.current;
-    const experienceSection = experienceSectionRef.current;
-    if (!scrollDiv || !experienceSection) return;
-
-    const handleScroll = () => {
-      if (!experienceSection) return;
-
-      const scrollDiv = contentRef.current;
-      if (!scrollDiv) return;
-
-      // Get section's position in scroll container
-      const sectionTop = experienceSection.offsetTop;
-      const sectionHeight = experienceSection.offsetHeight;
-      const scrollTop = scrollDiv.scrollTop;
-      const scrollBottom = scrollTop + scrollDiv.clientHeight;
-
-      // Calculate how much of section is visible in viewport
-      const visibleStart = Math.max(scrollTop, sectionTop);
-      const visibleEnd = Math.min(scrollBottom, sectionTop + sectionHeight);
-      const visibleHeight = Math.max(0, visibleEnd - visibleStart);
-
-      // Progress: 0 when section starts entering, 1 when it finishes leaving
-      const totalVisibleRange = scrollDiv.clientHeight + sectionHeight;
-      const scrolledDistance = scrollTop - sectionTop + scrollDiv.clientHeight;
-      const progress = scrolledDistance / totalVisibleRange;
-
-      setScrollProgress(Math.max(0, Math.min(1, progress)));
-    };
-
-    scrollDiv.addEventListener("scroll", handleScroll);
-    return () => scrollDiv.removeEventListener("scroll", handleScroll);
-  }, []);
-
   return (
-      <main ref={contentRef} className="relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
+      <main className="relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
         <div className="min-h-screen grid md:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[24rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)] gap-0">
           <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen self-start overflow-hidden border-r border-white/10 md:block">
             {/*<SplineObj scene={"https://prod.spline.design/ZqRCvFgqp5-tcTea/scene.splinecode"} />*/}
-            <SplineObj scene={"./spline/scene-PLANT.splinecode"} scrollProgress={scrollProgress} />
+            <SplineObj scene={"/spline/scene-PLANT.splinecode"} />
           </aside>
           <div className="min-w-0">
             <div className="max-w-6xl px-5 pb-20 pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:px-14">
@@ -65,7 +26,7 @@ const Work = () => {
             </p>
            </header>
 
-           <div ref={experienceSectionRef}>
+           <div>
            <section className="mt-10 sm:mt-12" aria-labelledby="professional-work">
             <h2 id="professional-work" className="text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
               Professional experience

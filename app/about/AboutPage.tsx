@@ -10,6 +10,9 @@ import { useRouter } from "next/navigation";
 import * as gtag from "@lib/gtag";
 import { useDashboardScene } from "@components/DashboardScene";
 
+const isAtPageBottom = () =>
+  window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+
 const About = () => {
   const router = useRouter();
   const { app: splineApp, revealForReturn } = useDashboardScene();
@@ -18,8 +21,8 @@ const About = () => {
   const lastWheelAt = useRef(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isExiting, setExiting] = useState(false);
-  const snapSfx = "./sounds/snap.wav";
-  const confirmSfx = "./sounds/confirm.wav";
+  const snapSfx = "/sounds/snap.wav";
+  const confirmSfx = "/sounds/confirm.wav";
   const [playSnap, { stop: stopSnap }] = useSound(snapSfx, { volume: 0.25 });
   const [playConfirm] = useSound(confirmSfx, { volume: 0.25 });
 
@@ -103,6 +106,13 @@ const About = () => {
 
       if (event.deltaY < 0 && window.scrollY > 0) return;
 
+      // Let About's own content scroll first; the hand-off to Work happens
+      // only once the reader reaches the bottom of the page.
+      if (event.deltaY > 0 && !isAtPageBottom()) {
+        scrollIntent.current = 0;
+        return;
+      }
+
       event.preventDefault();
       const now = window.performance.now();
 
@@ -132,15 +142,17 @@ const About = () => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const isTyping = target?.matches("input, textarea, select, [contenteditable='true']");
+      // Space and arrows belong to a focused control (e.g. Space activates a button).
+      const isControl = target?.matches("a[href], button, summary, [role='button'], [role='link']");
 
-      if (isTyping || window.scrollY > 0) return;
+      if (isTyping || isControl || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
 
-      if (["ArrowUp", "PageUp"].includes(event.key)) {
+      if (["ArrowUp", "PageUp"].includes(event.key) && window.scrollY <= 0) {
         event.preventDefault();
         returnToDashboard();
       }
 
-      if (["ArrowDown", "PageDown", " "].includes(event.key)) {
+      if (["ArrowDown", "PageDown", " "].includes(event.key) && isAtPageBottom()) {
         event.preventDefault();
         isReturning.current = true;
         router.push("/work");
@@ -184,6 +196,7 @@ const About = () => {
               <div className="mt-9 flex flex-wrap gap-3">
                 <a
                   href="/docs/Suvraneel_Bhuin_Resume.pdf"
+                  data-text="Download resume"
                   target="_blank"
                   rel="noreferrer"
                   className="resume-button inline-flex items-center px-6 py-3 text-sm font-bold tracking-[0.02em] text-white transition duration-300 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-100 motion-reduce:transform-none motion-reduce:transition-none"

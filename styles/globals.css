@@ -25,7 +25,8 @@ img {
 }
 
 body {
-  font-family: "Montserrat", sans-serif;
+  /* Unclassed headings and UI text use Helvetica on purpose (Arial where Helvetica is unavailable). */
+  font-family: Helvetica, Arial, sans-serif;
   font-weight: 300;
   font-size: 15px;
   line-height: 1.7;
@@ -302,8 +303,12 @@ a:hover {
   --slice-4: inset(40% -6px 43% 0);
   --slice-5: inset(80% -6px 5% 0);
 
-  content: "ALTERNATE TEXT";
-  display: block;
+  content: attr(data-text);
+  /* Decorative copy of the label; keep it out of the accessible name. */
+  content: attr(data-text) / "";
+  display: flex;
+  align-items: center;
+  padding: inherit;
   position: absolute;
   top: 0;
   left: 0;
@@ -380,7 +385,7 @@ a:hover {
 
 /* Animated Heading */
 .animated-heading {
-  background: url("https://i.ibb.co/mhpzvXk/seed-46867.png") repeat;
+  background: url("/images/seed-46867.png") repeat;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

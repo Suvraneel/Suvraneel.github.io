@@ -6,7 +6,7 @@ import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
 import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MenuToggle from "./DrawerToggler";
 import Socials from "./Socials";
 
@@ -64,8 +64,49 @@ const Hamburger = () => {
     { name: "Contact", href: "/contact", icon: SendIcon },
   ];
 
+  const navRef = useRef<HTMLElement>(null);
   const openDrawer = () => setIsOpen(true);
   const closeDrawer = () => setIsOpen(false);
+
+  // Keyboard support while the drawer is open: Escape closes it and returns
+  // focus to the toggle, and Tab cycles within the toggle + drawer.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const nav = navRef.current;
+      if (!nav) return;
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsOpen(false);
+        nav.querySelector<HTMLElement>("button")?.focus();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const focusable = Array.from(
+        nav.querySelectorAll<HTMLElement>("a[href], button:not([disabled])")
+      );
+      if (!focusable.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && (active === first || !nav.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (active === last || !nav.contains(active))) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
 
 
   return (
@@ -85,6 +126,7 @@ const Hamburger = () => {
         )}
       </AnimatePresence>
       <motion.nav
+        ref={navRef}
         initial={false}
         animate="open"
         custom="100%"
