@@ -55,6 +55,7 @@ import {
   layerRegistry,
   markSettled,
   markStarted,
+  notifyArrival,
   setTransition,
   setTransitionLocked,
   useTransitionState,
@@ -663,6 +664,15 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       play(exiting?.el, out, false, fade);
       if (t.homeVisualIsScene && t.from === "/" && container) play(container, out, false, fade);
     }
+
+    // The arriving page is placed: let it measure its arrival view and, on a
+    // lift, tie its own entrance to this timeline.
+    notifyArrival(
+      t,
+      lift
+        ? { add: (animation) => track.add(animation, offset, true), duration: t.duration }
+        : null
+    );
 
     if (track.duration > 0) armSettle(t, track);
     else window.requestAnimationFrame(() => settle());

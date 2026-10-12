@@ -9,10 +9,12 @@ import { Disc3Icon } from "@components/animate-ui/icons/disc-3";
 import { FingerprintIcon } from "@components/animate-ui/icons/fingerprint";
 import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
 import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
-import { useReducedMotion } from "framer-motion";
+import { motion, scrollInfo, useMotionValue, useReducedMotion, type MotionValue } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, useState, type ElementType } from "react";
+import { useEffect, useRef, useState, type ElementType } from "react";
+import type { PageTransition } from "@lib/pageTransition";
+import { getTransition, isInFlight, onArrival, subscribeTransition } from "./transition/transitionStore";
 import Socials from "./Socials";
 
 type RailItem = {
@@ -38,12 +40,91 @@ const railItems: RailItem[] = [
 
 const currentYear = new Date().getFullYear();
 
+const pageScroller = (path: string) =>
+  path === "/work" ? document.querySelector<HTMLElement>(`[data-page="/work"] main`) : null;
+
+/** Scroll progress a page arrives at: 0 at its top, 1 at its bottom (or when it does not scroll). */
+const arrivalProgress = (t: PageTransition) => {
+  if (t.to === "/") return 1;
+  const scroller = pageScroller(t.to);
+  if (scroller) {
+    const range = scroller.scrollHeight - scroller.clientHeight;
+    return range > 0 ? Math.min(1, scroller.scrollTop / range) : 1;
+  }
+  // A backward lift frames the arriving sheet at its offset; the window gets there on settle.
+  const page = document.querySelector<HTMLElement>(`[data-page="${t.to}"] [data-freeze]`);
+  const range = Math.max(page?.offsetHeight ?? 0, window.innerHeight) - window.innerHeight;
+  const y = t.arrivalScrollY ?? window.scrollY;
+  return range > 0 ? Math.min(1, y / range) : 1;
+};
+
+/**
+ * The live page's scroll progress, for the active rail item's edge: the
+ * window, or Work's own <main>. Home (no scroll) reads full. In flight it
+ * holds still; the arriving page starts at its arrival progress (0 forward,
+ * 1 backward, or a history entry's offset) and is tracked live once the lift
+ * settles, so the edge never jumps. Motion values only; nothing re-renders.
+ */
+function useRailProgress(reduceMotion: boolean | null) {
+  const progress = useMotionValue(1);
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      progress.set(1);
+      return;
+    }
+
+    let detach: (() => void) | null = null;
+    const hold = () => {
+      detach?.();
+      detach = null;
+    };
+    const track = (path: string) => {
+      hold();
+      if (path === "/") {
+        progress.set(1);
+        return;
+      }
+      const scroller = pageScroller(path);
+      if (path === "/work" && !scroller) return;
+      detach = scrollInfo((info) => progress.set(info.y.progress), scroller ? { container: scroller } : {});
+    };
+
+    const stopArrival = onArrival((t) => {
+      hold();
+      progress.set(arrivalProgress(t));
+    });
+    const stopTransition = subscribeTransition(() => {
+      const t = getTransition();
+      if (t && !t.settled) hold();
+      else track(t ? t.to : pathnameRef.current);
+    });
+
+    if (!isInFlight(getTransition())) track(pathnameRef.current);
+
+    return () => {
+      hold();
+      stopArrival();
+      stopTransition();
+    };
+  }, [progress, reduceMotion]);
+
+  return progress;
+}
+
 export default function Navbar() {
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
   const [isPlaying, setIsPlaying] = useState(false);
   const musicRef = useRef<HTMLAudioElement>(null);
   const snapAudioRef = useRef<HTMLAudioElement | null>(null);
+  const progress = useRailProgress(reduceMotion);
 
   const playEffect = (source: string) => {
     const audio = new Audio(source);
@@ -106,6 +187,7 @@ export default function Navbar() {
             key={item.name}
             item={item}
             active={pathname === item.href}
+            progress={progress}
             reduceMotion={reduceMotion}
             onSnap={playSnap}
             onStopSnap={stopSnap}
@@ -133,6 +215,7 @@ export default function Navbar() {
 function RailLink({
   item,
   active,
+  progress,
   reduceMotion,
   onSnap,
   onStopSnap,
@@ -140,6 +223,8 @@ function RailLink({
 }: {
   item: RailItem;
   active: boolean;
+  /** Scroll progress of the live page; drawn as the active item's left edge. */
+  progress: MotionValue<number>;
   reduceMotion: boolean | null;
   onSnap: () => void;
   onStopSnap: () => void;
@@ -175,6 +260,11 @@ function RailLink({
       }}
       onClick={onConfirm}
     >
+      {active && (
+        <span className="rail-progress" aria-hidden="true">
+          <motion.span className="rail-progress-bar" style={{ scaleY: progress }} />
+        </span>
+      )}
       <span className="rail-icon transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105">
         {item.animateWithState ? (
           <Icon aria-hidden="true" size={24} animate={isHovered && !reduceMotion} />

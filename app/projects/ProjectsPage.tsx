@@ -1,11 +1,15 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useRef, useState } from "react";
+import { AnimatePresence, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useSpring } from "motion/react";
+import { useLayoutEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
 import useSound from "use-sound";
 import ProjectModal from "@components/ProjectModal";
+import { arrivalView, whenPlaced } from "@components/transition/arrival";
+import { getTransition, isInFlight } from "@components/transition/transitionStore";
 import projectsData from "@data/projectsDat";
 import { spaceBoards, tasaOrbiter } from "@font";
+import { REVEAL_STAGGER_MS, useReveal } from "@hooks/useReveal";
+import { EASE_LIFT, cssEase, prefersReducedMotion } from "@lib/pageTransition";
 
 type Project = (typeof projectsData)[number];
 
@@ -39,9 +43,55 @@ const cardLayout = [
   "md:col-span-5 lg:col-span-4",
 ];
 
+/** Cards stand this far down and this faint when a lift starts revealing them. */
+const ARRIVAL_FROM = { opacity: 0.4, y: 18 };
+
+/**
+ * Reached by a lift, the cards the visitor arrives at settle with it: each
+ * rises from 18px and 40% opacity (never invisible) on the lift's own
+ * timeline, 60ms apart, all landing as the lift settles, so seeks, resumes
+ * and settle carry them too. Cells sit outside the cards, so the cards' own
+ * hover, tap and tilt transforms stay theirs.
+ */
+function useLiftEntrance(galleryRef: RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    const gallery = galleryRef.current;
+    if (!gallery || prefersReducedMotion()) return;
+    return whenPlaced(gallery, (t, track) => {
+      if (!t || !track) return;
+      const view = arrivalView(null, t);
+      const cells = Array.from(gallery.querySelectorAll<HTMLElement>("[data-reveal]")).filter(
+        (cell) => view.side(cell) === 0
+      );
+      const length = Math.max(track.duration - (cells.length - 1) * REVEAL_STAGGER_MS, track.duration / 2);
+      cells.forEach((cell, index) => {
+        track.add(
+          cell.animate(
+            [
+              { opacity: ARRIVAL_FROM.opacity, transform: `translate3d(0px, ${ARRIVAL_FROM.y}px, 0px)` },
+              { opacity: 1, transform: "translate3d(0px, 0px, 0px)" },
+            ],
+            { duration: length, delay: index * REVEAL_STAGGER_MS, easing: cssEase(EASE_LIFT), fill: "both" }
+          )
+        );
+      });
+    });
+  }, [galleryRef]);
+}
+
 export default function ProjectsPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const reduceMotion = useReducedMotion();
+  const gallery = useRef<HTMLDivElement>(null);
+  // A lift ties the arriving cards' entrance to itself (useLiftEntrance); a
+  // direct load keeps the cards' short mount entrance.
+  const [arrivingByTransition] = useState(() => {
+    const t = getTransition();
+    return isInFlight(t) && t.to === "/projects";
+  });
+
+  useReveal(gallery);
+  useLiftEntrance(gallery);
   const [playSnap, { stop: stopSnap }] = useSound("/sounds/snap.wav", { volume: 0.35 });
   const [playPop] = useSound("/sounds/pop.wav", { volume: 0.45 });
 
@@ -63,17 +113,23 @@ export default function ProjectsPage() {
         </header>
 
         <section className="mt-10 sm:mt-14" aria-label="Project gallery">
-          <div className="grid grid-cols-1 auto-rows-[15rem] gap-3 sm:auto-rows-[18rem] sm:gap-4 md:grid-cols-12 md:grid-rows-[24rem_20rem_18rem_17rem_16rem_14rem_13rem] lg:grid-rows-[24rem_21rem_19rem_17.5rem_16rem_12.5rem]">
+          <div ref={gallery} className="grid grid-cols-1 auto-rows-[15rem] gap-3 sm:auto-rows-[18rem] sm:gap-4 md:grid-cols-12 md:grid-rows-[24rem_20rem_18rem_17rem_16rem_14rem_13rem] lg:grid-rows-[24rem_21rem_19rem_17.5rem_16rem_12.5rem]">
             {projectsData.map((project, index) => (
-              <ProjectTile
+              // The grid cell carries the scroll reveal and the lift entrance; the card inside keeps its own motion.
+              <div
                 key={("id" in project && project.id) || project.name}
-                project={project}
-                className={cardLayout[index] ?? "md:col-span-6 xl:col-span-4"}
-                reduceMotion={Boolean(reduceMotion)}
-                onOpen={() => openProject(project)}
-                onHoverStart={playSnap}
-                onHoverEnd={stopSnap}
-              />
+                data-reveal
+                className={`min-h-0 ${cardLayout[index] ?? "md:col-span-6 xl:col-span-4"}`}
+              >
+                <ProjectTile
+                  project={project}
+                  reduceMotion={Boolean(reduceMotion)}
+                  mountEntrance={!arrivingByTransition}
+                  onOpen={() => openProject(project)}
+                  onHoverStart={playSnap}
+                  onHoverEnd={stopSnap}
+                />
+              </div>
             ))}
           </div>
         </section>
@@ -92,22 +148,91 @@ export default function ProjectsPage() {
   );
 }
 
+const TILT_MAX_DEG = 3;
+const TILT_PERSPECTIVE_PX = 1000;
+const TILT_SPRING = { stiffness: 220, damping: 24, mass: 0.6 };
+const SHEEN_SPRING = { stiffness: 180, damping: 26 };
+const FINE_HOVER_QUERY = "(hover: hover) and (pointer: fine)";
+// One MediaQueryList per page, not one per pointermove.
+let fineHoverQuery: MediaQueryList | null = null;
+const hasFineHover = () => (fineHoverQuery ??= window.matchMedia(FINE_HOVER_QUERY)).matches;
+
+/**
+ * Fine-pointer hover only: the card tilts toward the pointer (up to 3deg) and
+ * a faint light follows it. Springs on transform and opacity; nothing under
+ * reduced motion.
+ */
+function useCardTilt(reduceMotion: boolean) {
+  const rotateX = useSpring(0, TILT_SPRING);
+  const rotateY = useSpring(0, TILT_SPRING);
+  const sheenX = useMotionValue(0);
+  const sheenY = useMotionValue(0);
+  const sheenOpacity = useSpring(0, SHEEN_SPRING);
+  // 0 leaves the perspective out of the transform entirely, so a card at rest
+  // (and every card on touch or reduced motion) keeps `transform: none`.
+  const perspective = useMotionValue(0);
+  const bounds = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
+
+  // Drop the perspective once the pointer has left and the tilt has sprung back flat.
+  const releaseWhenFlat = () => {
+    if (!bounds.current && rotateX.get() === 0 && rotateY.get() === 0) perspective.set(0);
+  };
+  useMotionValueEvent(rotateX, "animationComplete", releaseWhenFlat);
+  useMotionValueEvent(rotateY, "animationComplete", releaseWhenFlat);
+
+  const onPointerMove = (event: PointerEvent<HTMLElement>) => {
+    if (reduceMotion || event.pointerType !== "mouse" || !hasFineHover()) return;
+    const card = event.currentTarget;
+    // Layout size and the untilted box: the tilt itself never feeds back into the pointer maths.
+    if (!bounds.current) {
+      const rect = card.getBoundingClientRect();
+      bounds.current = {
+        left: rect.left + (rect.width - card.offsetWidth) / 2,
+        top: rect.top + (rect.height - card.offsetHeight) / 2,
+        width: card.offsetWidth,
+        height: card.offsetHeight,
+      };
+      perspective.set(TILT_PERSPECTIVE_PX);
+    }
+    const { left, top, width, height } = bounds.current;
+    const x = Math.min(Math.max(event.clientX - left, 0), width);
+    const y = Math.min(Math.max(event.clientY - top, 0), height);
+    rotateY.set(((x / width) * 2 - 1) * TILT_MAX_DEG);
+    rotateX.set(-((y / height) * 2 - 1) * TILT_MAX_DEG);
+    sheenX.set(x);
+    sheenY.set(y);
+    sheenOpacity.set(1);
+  };
+
+  const onPointerLeave = () => {
+    bounds.current = null;
+    rotateX.set(0);
+    rotateY.set(0);
+    sheenOpacity.set(0);
+    releaseWhenFlat();
+  };
+
+  return { rotateX, rotateY, perspective, sheenX, sheenY, sheenOpacity, onPointerMove, onPointerLeave };
+}
+
 function ProjectTile({
   project,
-  className,
   reduceMotion,
+  mountEntrance,
   onOpen,
   onHoverStart,
   onHoverEnd,
 }: {
   project: Project;
-  className: string;
   reduceMotion: boolean;
+  /** Direct load: the short entrance on mount. A lift brings the cards in itself. */
+  mountEntrance: boolean;
   onOpen: () => void;
   onHoverStart: () => void;
   onHoverEnd: () => void;
 }) {
   const previewVideo = useRef<HTMLVideoElement>(null);
+  const tilt = useCardTilt(reduceMotion);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const hasDedicatedPreview = project.gif !== "video-to-be-added.webm";
   const youtubeId = getYouTubeId(project.video);
@@ -139,15 +264,18 @@ function ProjectTile({
       type="button"
       aria-haspopup="dialog"
       aria-label={`Open ${project.name}`}
-      className={`group relative min-h-0 overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#10141c] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${className}`}
-      initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+      className="group relative h-full min-h-0 w-full overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#10141c] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+      initial={reduceMotion || !mountEntrance ? false : { opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
       whileHover={reduceMotion ? undefined : { y: -4 }}
       whileTap={{ scale: 0.985 }}
+      style={{ rotateX: tilt.rotateX, rotateY: tilt.rotateY, transformPerspective: tilt.perspective }}
       onClick={onOpen}
       onHoverStart={startPreview}
       onHoverEnd={stopPreview}
+      onPointerMove={tilt.onPointerMove}
+      onPointerLeave={tilt.onPointerLeave}
       onFocus={startFocusPreview}
       onBlur={stopFocusPreview}
     >
@@ -196,6 +324,12 @@ function ProjectTile({
       ) : (
         <ProjectArchivePreview project={project} />
       )}
+      {/* Soft light that follows the pointer (fine-pointer hover only), above the media and below the title. */}
+      <motion.span
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-0 z-[5] -ml-56 -mt-56 size-[28rem] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.09),transparent_62%)]"
+        style={{ x: tilt.sheenX, y: tilt.sheenY, opacity: tilt.sheenOpacity }}
+      />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[#07090d] via-[#07090d]/80 to-transparent px-5 pb-5 pt-16 sm:px-6 sm:pb-6">
         <h2 className="max-w-[22ch] text-xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-2xl">
           {project.name}

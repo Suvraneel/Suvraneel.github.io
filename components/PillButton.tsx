@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import type { MouseEvent, ReactNode } from "react";
+import type { MouseEvent, ReactNode, RefObject } from "react";
+import { useMagnetic } from "@hooks/useMagnetic";
 import { isPlainAnchor } from "@lib/linkKind";
 
 type PillButtonProps = {
@@ -43,6 +44,7 @@ export default function PillButton({
   target,
   type = "button",
 }: PillButtonProps) {
+  const magnet = useMagnetic<HTMLElement>();
   const classes = `${baseClassName} ${className}`;
   const content = (
     <>
@@ -55,21 +57,21 @@ export default function PillButton({
   if (href) {
     if (isPlainAnchor(href, target, download)) {
       return (
-        <a href={href} target={target} rel={rel} download={download === true ? "" : download || undefined} aria-label={ariaLabel} className={classes} {...handlers}>
+        <a ref={magnet as RefObject<HTMLAnchorElement | null>} href={href} target={target} rel={rel} download={download === true ? "" : download || undefined} aria-label={ariaLabel} className={classes} {...handlers}>
           {content}
         </a>
       );
     }
 
     return (
-      <Link href={href} target={target} rel={rel} aria-label={ariaLabel} className={classes} {...handlers}>
+      <Link ref={magnet as RefObject<HTMLAnchorElement | null>} href={href} target={target} rel={rel} aria-label={ariaLabel} className={classes} {...handlers}>
         {content}
       </Link>
     );
   }
 
   return (
-    <button type={type} disabled={disabled} aria-label={ariaLabel} className={classes} {...handlers}>
+    <button ref={magnet as RefObject<HTMLButtonElement | null>} type={type} disabled={disabled} aria-label={ariaLabel} className={classes} {...handlers}>
       {content}
     </button>
   );

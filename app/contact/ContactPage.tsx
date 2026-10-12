@@ -114,7 +114,7 @@ export default function ContactPage() {
                 rel="noreferrer"
                 className="group flex min-h-14 items-center justify-between gap-4 border-b border-white/10 py-3 text-sm text-white/60 transition-colors duration-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
               >
-                <span>More ways to connect</span>
+                <span className="link-draw">More ways to connect</span>
                 <FontAwesomeIcon icon={faArrowUpRightFromSquare} aria-hidden="true" className="text-xs transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </Link>
 

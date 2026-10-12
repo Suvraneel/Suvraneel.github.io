@@ -1,8 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { spaceBoards, tasaOrbiter } from "@font";
+import { useReveal } from "@hooks/useReveal";
 
 const capabilityAreas = [
   {
@@ -57,6 +58,9 @@ export default function SkillsPage() {
   const [activeId, setActiveId] = useState(capabilityAreas[0].id);
   const reduceMotion = useReducedMotion();
   const activeArea = capabilityAreas.find((area) => area.id === activeId) ?? capabilityAreas[0];
+  const practiceSteps = useRef<HTMLOListElement>(null);
+
+  useReveal(practiceSteps);
 
   return (
     <main className="nav-gap min-h-[100dvh] overflow-x-hidden bg-black text-white">
@@ -173,10 +177,11 @@ export default function SkillsPage() {
             >
               How I build
             </h2>
-            <ol className="divide-y divide-white/10">
+            <ol ref={practiceSteps} className="divide-y divide-white/10">
               {practices.map(([index, title, description]) => (
                 <li
                   key={index}
+                  data-reveal
                   className="grid gap-x-5 gap-y-2 py-5 sm:grid-cols-[3rem_minmax(11rem,0.7fr)_minmax(0,1.3fr)] sm:items-baseline sm:gap-y-0"
                 >
                   <span className="font-mono text-xs tabular-nums text-accent">{index}</span>

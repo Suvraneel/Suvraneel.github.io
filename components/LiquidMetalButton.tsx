@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { type MouseEvent, ReactNode, useEffect, useRef, useState } from "react";
+import { type MouseEvent, ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { useMagnetic } from "@hooks/useMagnetic";
 import { isPlainAnchor } from "@lib/linkKind";
 
 // Shader speeds: calm at rest, livelier on hover/focus, a short burst on click.
@@ -50,6 +51,7 @@ export default function LiquidMetalButton({
   target,
   type = "button",
 }: LiquidMetalButtonProps) {
+  const magnet = useMagnetic<HTMLElement>();
   const shaderContainer = useRef<HTMLSpanElement>(null);
   const shaderMount = useRef<ShaderMount | null>(null);
   const burstTimer = useRef<number | null>(null);
@@ -201,21 +203,21 @@ export default function LiquidMetalButton({
     // Files, new-tab and off-site links are not page navigations, so they skip next/link.
     if (isPlainAnchor(href, target, download)) {
       return (
-        <a href={href} target={target} rel={rel} download={download === true ? "" : download || undefined} aria-label={ariaLabel} className={sharedClassName} {...handlers}>
+        <a ref={magnet as RefObject<HTMLAnchorElement | null>} href={href} target={target} rel={rel} download={download === true ? "" : download || undefined} aria-label={ariaLabel} className={sharedClassName} {...handlers}>
           {surface}
         </a>
       );
     }
 
     return (
-      <Link href={href} target={target} rel={rel} aria-label={ariaLabel} className={sharedClassName} {...handlers}>
+      <Link ref={magnet as RefObject<HTMLAnchorElement | null>} href={href} target={target} rel={rel} aria-label={ariaLabel} className={sharedClassName} {...handlers}>
         {surface}
       </Link>
     );
   }
 
   return (
-    <button type={type} disabled={disabled} aria-label={ariaLabel} className={sharedClassName} {...handlers}>
+    <button ref={magnet as RefObject<HTMLButtonElement | null>} type={type} disabled={disabled} aria-label={ariaLabel} className={sharedClassName} {...handlers}>
       {surface}
     </button>
   );

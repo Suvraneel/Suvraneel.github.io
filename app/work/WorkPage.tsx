@@ -1,21 +1,94 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef } from "react";
+import { useScroll, type MotionValue } from "motion/react";
+import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import ChronoCard from "@components/ChronoCard";
+import TimelineSpine from "@components/TimelineSpine";
 import TimelineDate from "@components/TimelineDate";
 import { communityLeadershipData, educationData, workData } from "@data/workData";
 import SplineObj from "@components/SplineObject";
 import { spaceBoards, tasaOrbiter } from "@font";
+import { isUnrendered, layoutTop, whenPlaced } from "@components/transition/arrival";
 import { getTransition } from "@components/transition/transitionStore";
+import { useReveal } from "@hooks/useReveal";
+import { prefersReducedMotion } from "@lib/pageTransition";
 import { stepSplineScroll } from "@lib/splineScroll";
 
 // The plant's Spline Scroll event (scene-PLANT.splinecode, object "plant") has 40 steps.
 const PLANT_STEPS = 40;
 
+/** An entry's dot lights once it has passed this share of the view. */
+const DOT_LIGHT_AT = 0.5;
+
+/**
+ * Lights each entry's dot (dim -> its own colour) as it passes the middle of
+ * <main>'s view. Thresholds come from layout offsets and are clamped to the
+ * end of the scroll, so the bottom (a backward arrival included) shows every
+ * dot lit. Dots flip by a data attribute (CSS crossfades opacity), only when
+ * one crosses; nothing re-renders while scrolling.
+ */
+function useTimelineDots(mainRef: RefObject<HTMLElement | null>, scrollY: MotionValue<number>) {
+  useLayoutEffect(() => {
+    const main = mainRef.current;
+    if (!main || prefersReducedMotion()) return;
+
+    let dots: Array<{ element: HTMLElement; at: number }> = [];
+    let stopScroll: () => void = () => undefined;
+    let resizeObserver: ResizeObserver | null = null;
+    let liveFrame = 0;
+
+    const measure = () => {
+      const view = main.clientHeight;
+      const max = Math.max(0, main.scrollHeight - view);
+      const origin = layoutTop(main);
+      dots = Array.from(main.querySelectorAll<HTMLElement>("[data-timeline-dot]"))
+        .filter((element) => !isUnrendered(element))
+        .map((element) => ({ element, at: Math.min(layoutTop(element) - origin - view * DOT_LIGHT_AT, max) }));
+    };
+
+    const apply = (y: number) => {
+      for (const { element, at } of dots) {
+        const unlit = at > 0 && y < at;
+        if (unlit !== element.hasAttribute("data-unlit")) element.toggleAttribute("data-unlit", unlit);
+      }
+    };
+
+    const stopWaiting = whenPlaced(main, () => {
+      measure();
+      // The arrival offset is already applied to <main>; scrollY catches up a frame later.
+      apply(main.scrollTop);
+      // Crossfades only once the placed state has been painted.
+      liveFrame = requestAnimationFrame(() => main.setAttribute("data-timeline-live", ""));
+      stopScroll = scrollY.on("change", apply);
+      resizeObserver = new ResizeObserver(() => {
+        measure();
+        apply(main.scrollTop);
+      });
+      resizeObserver.observe(main);
+      if (main.firstElementChild) resizeObserver.observe(main.firstElementChild);
+    });
+
+    return () => {
+      stopWaiting();
+      stopScroll();
+      resizeObserver?.disconnect();
+      cancelAnimationFrame(liveFrame);
+      main.removeAttribute("data-timeline-live");
+      main.querySelectorAll("[data-unlit]").forEach((element) => element.removeAttribute("data-unlit"));
+    };
+  }, [mainRef, scrollY]);
+}
+
 const Work = () => {
   const plantAside = useRef<HTMLElement>(null);
   const plantObserver = useRef<IntersectionObserver | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const entriesRef = useRef<HTMLDivElement>(null);
+  const { scrollY } = useScroll({ container: mainRef });
+
+  useReveal(entriesRef, { rootRef: mainRef });
+  useTimelineDots(mainRef, scrollY);
 
   useEffect(() => () => plantObserver.current?.disconnect(), []);
 
@@ -49,7 +122,7 @@ const Work = () => {
   }, []);
 
   return (
-      <main className="relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
+      <main ref={mainRef} className="relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
         <div className="min-h-screen grid md:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[24rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)] gap-0">
           <aside ref={plantAside} aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen self-start overflow-hidden border-r border-white/10 md:block">
             {/*<SplineObj scene={"https://prod.spline.design/ZqRCvFgqp5-tcTea/scene.splinecode"} />*/}
@@ -66,12 +139,13 @@ const Work = () => {
             </p>
            </header>
 
-           <div>
+           <div ref={entriesRef}>
            <section className="mt-10 sm:mt-12" aria-labelledby="professional-work">
             <h2 id="professional-work" className="text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
               Professional experience
             </h2>
-            <div className="mt-2">
+            <div className="relative mt-2">
+              <TimelineSpine scrollY={scrollY} />
               {workData.map((curElem) => (
                 <ChronoCard key={`${curElem.company}-${curElem.duration}`} curElem={curElem} />
               ))}
@@ -84,7 +158,8 @@ const Work = () => {
                 Community &amp; leadership
               </h2>
             </div>
-            <div className="mt-2">
+            <div className="relative mt-2">
+              <TimelineSpine scrollY={scrollY} />
               {communityLeadershipData.map((curElem) => (
                 <ChronoCard key={`${curElem.company}-${curElem.duration}`} curElem={curElem} variant="community" />
               ))}
@@ -95,7 +170,7 @@ const Work = () => {
             <h2 id="education" className="text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
               Education
             </h2>
-            <article className="relative mt-2 grid gap-4 py-8 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-6 sm:py-7">
+            <article data-reveal className="relative mt-2 grid gap-4 py-8 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-6 sm:py-7">
               <div className="flex items-start gap-3 sm:flex-col sm:items-start sm:gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] p-1">
                   <Image
@@ -117,7 +192,10 @@ const Work = () => {
                 <TimelineDate duration={educationData.duration} />
               </div>
               <div className="relative grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-8 sm:pl-5">
-                <div aria-hidden="true" className="absolute left-0 top-1 hidden h-2 w-2 rounded-full bg-white/50 sm:block" />
+                <div aria-hidden="true" data-timeline-dot className="absolute left-0 top-1 hidden h-2 w-2 sm:block">
+                  <span className="timeline-dot-dim absolute inset-0 rounded-full bg-white/25" />
+                  <span className="timeline-dot-lit absolute inset-0 rounded-full bg-white/50" />
+                </div>
                 <div>
                   <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] text-accent/70 sm:block ${tasaOrbiter.className}`}>
                     {educationData.institution}

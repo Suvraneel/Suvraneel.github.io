@@ -45,6 +45,38 @@ export const useTransitionState = () =>
 export const isInFlight = (t: PageTransition | null): t is PageTransition => Boolean(t && !t.settled);
 
 // ---------------------------------------------------------------------------
+// Arrival hooks. The coordinator calls these in the commit that mounts the
+// next route, once the arriving page is placed at its arrival offset (window
+// scroll, framed sheet or <main> scrollTop) and every lift track is created,
+// so page-level effects can measure what the visitor will see when the lift
+// settles and, on a lift, add their own tracks to the same timeline (seeks,
+// resumes and settle then cover them too).
+// ---------------------------------------------------------------------------
+
+export type ArrivalTrack = {
+  /** Adds an animation to the lift's timeline, starting with the lift; it is dropped on settle. */
+  add: (animation: Animation) => void;
+  /** The lift's length in ms (already time-scaled). */
+  duration: number;
+};
+
+/** `track` is null for arrivals without a lift (reduced-motion fade, browser history swipe). */
+export type ArrivalHook = (t: PageTransition, track: ArrivalTrack | null) => void;
+
+const arrivalHooks = new Set<ArrivalHook>();
+
+export const onArrival = (hook: ArrivalHook) => {
+  arrivalHooks.add(hook);
+  return () => {
+    arrivalHooks.delete(hook);
+  };
+};
+
+export const notifyArrival = (t: PageTransition, track: ArrivalTrack | null) => {
+  Array.from(arrivalHooks).forEach((hook) => hook(t, track));
+};
+
+// ---------------------------------------------------------------------------
 // Navigation lock. Held from navigate() until settle().
 // ---------------------------------------------------------------------------
 
