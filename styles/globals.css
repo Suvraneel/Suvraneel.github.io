@@ -382,8 +382,11 @@ a:focus-visible > .link-draw::after {
 
 /* Contact  */
 
+/* Calendly's free plan can't be recoloured, so its light widget is inverted to
+   dark and its brand blue (#006BFF -> #FF9400 once inverted) is rotated onto
+   the site accent (#1BFCD7); neutral greys are unaffected by hue-rotate. */
 .calendly-inline-widget {
-  filter: invert(100%);
+  filter: invert(100%) hue-rotate(128deg) brightness(1.15);
 }
 
 /* Animated Heading */

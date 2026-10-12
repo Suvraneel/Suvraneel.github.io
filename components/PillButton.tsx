@@ -14,7 +14,7 @@ type PillButtonProps = {
   download?: boolean | string;
   /** Internal page paths render next/link; files, new-tab and off-site links a plain <a>. */
   href?: string;
-  /** Leading icon, e.g. a FontAwesomeIcon. */
+  /** Leading icon, e.g. an animate-ui icon. */
   icon?: ReactNode;
   onClick?: (event: MouseEvent<HTMLElement>) => void;
   onMouseEnter?: () => void;

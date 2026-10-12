@@ -43,7 +43,7 @@ export default function CalendlyModal({ onClose }: Readonly<{ onClose: () => voi
           onClick={onClose}
           className="absolute inset-0 z-0 cursor-default bg-transparent"
         />
-        <section className="relative flex h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[1.5rem] border border-white/15 bg-black sm:h-[calc(100dvh-3rem)]" aria-labelledby="scheduler-title">
+        <section className="relative flex h-[min(calc(100dvh-1.5rem),42rem)] w-full max-w-[58rem] flex-col overflow-hidden rounded-[1.5rem] border border-white/15 bg-black sm:h-[min(calc(100dvh-3rem),42rem)]" aria-labelledby="scheduler-title">
           <div className="flex items-center justify-between border-b border-white/15 px-5 py-4 sm:px-6">
             <h2 id="scheduler-title" className="text-lg font-semibold tracking-[-0.02em] text-white sm:text-xl">Find a time that works</h2>
             <AnimateIcon animateOnHover asChild>
@@ -58,8 +58,8 @@ export default function CalendlyModal({ onClose }: Readonly<{ onClose: () => voi
             </button>
             </AnimateIcon>
           </div>
-          <div className="min-h-0 flex-1 bg-white">
-            <InlineWidget url="https://calendly.com/suvraneel/meet" styles={{ height: "100%", width: "100%" }} />
+          <div className="min-h-0 flex-1 bg-black">
+            <InlineWidget url="https://calendly.com/suvraneel/meet" styles={{ height: "100%", width: "100%" }} pageSettings={{ hideGdprBanner: true }} />
           </div>
         </section>
       </dialog>
