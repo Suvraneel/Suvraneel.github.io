@@ -380,6 +380,68 @@ a:focus-visible > .link-draw::after {
   }
 }
 
+/* Projects: hover brief adapts to the tile. Most tiles keep the right-hand
+   panel; only very small ones (too short for the panel's overview) keep their
+   image as the hero: the title lifts and one compact row (stack chips +
+   "Case notes") fades in under it. */
+.project-tile {
+  container: tile / size;
+}
+
+.tile-title-lift {
+  transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tile-brief-meta {
+  opacity: 0;
+  transform: translateY(0.5rem);
+  transition:
+    opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (min-width: 768px) {
+  .tile-brief-meta {
+    display: flex;
+  }
+
+  @container tile (min-width: 400px) and (min-height: 300px) {
+    .tile-brief-side {
+      display: flex;
+    }
+
+    .tile-brief-meta {
+      display: none;
+    }
+  }
+
+  @container tile (not ((min-width: 400px) and (min-height: 300px))) {
+    .project-tile:is(:hover, :focus-visible) .tile-title-lift {
+      transform: translateY(-2.25rem);
+    }
+
+    .project-tile:is(:hover, :focus-visible) .tile-brief-meta {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Narrow tiles: two chips, so "Case notes" never wraps. */
+  @container tile (max-width: 460px) {
+    .tile-brief-chip:nth-child(n + 3) {
+      display: none;
+    }
+  }
+}
+
+/* Reduced motion: same end state (the row still needs the room), no movement. */
+@media (prefers-reduced-motion: reduce) {
+  .tile-title-lift,
+  .tile-brief-meta {
+    transition: none;
+  }
+}
+
 /* Contact  */
 
 /* Calendly's free plan can't be recoloured, so its light widget is inverted to
