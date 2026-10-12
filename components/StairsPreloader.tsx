@@ -62,7 +62,6 @@ export default function StairsPreloader({ progress }: { progress: number | null 
           <span className="mr-3 block h-2 w-2 rounded-full bg-[#83d3dd]" />
           {WORDS[wordIndex % WORDS.length]}
         </motion.p>
-
         {progress !== null && (
           <p
             className="absolute bottom-8 right-8 font-mono text-xs tabular-nums tracking-[0.3em] text-white/50"

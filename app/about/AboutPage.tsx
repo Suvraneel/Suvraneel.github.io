@@ -2,97 +2,26 @@
 
 import Link from "next/link";
 import useSound from "use-sound";
-import { motion } from "framer-motion";
 import Canvas from "@components/Particle";
 import { spaceBoards, tasaOrbiter } from "@font";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as gtag from "@lib/gtag";
-import { useDashboardScene } from "@components/DashboardScene";
+import { usePageTransition } from "@components/transition/PageTransitionProvider";
+import { gestureGate, isTransitionLocked } from "@components/transition/transitionStore";
 
 const isAtPageBottom = () =>
   window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
 
 const About = () => {
   const router = useRouter();
-  const { app: splineApp, revealForReturn } = useDashboardScene();
-  const isReturning = useRef(false);
+  const { navigate } = usePageTransition();
   const scrollIntent = useRef(0);
   const lastWheelAt = useRef(0);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [isExiting, setExiting] = useState(false);
   const snapSfx = "/sounds/snap.wav";
   const confirmSfx = "/sounds/confirm.wav";
   const [playSnap, { stop: stopSnap }] = useSound(snapSfx, { volume: 0.25 });
   const [playConfirm] = useSound(confirmSfx, { volume: 0.25 });
-
-  const returnToDashboard = useCallback(() => {
-    if (isReturning.current) return;
-
-    isReturning.current = true;
-    setExiting(true);
-    gtag.event({
-      action: "dashboard_return_started",
-      category: "portfolio_navigation",
-      label: "about_to_home",
-      value: 1,
-    });
-    const startDashboardReturn = () => {
-      if (prefersReducedMotion || !splineApp) {
-        router.push("/");
-        return;
-      }
-
-      const flipRig = splineApp.findObjectByName("Dashboard Flip Rig");
-
-      if (!flipRig) {
-        router.push("/");
-        return;
-      }
-
-      // The global canvas stays mounted, so this is a true reverse flip rather
-      // than a newly loaded Home scene appearing after navigation.
-      flipRig.rotation.x = -Math.PI;
-      revealForReturn();
-
-      window.requestAnimationFrame(() => {
-        const startedAt = window.performance.now();
-        const duration = 420;
-
-        const frame = (now: number) => {
-          const progress = Math.min((now - startedAt) / duration, 1);
-          const easedProgress = 1 - Math.pow(1 - progress, 3);
-          flipRig.rotation.x = -Math.PI + Math.PI * easedProgress;
-
-          if (progress < 1) {
-            window.requestAnimationFrame(frame);
-            return;
-          }
-
-          router.push("/");
-        };
-
-        window.requestAnimationFrame(frame);
-      });
-    };
-
-    if (prefersReducedMotion) {
-      startDashboardReturn();
-      return;
-    }
-
-    // Let the About layer visibly leave before the dashboard overlays it.
-    window.setTimeout(startDashboardReturn, 240);
-  }, [prefersReducedMotion, revealForReturn, router, splineApp]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches);
-
-    updatePreference();
-    mediaQuery.addEventListener("change", updatePreference);
-    return () => mediaQuery.removeEventListener("change", updatePreference);
-  }, []);
 
   useEffect(() => {
     // Keep the next route and its remote scene in the browser cache while the
@@ -102,7 +31,13 @@ const About = () => {
 
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
-      if (isReturning.current || event.ctrlKey || event.deltaY === 0) return;
+      if (isTransitionLocked() || event.ctrlKey || event.deltaY === 0) return;
+
+      // The tail of the gesture that brought the visitor here never counts.
+      if (gestureGate.swallow(event)) {
+        event.preventDefault();
+        return;
+      }
 
       if (event.deltaY < 0 && window.scrollY > 0) return;
 
@@ -123,23 +58,23 @@ const About = () => {
       lastWheelAt.current = now;
       scrollIntent.current += Math.abs(event.deltaY);
 
-      if (scrollIntent.current >= 80) {
-        if (event.deltaY < 0) {
-          returnToDashboard();
-          return;
-        }
+      if (scrollIntent.current < 80) return;
 
-        isReturning.current = true;
-        router.push("/work");
-      }
+      // The page transition plays the reverse dashboard flip on the way home.
+      const started =
+        event.deltaY < 0
+          ? navigate("/", { source: "sequence" })
+          : navigate("/work", { source: "sequence", arrival: "top" });
+      if (started) scrollIntent.current = 0;
     };
 
     window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
     return () => window.removeEventListener("wheel", handleWheel, true);
-  }, [returnToDashboard, router]);
+  }, [navigate]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (isTransitionLocked()) return;
       const target = event.target as HTMLElement | null;
       const isTyping = target?.matches("input, textarea, select, [contenteditable='true']");
       // Space and arrows belong to a focused control (e.g. Space activates a button).
@@ -149,27 +84,21 @@ const About = () => {
 
       if (["ArrowUp", "PageUp"].includes(event.key) && window.scrollY <= 0) {
         event.preventDefault();
-        returnToDashboard();
+        navigate("/", { source: "key" });
       }
 
       if (["ArrowDown", "PageDown", " "].includes(event.key) && isAtPageBottom()) {
         event.preventDefault();
-        isReturning.current = true;
-        router.push("/work");
+        navigate("/work", { source: "key", arrival: "top" });
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [returnToDashboard, router]);
+  }, [navigate]);
 
   return (
-      <motion.div
-        initial={false}
-        animate={prefersReducedMotion ? undefined : isExiting ? { opacity: 0, y: 28 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-        className="relative min-h-[100dvh] overflow-hidden bg-black text-white"
-      >
+      <div className="relative min-h-[100dvh] overflow-hidden bg-black text-white">
         <div className="relative z-10 grid min-h-[100dvh] grid-cols-1 lg:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.82fr)]">
           <section className="flex min-h-[100dvh] items-start px-5 pb-12 pt-16 sm:px-10 sm:pb-16 sm:pt-20 lg:items-center lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
             <div className="max-w-2xl">
@@ -230,7 +159,7 @@ const About = () => {
             </div>
           </aside>
         </div>
-      </motion.div>
+      </div>
   );
 };
 

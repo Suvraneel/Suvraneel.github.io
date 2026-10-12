@@ -1,4 +1,12 @@
-import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import {
+  Component,
+  lazy,
+  Suspense,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 // Keep each scene out of the initial route bundle. React.lazy is the Spline
 // package's supported client-side loading path for App Router components.
@@ -36,6 +44,26 @@ const muteBenignWebGPUErrors = () => {
 };
 muteBenignWebGPUErrors();
 
+// Spline runtimes alive on the page. A scene whose first Application is
+// created while another runtime is alive (e.g. Work's plant, still mounted on
+// the exiting page during a route transition) renders ghosted: the dashboard's
+// backface mask stops occluding its mirrored back panel. Scenes that opt in
+// wait until they are the only runtime before they start loading.
+let liveRuntimes = 0;
+const runtimeListeners = new Set<() => void>();
+const subscribeRuntimes = (listener: () => void) => {
+  runtimeListeners.add(listener);
+  return () => {
+    runtimeListeners.delete(listener);
+  };
+};
+const getLiveRuntimes = () => liveRuntimes;
+const getServerRuntimes = () => 0;
+const changeLiveRuntimes = (delta: number) => {
+  liveRuntimes += delta;
+  runtimeListeners.forEach((listener) => listener());
+};
+
 // react-spline rethrows scene load failures during render; contain them so a
 // broken or blocked scene can't take down the whole app shell.
 class SceneErrorBoundary extends Component<
@@ -62,8 +90,24 @@ const SplineObj = (props: {
   onLoad?: (spline: any) => void;
   onError?: (error: unknown) => void;
   onSplineMouseUp?: (event: any) => void;
+  /** Start loading only once no other Spline runtime is alive (then stay started). */
+  waitForSoleRuntime?: boolean;
 }) => {
   const [isDesktop, setDesktop] = useState(false);
+  const otherRuntimes = useSyncExternalStore(subscribeRuntimes, getLiveRuntimes, getServerRuntimes);
+  const [started, setStarted] = useState(!props.waitForSoleRuntime);
+  const mounted = isDesktop && started;
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- latch: once started, never waits again
+    if (!started && otherRuntimes === 0) setStarted(true);
+  }, [otherRuntimes, started]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    changeLiveRuntimes(1);
+    return () => changeLiveRuntimes(-1);
+  }, [mounted]);
 
   useEffect(() => {
     const updateMedia = () => {
@@ -78,7 +122,7 @@ const SplineObj = (props: {
   return (
     <SceneErrorBoundary onError={props.onError}>
       <Suspense fallback={null}>
-        {isDesktop && (
+        {mounted && (
           <Spline
             className="absolute top-0 right-0"
             scene={props.scene}
