@@ -38,7 +38,7 @@ const ChronoCard = ({
           <p className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/40">
             {curElem.duration}
           </p>
-          <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:hidden ${isWork ? "text-cyan-100/70" : "text-white/45"} ${tasaOrbiter.className}`}>
+          <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:hidden ${isWork ? "text-accent/70" : "text-white/45"} ${tasaOrbiter.className}`}>
             {curElem.company}
           </p>
         </div>
@@ -49,10 +49,10 @@ const ChronoCard = ({
         <div
           aria-hidden="true"
           className={`absolute left-0 top-1 hidden h-2 w-2 rounded-full sm:block transition-transform duration-300 group-hover:scale-150 ${
-            isWork ? "bg-cyan-200 shadow-[0_0_18px_rgba(165,243,252,0.9)]" : "bg-white/50"
+            isWork ? "bg-accent shadow-[0_0_18px_rgb(var(--accent)/0.9)]" : "bg-white/50"
           }`}
         />
-        <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:block ${isWork ? "text-cyan-100/70" : "text-white/45"} ${tasaOrbiter.className}`}>
+        <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:block ${isWork ? "text-accent/70" : "text-white/45"} ${tasaOrbiter.className}`}>
           {curElem.company}
         </p>
         <h3 className={`mt-2 max-w-3xl font-semibold leading-tight tracking-[-0.035em] text-white ${isWork ? "text-3xl sm:text-4xl" : "text-xl sm:text-2xl"}`}>
@@ -64,7 +64,7 @@ const ChronoCard = ({
         <ul className={`mt-5 max-w-3xl space-y-2 text-sm leading-6 text-white/55 ${tasaOrbiter.className}`}>
           {curElem.highlights.map((highlight) => (
             <li key={highlight} className="flex gap-3">
-              <div aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-cyan-100/60" />
+              <div aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent/60" />
               <div className="min-w-0 flex-1">{highlight}</div>
             </li>
           ))}

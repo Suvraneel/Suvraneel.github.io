@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRef, useState } from "react";
 import useSound from "use-sound";
 import ProjectModal from "@components/ProjectModal";
@@ -139,7 +139,7 @@ function ProjectTile({
       type="button"
       aria-haspopup="dialog"
       aria-label={`Open ${project.name}`}
-      className={`group relative min-h-0 overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#10141c] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd] ${className}`}
+      className={`group relative min-h-0 overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#10141c] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${className}`}
       initial={reduceMotion ? false : { opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
@@ -202,7 +202,7 @@ function ProjectTile({
         </h2>
       </div>
       <div className="pointer-events-none absolute inset-y-0 right-0 z-20 hidden w-[52%] translate-x-4 flex-col border-l border-white/10 bg-[#0a0f16]/90 p-5 opacity-0 backdrop-blur-md transition duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none md:flex sm:p-6">
-        <span className="font-mono text-[0.65rem] uppercase tracking-[0.22em] text-[#83d3dd]">Project brief</span>
+        <span className="font-mono text-[0.65rem] uppercase tracking-[0.22em] text-accent">Project brief</span>
         <h3 className="mt-3 text-lg font-semibold leading-tight tracking-[-0.025em] text-white lg:text-xl">{project.name}</h3>
         <p className={`mt-3 line-clamp-4 text-sm leading-6 text-white/65 ${tasaOrbiter.className}`}>{overview}</p>
         <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
@@ -212,7 +212,7 @@ function ProjectTile({
             </span>
           ))}
         </div>
-        <span className="mt-4 text-xs font-semibold text-[#b8e4e8]">Open case notes ↗</span>
+        <span className="mt-4 text-xs font-semibold text-white">Open case notes ↗</span>
       </div>
     </motion.button>
   );
@@ -221,9 +221,9 @@ function ProjectTile({
 function ProjectArchivePreview({ project }: { project: Project }) {
   return (
     <div className="relative flex h-full w-full overflow-hidden bg-[#0c1420] p-6 sm:p-8">
-      <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(rgba(131,211,221,0.09)_1px,transparent_1px),linear-gradient(90deg,rgba(131,211,221,0.09)_1px,transparent_1px)] [background-size:2rem_2rem]" />
-      <div className="relative flex w-full flex-col justify-between border border-[#83d3dd]/20 p-4 sm:p-5">
-        <span className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-[#83d3dd]">Project archive</span>
+      <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(rgb(var(--accent)/0.09)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--accent)/0.09)_1px,transparent_1px)] [background-size:2rem_2rem]" />
+      <div className="relative flex w-full flex-col justify-between border border-accent/20 p-4 sm:p-5">
+        <span className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-accent">Project archive</span>
         <div>
           <span className="block text-4xl font-semibold tracking-[-0.08em] text-white/15">{project.name.slice(0, 2).toUpperCase()}</span>
           <span className="mt-3 block max-w-[18ch] text-sm font-medium leading-6 text-white/75">Interactive walkthrough coming soon.</span>

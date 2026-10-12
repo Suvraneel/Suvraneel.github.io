@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import useSound from "use-sound";
 import Canvas from "@components/Particle";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as gtag from "@lib/gtag";
+import LiquidMetalButton from "@components/LiquidMetalButton";
+import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
 import { gestureGate, isTransitionLocked } from "@components/transition/transitionStore";
 
@@ -102,7 +103,7 @@ const About = () => {
         <div className="relative z-10 grid min-h-[100dvh] grid-cols-1 lg:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.82fr)]">
           <section className="flex min-h-[100dvh] items-start px-5 pb-12 pt-16 sm:px-10 sm:pb-16 sm:pt-20 lg:items-center lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
             <div className="max-w-2xl">
-              <p className={`mb-3 text-xs font-medium uppercase tracking-[0.2em] text-[#9bb7c0] ${tasaOrbiter.className}`}>
+              <p className={`mb-3 text-xs font-medium uppercase tracking-[0.2em] text-accent/70 ${tasaOrbiter.className}`}>
                 Profile
               </p>
               <h1 className={`animated-heading max-w-xl text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
@@ -123,12 +124,10 @@ const About = () => {
                 </p>
               </div>
               <div className="mt-9 flex flex-wrap gap-3">
-                <a
+                <LiquidMetalButton
                   href="/docs/Suvraneel_Bhuin_Resume.pdf"
-                  data-text="Download resume"
                   target="_blank"
                   rel="noreferrer"
-                  className="resume-button inline-flex items-center px-6 py-3 text-sm font-bold tracking-[0.02em] text-white transition duration-300 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-100 motion-reduce:transform-none motion-reduce:transition-none"
                   onMouseEnter={() => playSnap()}
                   onMouseLeave={() => stopSnap()}
                   onClick={() => {
@@ -142,13 +141,8 @@ const About = () => {
                   }}
                 >
                   Download resume
-                </a>
-                <Link
-                  href="/contact"
-                  className="inline-flex items-center border border-white/25 px-5 py-3 text-sm font-bold tracking-[0.02em] text-white transition duration-300 hover:-translate-y-0.5 hover:border-white/60 hover:bg-white/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-100 motion-reduce:transform-none motion-reduce:transition-none"
-                >
-                  Get in touch
-                </Link>
+                </LiquidMetalButton>
+                <PillButton href="/contact">Get in touch</PillButton>
               </div>
             </div>
           </section>

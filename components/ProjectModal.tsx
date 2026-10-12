@@ -1,8 +1,10 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { spaceBoards, tasaOrbiter } from "@font";
+import LiquidMetalButton from "@components/LiquidMetalButton";
+import PillButton from "@components/PillButton";
 import { stateLogger } from "../stateLogger";
 
 type Project = {
@@ -101,9 +103,9 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
         transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="relative flex min-h-0 items-center justify-center overflow-hidden bg-[#070a0e] p-3 sm:p-6 lg:p-9">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_18%_0%,rgba(131,211,221,0.14),transparent_42%),linear-gradient(145deg,#070a0e_0%,#0a1117_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_18%_0%,rgb(var(--accent)/0.14),transparent_42%),linear-gradient(145deg,#070a0e_0%,#0a1117_100%)]" />
           <span className="absolute left-5 top-5 z-20 inline-flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-white/55 sm:left-8 sm:top-7">
-            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[#83d3dd]" />
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
             <span>Project preview</span>
           </span>
           <div className="relative z-10 w-full rounded-[1.5rem] bg-white/[0.04] p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)] ring-1 ring-white/10 sm:p-2">
@@ -134,10 +136,10 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
 
         <div className="flex min-h-0 flex-col overflow-y-auto bg-[#0b0f15]">
           <header className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4 sm:px-7 sm:py-5">
-            <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-[#83d3dd]/80">Project case notes</p>
+            <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-accent/80">Project case notes</p>
             <button
               ref={closeButton}
-              className="group inline-flex h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.025] px-2.5 text-white/70 transition-[background-color,border-color,color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-white/20 hover:bg-white/[0.07] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd]"
+              className="group inline-flex h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.025] px-2.5 text-white/70 transition-[background-color,border-color,color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-white/20 hover:bg-white/[0.07] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
               type="button"
               aria-label="Close project details"
               onClick={handleClose}
@@ -173,7 +175,7 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
               <ol className="space-y-5">
                 {project.details.split("|").map((detail, index) => (
                   <li key={detail} className="grid grid-cols-[2rem_1fr] gap-3">
-                    <span className="pt-0.5 font-mono text-[0.65rem] text-[#83d3dd]/70">{String(index + 1).padStart(2, "0")}</span>
+                    <span className="pt-0.5 font-mono text-[0.65rem] text-accent/70">{String(index + 1).padStart(2, "0")}</span>
                     <p className={`text-sm leading-6 text-white/65 sm:text-[0.92rem] sm:leading-7 ${tasaOrbiter.className}`}>{detail.trim()}</p>
                   </li>
                 ))}
@@ -182,16 +184,16 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
           </div>
 
           <footer className="flex flex-wrap gap-3 border-t border-white/[0.08] px-5 py-4 sm:px-7 sm:py-5 lg:px-8">
-            {project.github !== "#" && (
-              <a className="inline-flex min-h-11 items-center rounded-full border border-white/[0.12] px-4 text-sm font-semibold text-white/80 transition-[background-color,border-color,color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-white/25 hover:bg-white/[0.05] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd]" href={project.github} target="_blank" rel="noreferrer">
-                View source
-              </a>
-            )}
             {project.url !== "#" && (
-              <a className="group inline-flex min-h-11 items-center gap-3 rounded-full bg-[#83d3dd] py-1 pl-5 pr-1 text-sm font-semibold text-[#071014] transition-[background-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#a6e0e5] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd]" href={project.url} target="_blank" rel="noreferrer">
+              <LiquidMetalButton href={project.url} target="_blank" rel="noreferrer">
                 <span>Visit project</span>
-                <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-full bg-black/10 text-base transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5">↗</span>
-              </a>
+                <span aria-hidden="true" className="text-base transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none">↗</span>
+              </LiquidMetalButton>
+            )}
+            {project.github !== "#" && (
+              <PillButton href={project.github} target="_blank" rel="noreferrer">
+                View source
+              </PillButton>
             )}
           </footer>
         </div>

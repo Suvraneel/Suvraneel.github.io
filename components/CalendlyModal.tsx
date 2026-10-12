@@ -43,7 +43,7 @@ export default function CalendlyModal({ onClose, closeIcon }: Readonly<{ onClose
           onClick={onClose}
           className="absolute inset-0 z-0 cursor-default bg-transparent"
         />
-        <section className="relative flex h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-col overflow-hidden border border-white/15 bg-black sm:h-[calc(100dvh-3rem)]" aria-labelledby="scheduler-title">
+        <section className="relative flex h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[1.5rem] border border-white/15 bg-black sm:h-[calc(100dvh-3rem)]" aria-labelledby="scheduler-title">
           <div className="flex items-center justify-between border-b border-white/15 px-5 py-4 sm:px-6">
             <h2 id="scheduler-title" className="text-lg font-semibold tracking-[-0.02em] text-white sm:text-xl">Find a time that works</h2>
             <button
@@ -51,7 +51,7 @@ export default function CalendlyModal({ onClose, closeIcon }: Readonly<{ onClose
               type="button"
               aria-label="Close scheduler"
               onClick={onClose}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white/75 transition-[color,border-color] duration-300 hover:border-[#83d3dd] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd]"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white/75 transition-[color,border-color] duration-300 hover:border-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             >
               <FontAwesomeIcon icon={closeIcon} aria-hidden="true" />
             </button>

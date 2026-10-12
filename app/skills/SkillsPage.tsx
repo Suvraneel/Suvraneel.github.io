@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
 import { spaceBoards, tasaOrbiter } from "@font";
 
@@ -93,10 +93,10 @@ export default function SkillsPage() {
                       aria-pressed={active}
                       aria-controls="capability-detail"
                       onClick={() => setActiveId(area.id)}
-                      className={`group flex min-h-[4.75rem] w-full items-center gap-2 border-b border-white/10 py-3 text-left transition-[color,border-color,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#83d3dd] lg:gap-4 ${active ? "text-white" : "text-white/50 hover:text-white/85"}`}
+                      className={`group flex min-h-[4.75rem] w-full items-center gap-2 border-b border-white/10 py-3 text-left transition-[color,border-color,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:gap-4 ${active ? "text-white" : "text-white/50 hover:text-white/85"}`}
                     >
                       <span
-                        className={`relative z-10 grid size-8 shrink-0 place-items-center rounded-full border font-mono text-xs tabular-nums transition-[color,border-color,background-color] duration-300 lg:size-9 ${active ? "border-[#83d3dd] bg-[#83d3dd] text-[#05080c]" : "border-white/25 bg-black text-white/55 group-hover:border-white/50"}`}
+                        className={`relative z-10 grid size-8 shrink-0 place-items-center rounded-full border font-mono text-xs tabular-nums transition-[color,border-color,background-color] duration-300 lg:size-9 ${active ? "border-accent bg-accent text-[#05080c]" : "border-white/25 bg-black text-white/55 group-hover:border-white/50"}`}
                       >
                         {area.index}
                       </span>
@@ -127,7 +127,7 @@ export default function SkillsPage() {
                 className="min-h-[27rem] border-t border-white/15 pt-8 sm:pt-10 lg:border-t-0 lg:pt-0"
               >
                 <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.14em]">
-                  <span className="tabular-nums text-[#83d3dd]">{activeArea.index}</span>
+                  <span className="tabular-nums text-accent">{activeArea.index}</span>
                   <span aria-hidden="true" className="h-px w-8 bg-white/25" />
                   <span className="text-white/45">{activeArea.label}</span>
                 </div>
@@ -179,7 +179,7 @@ export default function SkillsPage() {
                   key={index}
                   className="grid gap-x-5 gap-y-2 py-5 sm:grid-cols-[3rem_minmax(11rem,0.7fr)_minmax(0,1.3fr)] sm:items-baseline sm:gap-y-0"
                 >
-                  <span className="font-mono text-xs tabular-nums text-[#83d3dd]">{index}</span>
+                  <span className="font-mono text-xs tabular-nums text-accent">{index}</span>
                   <h3 className={`text-base font-semibold text-white sm:text-lg ${tasaOrbiter.className}`}>
                     {title}
                   </h3>

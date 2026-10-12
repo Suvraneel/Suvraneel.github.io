@@ -8,6 +8,7 @@ import { SyntheticEvent, useRef, useState } from "react";
 import useSound from "use-sound";
 import { spaceBoards, tasaOrbiter } from "@font";
 import LiquidMetalButton from "@components/LiquidMetalButton";
+import PillButton from "@components/PillButton";
 
 const CalendlyModal = dynamic(() => import("@components/CalendlyModal"), { ssr: false });
 
@@ -54,36 +55,35 @@ export default function ContactPage() {
           <section className="min-w-0" aria-label="Direct contact options">
             <a
               href="mailto:bsuvraneel@gmail.com"
-              className="group flex min-h-16 items-center gap-4 border-b border-white/20 py-4 text-white transition-[color,border-color] duration-300 hover:border-[#83d3dd]/70 hover:text-[#d9f5f7] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd]"
+              className="group flex min-h-16 items-center gap-4 border-b border-white/20 py-4 text-white transition-[color,border-color] duration-300 hover:border-accent/70 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             >
-              <FontAwesomeIcon icon={faEnvelope} aria-hidden="true" className="shrink-0 text-[#83d3dd]" />
+              <FontAwesomeIcon icon={faEnvelope} aria-hidden="true" className="shrink-0 text-accent" />
               <span className="min-w-0 break-all text-lg font-medium sm:text-xl">bsuvraneel@gmail.com</span>
-              <FontAwesomeIcon icon={faArrowUpRightFromSquare} aria-hidden="true" className="ml-auto shrink-0 text-xs text-white/45 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#83d3dd]" />
+              <FontAwesomeIcon icon={faArrowUpRightFromSquare} aria-hidden="true" className="ml-auto shrink-0 text-xs text-white/45 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent" />
             </a>
             <Link
               href="https://suvraneel.bio.link"
               target="_blank"
               rel="noreferrer"
-              className="group flex min-h-14 items-center justify-between gap-4 border-b border-white/10 py-3 text-sm text-white/60 transition-colors duration-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd]"
+              className="group flex min-h-14 items-center justify-between gap-4 border-b border-white/10 py-3 text-sm text-white/60 transition-colors duration-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             >
               <span>More ways to connect</span>
               <FontAwesomeIcon icon={faArrowUpRightFromSquare} aria-hidden="true" className="text-xs transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
 
-            <button
-              type="button"
+            <PillButton
               onClick={() => {
                 setShowScheduler(true);
                 playConfirm();
               }}
               onMouseEnter={() => playSnap()}
               onMouseLeave={() => stopSnap()}
-              className="mt-7 inline-flex min-h-11 w-full items-center justify-center gap-3 rounded-full border border-white/20 bg-[linear-gradient(180deg,#1b1c1d_0%,#090909_100%)] px-4 text-sm font-medium text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_8px_rgba(0,0,0,0.25)] transition-[color,border-color,transform,box-shadow] duration-300 hover:border-white/40 hover:text-white hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_12px_rgba(0,0,0,0.35)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd] active:translate-y-px motion-reduce:transition-none sm:w-auto"
+              icon={<FontAwesomeIcon icon={faCalendarDays} aria-hidden="true" className="text-white/55" />}
+              className="mt-7 w-full sm:w-auto"
             >
-              <FontAwesomeIcon icon={faCalendarDays} aria-hidden="true" className="text-white/55" />
               <span>Book a conversation</span>
-              <span className="text-xs font-normal text-white/45">via Calendly</span>
-            </button>
+              <span className="text-xs font-normal text-white/55">via Calendly</span>
+            </PillButton>
           </section>
 
           <section className="min-w-0 lg:border-l lg:border-white/15 lg:pl-12" aria-labelledby="message-heading">
@@ -117,7 +117,7 @@ export default function ContactPage() {
                 <p className={`max-w-xs text-sm leading-5 text-white/60 ${tasaOrbiter.className}`}>A short note is enough. I&apos;ll reply by email.</p>
               </div>
 
-              {submissionState === "success" && <output className="block border-l border-[#83d3dd] pl-3 text-sm leading-6 text-[#c9eaed]" aria-live="polite">Message sent. I&apos;ll get back to you soon.</output>}
+              {submissionState === "success" && <output className="block border-l border-accent pl-3 text-sm leading-6 text-white" aria-live="polite">Message sent. I&apos;ll get back to you soon.</output>}
               {submissionState === "error" && <p className={`border-l border-[#d58d8d] pl-3 text-sm leading-6 text-[#f0b6b6] ${tasaOrbiter.className}`} role="alert">Your message could not be sent. Please email me directly instead.</p>}
             </form>
           </section>
@@ -142,7 +142,7 @@ function Field({
   autoComplete?: string;
   textarea?: boolean;
 }>) {
-  const className = "mt-2 w-full border-0 border-b border-white/25 bg-transparent px-0 py-3 text-base text-white outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-white/50 hover:border-white/50 focus-visible:border-[#83d3dd] focus-visible:ring-1 focus-visible:ring-[#83d3dd]/50";
+  const className = "mt-2 w-full border-0 border-b border-white/25 bg-transparent px-0 py-3 text-base text-white outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-white/50 hover:border-white/50 focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/50";
 
   return (
     <label className="block text-sm font-medium text-white/75">

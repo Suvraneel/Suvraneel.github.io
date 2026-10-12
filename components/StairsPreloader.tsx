@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "motion/react";
 import { tasaOrbiter } from "@font";
 import { useEffect, useRef, useState } from "react";
 
@@ -59,7 +59,7 @@ export default function StairsPreloader({ progress }: { progress: number | null 
           transition={{ duration: reduceMotion ? 0.3 : 1, delay: 0.2 }}
           aria-hidden="true"
         >
-          <span className="mr-3 block h-2 w-2 rounded-full bg-[#83d3dd]" />
+          <span className="mr-3 block h-2 w-2 rounded-full bg-accent" />
           {WORDS[wordIndex % WORDS.length]}
         </motion.p>
         {progress !== null && (

@@ -4,7 +4,7 @@ import { LayoutDashboardIcon, SendIcon, TerminalIcon } from "@animateicons/react
 import { FingerprintIcon } from "@components/animate-ui/icons/fingerprint";
 import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
 import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
-import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import MenuToggle from "./DrawerToggler";
@@ -165,7 +165,7 @@ const Hamburger = () => {
                   >
                     <Link
                       href={href}
-                      className="flex w-full items-center gap-4 rounded-2xl border border-white/8 px-4 py-3 text-white transition hover:border-white/16 hover:bg-white/[0.04] hover:text-cyan-200"
+                      className="flex w-full items-center gap-4 rounded-2xl border border-white/8 px-4 py-3 text-white transition hover:border-white/16 hover:bg-white/[0.04] hover:text-accent"
                       onClick={closeDrawer}
                     >
                       {animateWithState ? (

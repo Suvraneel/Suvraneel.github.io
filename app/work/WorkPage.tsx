@@ -70,7 +70,7 @@ const Work = () => {
                   <p className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/40">
                     {educationData.duration}
                   </p>
-                  <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] text-[#9bb7c0] ${tasaOrbiter.className}`}>
+                  <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] text-accent/70 ${tasaOrbiter.className}`}>
                     {educationData.institution}
                   </p>
                 </div>
@@ -79,7 +79,7 @@ const Work = () => {
               <div className="relative grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-8 sm:pl-5">
                 <div aria-hidden="true" className="absolute left-0 top-1 hidden h-2 w-2 rounded-full bg-white/50 sm:block" />
                 <div>
-                  <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] text-[#9bb7c0] sm:block ${tasaOrbiter.className}`}>
+                  <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] text-accent/70 sm:block ${tasaOrbiter.className}`}>
                     {educationData.institution}
                   </p>
                   <h3 className="mt-2 text-xl font-semibold leading-tight tracking-[-0.035em] text-white sm:text-2xl">
@@ -91,7 +91,7 @@ const Work = () => {
                   <span className={`text-3xl font-semibold leading-none tracking-[-0.03em] text-white tabular-nums sm:text-4xl ${tasaOrbiter.className}`}>
                     {educationData.score.split(" ")[0]}
                   </span>
-                  <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-[#9bb7c0]">
+                  <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-accent/70">
                     {educationData.score.split(" ").slice(1).join(" ")}
                   </span>
                 </p>
