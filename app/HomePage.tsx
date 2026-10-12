@@ -2,12 +2,13 @@
 
 import "../styles/Home.module.css";
 import Image from "next/image";
-import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import LiquidMetalButton from "@components/LiquidMetalButton";
+import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
 import { gestureGate, isTransitionLocked } from "@components/transition/transitionStore";
+import { isSyntheticScrollStep } from "@lib/splineScroll";
 import { spaceBoards, tasaOrbiter } from "@font";
 
 const Home = () => {
@@ -34,7 +35,7 @@ const Home = () => {
 
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
-      if (event.ctrlKey || event.deltaY <= 0 || isTransitionLocked()) return;
+      if (isSyntheticScrollStep(event) || event.ctrlKey || event.deltaY <= 0 || isTransitionLocked()) return;
 
       event.preventDefault();
       // The tail of the gesture that brought the visitor here never counts.
@@ -127,14 +128,9 @@ const Home = () => {
           <LiquidMetalButton href="/work" mobileOnly className="h-[54px] w-full">
             Explore my work
           </LiquidMetalButton>
-          <Link
-            href="https://suvraneel.bio.link"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-[54px] w-full items-center justify-center rounded-full border border-white/25 px-3 py-0 text-sm font-bold text-white transition active:scale-[0.98]"
-          >
+          <PillButton href="https://suvraneel.bio.link" target="_blank" rel="noreferrer" className="h-[54px] w-full px-3">
             Contact me
-          </Link>
+          </PillButton>
         </motion.div>
       </section>
     </main>

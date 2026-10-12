@@ -2,9 +2,12 @@ import { useSyncExternalStore } from "react";
 import {
   GESTURE_CAP_MS,
   GESTURE_GAP_MS,
+  LANDING_MS,
   MOMENTUM_MAX_MS,
   SUSTAIN_LOOKBACK_MS,
+  SUSTAIN_MEDIAN_RATIO,
   SUSTAIN_MIN_PX,
+  SUSTAIN_SUM_RATIO,
   SUSTAIN_WINDOW_MS,
   TAIL_RISE_FACTOR,
   TAIL_RISE_SLACK_PX,
@@ -85,9 +88,9 @@ export const layerRegistry = new Map<string, LayerHandle>();
 // it cannot scroll or re-trigger the newly arrived page. A gap or a direction
 // change ends it at once. Momentum only ever decays, so input that is as fast
 // as it was SUSTAIN_LOOKBACK_MS earlier (a mouse wheel kept spinning, a finger
-// still dragging) is live scrolling and goes straight through. Past
-// GESTURE_CAP_MS an event clearly stronger than the tail's level is a fresh
-// gesture too. MOMENTUM_MAX_MS bounds the whole tail.
+// still dragging) is live scrolling: it flows on once LANDING_MS has shown the
+// arrived page's top. Past GESTURE_CAP_MS an event clearly stronger than the
+// tail's level is a fresh gesture too. MOMENTUM_MAX_MS bounds the whole tail.
 // ---------------------------------------------------------------------------
 
 type WheelSample = { at: number; magnitude: number };
@@ -114,12 +117,20 @@ const disarm = () => {
 const isRise = (magnitude: number) =>
   tailLevel !== null && magnitude > tailLevel * TAIL_RISE_FACTOR + TAIL_RISE_SLACK_PX;
 
+const median = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+};
+
 /**
  * True when the gesture is moving at least as fast now as it was
- * SUSTAIN_LOOKBACK_MS ago. Rates are summed over equal windows, so wheel
- * events the browser coalesced while busy (one event carrying several deltas)
- * do not read as a speed-up. A momentum tail only ever slows down, so it never
- * qualifies; a mouse wheel kept spinning or a finger still dragging does.
+ * SUSTAIN_LOOKBACK_MS ago. Rates are summed over equal half-open windows, so
+ * wheel events the browser coalesced while busy (one event carrying several
+ * deltas) do not read as a speed-up; the sum may dip by about one event of
+ * window-edge jitter. A momentum tail also shrinks event by event, so the
+ * typical (median) event must keep its size too; a mouse wheel kept spinning
+ * or a finger still dragging does, a tail never does.
  */
 const isSustained = (stamp: number) => {
   const recentFrom = stamp - SUSTAIN_WINDOW_MS;
@@ -127,13 +138,20 @@ const isSustained = (stamp: number) => {
   const earlierFrom = earlierTo - SUSTAIN_WINDOW_MS;
   // Both windows must lie inside this gesture.
   if (gestureStartAt > earlierFrom) return false;
-  let recent = 0;
-  let earlier = 0;
+  const recent: number[] = [];
+  const earlier: number[] = [];
   for (const sample of samples) {
-    if (sample.at >= recentFrom) recent += sample.magnitude;
-    else if (sample.at >= earlierFrom && sample.at < earlierTo) earlier += sample.magnitude;
+    if (sample.at > recentFrom) recent.push(sample.magnitude);
+    else if (sample.at >= earlierFrom && sample.at < earlierTo) earlier.push(sample.magnitude);
   }
-  return recent >= SUSTAIN_MIN_PX && earlier > 0 && recent >= earlier;
+  if (recent.length === 0 || earlier.length === 0) return false;
+  const recentSum = recent.reduce((sum, value) => sum + value, 0);
+  const earlierSum = earlier.reduce((sum, value) => sum + value, 0);
+  return (
+    recentSum >= SUSTAIN_MIN_PX &&
+    recentSum >= earlierSum * SUSTAIN_SUM_RATIO &&
+    median(recent) >= median(earlier) * SUSTAIN_MEDIAN_RATIO
+  );
 };
 
 export const gestureGate = {
@@ -168,7 +186,7 @@ export const gestureGate = {
       if (
         !sameGesture ||
         age > MOMENTUM_MAX_MS ||
-        isSustained(stamp) ||
+        (age >= LANDING_MS && isSustained(stamp)) ||
         (age > GESTURE_CAP_MS && isRise(magnitude))
       ) {
         disarm();

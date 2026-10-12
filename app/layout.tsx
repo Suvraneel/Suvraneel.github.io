@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
+// Ship Font Awesome's sizing CSS with the page so icons don't flash at full size before JS injects it.
+import "@fortawesome/fontawesome-svg-core/styles.css";
+import { config as fontAwesomeConfig } from "@fortawesome/fontawesome-svg-core";
 import AppShell from "@components/AppShell";
 import { siteDescription, siteName, siteUrl } from "@lib/seo";
+
+fontAwesomeConfig.autoAddCss = false;
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,

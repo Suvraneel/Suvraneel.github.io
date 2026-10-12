@@ -13,8 +13,9 @@ module.exports = {
 				secondary: ['var(--font-TASAOrb)', "sans-serif"],
 			},
       colors: {
-        primary: "#B338FF",
-        accent: "#06FFC8",
+        // Solid cyan for small accents, sampled from the wordmark texture's cyan
+        // end (public/images/seed-46867.png). Defined once as --accent in globals.css.
+        accent: "rgb(var(--accent) / <alpha-value>)",
       }
 		},
   },

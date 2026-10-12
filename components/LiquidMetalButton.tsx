@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type MouseEvent, ReactNode, useEffect, useRef, useState } from "react";
+import { isPlainAnchor } from "@lib/linkKind";
 
 // Shader speeds: calm at rest, livelier on hover/focus, a short burst on click.
 const IDLE_SPEED = 0.6;
@@ -17,25 +18,36 @@ type ShaderMount = {
 
 type LiquidMetalButtonProps = {
   children: ReactNode;
+  ariaLabel?: string;
   className?: string;
   disabled?: boolean;
+  /** Link only: download the target instead of navigating to it. */
+  download?: boolean | string;
   href?: string;
   mobileOnly?: boolean;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
-  onClick?: () => void;
+  onClick?: (event: MouseEvent<HTMLElement>) => void;
+  /** Link only: e.g. "noreferrer" for a new-tab link. */
+  rel?: string;
+  /** Link only: e.g. "_blank". New-tab, download and off-site links render a plain <a>. */
+  target?: string;
   type?: "button" | "submit" | "reset";
 };
 
 export default function LiquidMetalButton({
   children,
+  ariaLabel,
   className = "",
   disabled = false,
+  download,
   href,
   mobileOnly = false,
   onMouseEnter,
   onMouseLeave,
   onClick,
+  rel,
+  target,
   type = "button",
 }: LiquidMetalButtonProps) {
   const shaderContainer = useRef<HTMLSpanElement>(null);
@@ -155,10 +167,10 @@ export default function LiquidMetalButton({
       }, RIPPLE_MS);
     }
 
-    onClick?.();
+    onClick?.(event);
   };
 
-  const sharedClassName = `group relative isolate inline-flex min-h-12 min-w-0 items-center justify-center gap-3 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[#111] px-5 text-sm font-normal text-white/65 shadow-[0_3px_12px_rgba(0,0,0,0.3)] transition-[border-color,transform,box-shadow] duration-300 hover:border-white/45 hover:shadow-[0_6px_20px_rgba(255,255,255,0.1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#83d3dd] disabled:cursor-wait disabled:opacity-70 motion-reduce:transition-none ${className}`;
+  const sharedClassName = `group relative isolate inline-flex min-h-12 [font-family:Helvetica,Arial,sans-serif] min-w-0 items-center justify-center gap-3 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[#111] px-5 text-sm font-normal text-white/65 shadow-[0_3px_12px_rgba(0,0,0,0.3)] transition-[border-color,transform,box-shadow] duration-300 hover:border-white/45 hover:shadow-[0_6px_20px_rgba(255,255,255,0.1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-70 motion-reduce:transition-none ${className}`;
 
   const surface = (
     <>
@@ -177,16 +189,33 @@ export default function LiquidMetalButton({
     </>
   );
 
+  const handlers = {
+    onMouseEnter: handleMouseEnter,
+    onMouseLeave: handleMouseLeave,
+    onFocus: settleSpeed,
+    onBlur: settleSpeed,
+    onClick: handleClick,
+  };
+
   if (href) {
+    // Files, new-tab and off-site links are not page navigations, so they skip next/link.
+    if (isPlainAnchor(href, target, download)) {
+      return (
+        <a href={href} target={target} rel={rel} download={download === true ? "" : download || undefined} aria-label={ariaLabel} className={sharedClassName} {...handlers}>
+          {surface}
+        </a>
+      );
+    }
+
     return (
-      <Link href={href} className={sharedClassName} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onFocus={settleSpeed} onBlur={settleSpeed} onClick={handleClick}>
+      <Link href={href} target={target} rel={rel} aria-label={ariaLabel} className={sharedClassName} {...handlers}>
         {surface}
       </Link>
     );
   }
 
   return (
-    <button type={type} disabled={disabled} className={sharedClassName} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onFocus={settleSpeed} onBlur={settleSpeed} onClick={handleClick}>
+    <button type={type} disabled={disabled} aria-label={ariaLabel} className={sharedClassName} {...handlers}>
       {surface}
     </button>
   );

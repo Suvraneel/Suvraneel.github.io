@@ -4,7 +4,7 @@ import SplineObj from "@components/SplineObject";
 import StairsPreloader from "@components/StairsPreloader";
 import { isInFlight, useTransitionState } from "@components/transition/transitionStore";
 import { SHEET_SHADOW } from "@lib/pageTransition";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "motion/react";
 import { usePathname } from "next/navigation";
 import {
   createContext,
@@ -89,8 +89,10 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     pathname === "/about" ||
     (inFlight &&
       (transition.from === "/" || transition.from === "/about" || transition.to === "/"));
-  // Only gate the very first visit; later route changes reuse or skip the scene.
-  const [isInitialLoad, setInitialLoad] = useState(shouldMountDashboard);
+  // Only a direct first load of Home gets the stairs preloader. A direct load
+  // of About shows About at once while the scene loads quietly behind it
+  // (the fallback covers Home if it is not ready by the flip back).
+  const [isInitialLoad, setInitialLoad] = useState(pathname === "/");
   const [sceneUrl, setSceneUrl] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const needsScene = shouldMountDashboard && !sceneUrl;
@@ -317,10 +319,10 @@ function waitForFrames(count: number, callback: () => void) {
 function DashboardFallback() {
   return (
     <div className="absolute inset-0 overflow-hidden bg-[#05080c]" aria-hidden="true">
-      <div className="absolute inset-0 opacity-[0.1] [background-image:linear-gradient(rgba(131,211,221,0.8)_1px,transparent_1px),linear-gradient(90deg,rgba(131,211,221,0.8)_1px,transparent_1px)] [background-size:4rem_4rem]" />
-      <div className="absolute left-[18%] top-[20%] h-[26rem] w-[26rem] rounded-full border border-[#83d3dd]/25 bg-[#0b2730]/30 blur-[1px]" />
+      <div className="absolute inset-0 opacity-[0.1] [background-image:linear-gradient(rgb(var(--accent)/0.8)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--accent)/0.8)_1px,transparent_1px)] [background-size:4rem_4rem]" />
+      <div className="absolute left-[18%] top-[20%] h-[26rem] w-[26rem] rounded-full border border-accent/25 bg-[#0b2730]/30 blur-[1px]" />
       <div className="absolute right-[14%] top-[14%] h-[18rem] w-[18rem] rounded-full border border-white/10 bg-white/[0.025]" />
-      <div className="absolute bottom-[18%] right-[25%] h-28 w-28 rotate-45 border border-[#83d3dd]/30 bg-[#83d3dd]/[0.04]" />
+      <div className="absolute bottom-[18%] right-[25%] h-28 w-28 rotate-45 border border-accent/30 bg-accent/[0.04]" />
     </div>
   );
 }
