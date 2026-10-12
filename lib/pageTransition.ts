@@ -76,6 +76,23 @@ export const SUSTAIN_WINDOW_MS = 250;
 export const SUSTAIN_LOOKBACK_MS = 500;
 /** Below this many px per window a tail is too quantised to tell decay from a plateau. */
 export const SUSTAIN_MIN_PX = 16;
+/**
+ * Event counts per window jitter by one (a 50ms wheel cadence puts events on
+ * the window edges), so the summed rate may dip this far and still be steady.
+ */
+export const SUSTAIN_SUM_RATIO = 0.85;
+/**
+ * Momentum decays event by event; a wheel kept spinning keeps its notch size.
+ * The recent window's median |deltaY| must hold this share of the earlier one.
+ */
+export const SUSTAIN_MEDIAN_RATIO = 0.9;
+/**
+ * After a transition settles, input that is still part of the gesture that
+ * carried the visitor here (a wheel still spinning, a finger still down, a key
+ * still auto-repeating) is held this long, so every arrival shows its top
+ * before it scrolls on. A pause of GESTURE_GAP_MS ends the gesture at once.
+ */
+export const LANDING_MS = 400;
 
 export const COMMIT_WATCHDOG_MS = 8000;
 

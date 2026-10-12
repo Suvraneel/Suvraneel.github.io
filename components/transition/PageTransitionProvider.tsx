@@ -12,6 +12,7 @@ import {
   FADE_MS,
   FLIP_LEAD_MS,
   FLIP_MS,
+  LANDING_MS,
   LIFT_MS,
   SCRIM_MAX,
   UNDER_OFFSET,
@@ -43,9 +44,11 @@ import {
   type ReactNode,
 } from "react";
 import { adoptHistoryEntry, rememberScroll, savedScrollFor } from "./historyScroll";
+import { isSyntheticScrollStep } from "@lib/splineScroll";
 import { TransitionTimeline } from "./timeline";
 import {
   gestureGate,
+  getLastSettleAt,
   getTransition,
   isInFlight,
   isTransitionLocked,
@@ -216,6 +219,14 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
     timeline.current?.finish();
     timeline.current = null;
 
+    // Nothing may have scrolled the arriving page in flight, but a top arrival
+    // is put back at its top regardless, so it never lands part way down.
+    if (t.arrival === "top") {
+      const main = document.querySelector<HTMLElement>(`[data-page="${t.to}"] main`);
+      if (main) main.scrollTop = 0;
+      if (t.arrivalScrollY === undefined) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+
     const at = window.performance.now();
     releaseLocks();
     markSettled(at);
@@ -271,20 +282,36 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
     window.scrollTo({ top: pending.y, left: 0, behavior: "instant" });
   }, [transitionState]);
 
+  // In flight no scroll input reaches any page, scroller or 3D scene. Wheel
+  // events are gated by the always-on listener further down; touch moves and
+  // scroll keys are held here. Stopping propagation at the window's capture
+  // phase still runs the other window capture listeners (every page handler
+  // returns early while locked) but skips the targets and every bubble
+  // listener, React's root and the Spline runtime's included.
   const lock = useCallback((options: NavigateOptions) => {
-    const onWheel = (event: WheelEvent) => {
-      gestureGate.swallow(event);
-      if (!event.ctrlKey && event.cancelable) event.preventDefault();
+    // A finger that goes down in flight keeps being held for LANDING_MS after
+    // settle, so a drag that carries on does not scroll the arrived page.
+    let touchHeld = false;
+    const onTouchStart = () => {
+      touchHeld = true;
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      if (event.touches.length === 0) touchHeld = false;
     };
     const onTouchMove = (event: TouchEvent) => {
       if (event.cancelable) event.preventDefault();
+      event.stopPropagation();
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (isTextInput(event.target) || isActivationOnControl(event)) return;
-      if (NAV_KEYS.has(event.key)) event.preventDefault();
+      if (!NAV_KEYS.has(event.key)) return;
+      event.preventDefault();
+      event.stopPropagation();
     };
 
-    window.addEventListener("wheel", onWheel, { capture: true, passive: false });
+    window.addEventListener("touchstart", onTouchStart, { capture: true, passive: true });
+    window.addEventListener("touchend", onTouchEnd, { capture: true, passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { capture: true, passive: true });
     window.addEventListener("touchmove", onTouchMove, { capture: true, passive: false });
     window.addEventListener("keydown", onKeyDown, { capture: true });
 
@@ -295,10 +322,25 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
 
     setTransitionLocked(true);
     unlock.current = () => {
-      window.removeEventListener("wheel", onWheel, true);
-      window.removeEventListener("touchmove", onTouchMove, true);
       window.removeEventListener("keydown", onKeyDown, true);
       if (freezeOverflow) html.style.overflow = previousOverflow;
+      let landingTimer = 0;
+      const releaseTouch = () => {
+        window.clearTimeout(landingTimer);
+        window.removeEventListener("touchstart", onTouchStart, true);
+        window.removeEventListener("touchend", onTouchEnd, true);
+        window.removeEventListener("touchcancel", onTouchEnd, true);
+        window.removeEventListener("touchend", releaseTouch, true);
+        window.removeEventListener("touchcancel", releaseTouch, true);
+        window.removeEventListener("touchmove", onTouchMove, true);
+      };
+      if (!touchHeld) {
+        releaseTouch();
+        return;
+      }
+      window.addEventListener("touchend", releaseTouch, { capture: true, passive: true });
+      window.addEventListener("touchcancel", releaseTouch, { capture: true, passive: true });
+      landingTimer = window.setTimeout(releaseTouch, LANDING_MS);
     };
   }, []);
 
@@ -744,14 +786,56 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("click", onClick, true);
   }, [navigate]);
 
-  // Track wheel cadence even where no page handler listens, so the gesture
-  // gate always knows how far the last event was.
+  // The one wheel gate. Every event is recorded (cadence is tracked in flight
+  // too, so the gate knows whether input is still the same gesture at
+  // settle). In flight, and while the gesture that brought the visitor here
+  // is still being swallowed, the event neither scrolls nor reaches anything
+  // past the window's capture phase: the Spline plant counts raw wheel events
+  // on a window bubble listener whatever their defaultPrevented. Pinch-zoom
+  // (ctrlKey) keeps its default and, once settled, is never gated.
   useEffect(() => {
     const onWheel = (event: WheelEvent) => {
-      gestureGate.swallow(event);
+      if (isSyntheticScrollStep(event)) return;
+      const swallowed = gestureGate.swallow(event);
+      const locked = isTransitionLocked();
+      // An open modal scrolls its own content, as it always has.
+      if (!locked && (event.ctrlKey || !swallowed || isDialogOpen())) return;
+      if (!event.ctrlKey && event.cancelable) event.preventDefault();
+      event.stopPropagation();
     };
-    window.addEventListener("wheel", onWheel, { capture: true, passive: true });
+    window.addEventListener("wheel", onWheel, { capture: true, passive: false });
     return () => window.removeEventListener("wheel", onWheel, true);
+  }, []);
+
+  // Settle focuses the arrived page's <main>, so a scroll key still
+  // auto-repeating from before settle would scroll it at once: its repeats are
+  // held for LANDING_MS, like a wheel still spinning.
+  useEffect(() => {
+    const pressedAt = new Map<string, number>();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!event.repeat) {
+        pressedAt.set(event.key, window.performance.now());
+        return;
+      }
+      if (isTransitionLocked() || !NAV_KEYS.has(event.key)) return;
+      if (isTextInput(event.target) || isActivationOnControl(event)) return;
+      const settledAt = getLastSettleAt();
+      const now = window.performance.now();
+      if ((pressedAt.get(event.key) ?? Number.NEGATIVE_INFINITY) >= settledAt || now - settledAt >= LANDING_MS) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    const onKeyUp = (event: KeyboardEvent) => {
+      pressedAt.delete(event.key);
+    };
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    window.addEventListener("keyup", onKeyUp, { capture: true });
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("keyup", onKeyUp, true);
+    };
   }, []);
 
   useEffect(

@@ -10,6 +10,7 @@ import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
 import { gestureGate, isTransitionLocked } from "@components/transition/transitionStore";
+import { isSyntheticScrollStep } from "@lib/splineScroll";
 
 const isAtPageBottom = () =>
   window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
@@ -32,7 +33,7 @@ const About = () => {
 
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
-      if (isTransitionLocked() || event.ctrlKey || event.deltaY === 0) return;
+      if (isSyntheticScrollStep(event) || isTransitionLocked() || event.ctrlKey || event.deltaY === 0) return;
 
       // The tail of the gesture that brought the visitor here never counts.
       if (gestureGate.swallow(event)) {

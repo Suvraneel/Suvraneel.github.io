@@ -1,19 +1,59 @@
 "use client";
 
 import Image from "next/image";
+import { useCallback, useEffect, useRef } from "react";
 import ChronoCard from "@components/ChronoCard";
 import TimelineDate from "@components/TimelineDate";
 import { communityLeadershipData, educationData, workData } from "@data/workData";
 import SplineObj from "@components/SplineObject";
 import { spaceBoards, tasaOrbiter } from "@font";
+import { getTransition } from "@components/transition/transitionStore";
+import { stepSplineScroll } from "@lib/splineScroll";
+
+// The plant's Spline Scroll event (scene-PLANT.splinecode, object "plant") has 40 steps.
+const PLANT_STEPS = 40;
 
 const Work = () => {
+  const plantAside = useRef<HTMLElement>(null);
+  const plantObserver = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => () => plantObserver.current?.disconnect(), []);
+
+  // The plant always loads as the full plant. When Work is reached from below
+  // (a backward lift lands at its bottom) or restored part way down, step it
+  // to match, once its canvas is in view so the Spline runtime counts the steps.
+  const syncPlantToScroll = useCallback(() => {
+    const aside = plantAside.current;
+    const main = aside?.closest("main");
+    const canvas = aside?.querySelector("canvas");
+    if (!aside || !main || !canvas) return;
+
+    const t = getTransition();
+    const range = main.scrollHeight - main.clientHeight;
+    const progress =
+      t && !t.settled && t.to === "/work"
+        ? t.direction < 0 ? 1 : 0
+        : range > 0 ? main.scrollTop / range : 0;
+    const steps = Math.round(progress * PLANT_STEPS);
+    if (!steps) return;
+
+    plantObserver.current?.disconnect();
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      observer.disconnect();
+      // One frame later, so Spline's own in-view observer has flipped too.
+      requestAnimationFrame(() => stepSplineScroll(steps));
+    });
+    plantObserver.current = observer;
+    observer.observe(canvas);
+  }, []);
+
   return (
       <main className="relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
         <div className="min-h-screen grid md:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[24rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)] gap-0">
-          <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen self-start overflow-hidden border-r border-white/10 md:block">
+          <aside ref={plantAside} aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen self-start overflow-hidden border-r border-white/10 md:block">
             {/*<SplineObj scene={"https://prod.spline.design/ZqRCvFgqp5-tcTea/scene.splinecode"} />*/}
-            <SplineObj scene={"/spline/scene-PLANT.splinecode"} />
+            <SplineObj scene={"/spline/scene-PLANT.splinecode"} onLoad={syncPlantToScroll} />
           </aside>
           <div className="min-w-0">
             <div className="max-w-6xl px-5 pb-20 pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:px-14">

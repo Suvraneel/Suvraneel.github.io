@@ -7,6 +7,7 @@ import {
   isTransitionLocked,
 } from "@components/transition/transitionStore";
 import { isDialogOpen, pageOrder } from "@lib/pageTransition";
+import { isSyntheticScrollStep } from "@lib/splineScroll";
 
 const intentThreshold = 520;
 const intentWindowMs = 500;
@@ -84,6 +85,7 @@ const PageSequenceScroll = () => {
 
     const handleWheel = (event: WheelEvent) => {
       if (
+        isSyntheticScrollStep(event) ||
         event.ctrlKey ||
         event.deltaY === 0 ||
         isTransitionLocked() ||
