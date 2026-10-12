@@ -2,11 +2,25 @@
 
 import SplineObj from "@components/SplineObject";
 import StairsPreloader from "@components/StairsPreloader";
+import { isInFlight, useTransitionState } from "@components/transition/transitionStore";
+import { SHEET_SHADOW } from "@lib/pageTransition";
 import { AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 
 const DASHBOARD_SCENE = "/spline/sceneDACCORD_NEW.splinecode";
+const FLIP_RIG = "Dashboard Flip Rig";
 // SplineObj skips rendering at or below this width.
 const SPLINE_MIN_WIDTH = 550;
 const FALLBACK_AFTER_MS = 8000;
@@ -17,32 +31,71 @@ const READY_HOLD_MS = 2000;
 type DashboardSceneContextValue = {
   app: any;
   isReady: boolean;
-  revealForReturn: () => void;
+  /** Viewport is wide enough for the 3D dashboard (phones get the static hero). */
+  sceneViewport: boolean;
+  /** The first-visit stairs preloader is covering the screen. */
+  preloaderActive: boolean;
+  /** The fixed full-screen scene wrapper; page transitions lift it with the Home sheet. */
+  containerRef: RefObject<HTMLDivElement | null>;
+  /** The flip rig of the live Spline app (never a disposed or replaced one). */
+  getRig: () => any;
+  /** Sets the rig's flip rotation (radians) on the live app, if it has loaded. */
+  setFlip: (rotation: number) => void;
 };
+
+const noop = () => undefined;
 
 const DashboardSceneContext = createContext<DashboardSceneContextValue>({
   app: null,
   isReady: false,
-  revealForReturn: () => undefined,
+  sceneViewport: false,
+  preloaderActive: false,
+  containerRef: { current: null },
+  getRig: () => null,
+  setFlip: noop,
 });
 
 export const useDashboardScene = () => useContext(DashboardSceneContext);
 
 export const DashboardSceneProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
+  const transition = useTransitionState();
+  const inFlight = isInFlight(transition);
   const [app, setApp] = useState<any>(null);
   const [isReady, setReady] = useState(false);
   const [hasSceneError, setSceneError] = useState(false);
-  const [isVisible, setVisible] = useState(pathname === "/");
-  const [isReturnOverlay, setReturnOverlay] = useState(false);
   const [isSplineViewport, setSplineViewport] = useState(false);
+  // While a transition into or out of Home is in flight, the scene is Home's
+  // sheet (it lifts away or comes down with Home), so it stays shown and mounted.
+  const homeFlight = inFlight && (transition.from === "/" || transition.to === "/");
+  const isVisible = pathname === "/" || homeFlight;
+  // The scene rides above the page underneath whenever it is the moving sheet.
+  // Reduced motion into Home keeps it below: the outgoing page fades over it.
+  const sceneOnTop =
+    homeFlight &&
+    transition.homeVisualIsScene &&
+    transition.kind !== "instant" &&
+    !(transition.kind === "fade" && transition.to === "/");
+  const sceneShadow = sceneOnTop && transition.kind !== "fade";
+  // Once the dashboard has loaded it stays mounted for the session (paused
+  // while hidden), so it is never torn down and loaded again next to another
+  // live Spline runtime: a dashboard created while one is alive renders
+  // ghosted (the backface mask stops occluding the mirrored back panel). Its
+  // first load waits for that too (SplineObj's waitForSoleRuntime).
+  const [hasLoaded, setHasLoaded] = useState(false);
   const shouldMountDashboard =
-    pathname === "/" || pathname === "/about" || isReturnOverlay;
+    hasLoaded ||
+    pathname === "/" ||
+    pathname === "/about" ||
+    (inFlight &&
+      (transition.from === "/" || transition.from === "/about" || transition.to === "/"));
   // Only gate the very first visit; later route changes reuse or skip the scene.
   const [isInitialLoad, setInitialLoad] = useState(shouldMountDashboard);
   const [sceneUrl, setSceneUrl] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const needsScene = shouldMountDashboard && !sceneUrl;
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const appRef = useRef<any>(null);
 
   useEffect(() => {
     const viewport = window.matchMedia(`(min-width: ${SPLINE_MIN_WIDTH + 1}px)`);
@@ -87,28 +140,13 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     return () => window.clearTimeout(timeoutId);
   }, [isInitialLoad]);
 
-  const revealForReturn = useCallback(() => {
-    setReturnOverlay(true);
-    setVisible(true);
-  }, []);
-
-  useEffect(() => {
-    if (pathname !== "/" || !app) return;
-
-    const flipRig = app.findObjectByName("Dashboard Flip Rig");
-    if (flipRig) flipRig.rotation.x = 0;
-  }, [app, pathname]);
-
-  useEffect(() => {
-    setVisible(pathname === "/");
-    setReturnOverlay(false);
-
-    if (pathname !== "/" && pathname !== "/about") {
-      setApp(null);
-      setReady(false);
-      setSceneError(false);
-    }
-  }, [pathname]);
+  // Hidden, the scene does no work: its render loop and events are paused
+  // (only after its first frames are compiled, so a later reveal never stalls).
+  useLayoutEffect(() => {
+    if (!app || !isReady) return;
+    if (isVisible) app.play?.();
+    else app.stop?.();
+  }, [app, isReady, isVisible]);
 
   useEffect(() => {
     if (!shouldMountDashboard || isReady) return;
@@ -120,29 +158,97 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     return () => window.clearTimeout(timeoutId);
   }, [isReady, shouldMountDashboard]);
 
+  // Always resolved through the live app, so a rig handle can never outlive the
+  // Spline runtime that owns it (the scene unmounts past About and reloads).
+  const getRig = useCallback(() => appRef.current?.findObjectByName?.(FLIP_RIG) ?? null, []);
+
+  const setFlip = useCallback(
+    (rotation: number) => {
+      const rig = getRig();
+      if (rig && rig.rotation.x !== rotation) rig.rotation.x = rotation;
+    },
+    [getRig]
+  );
+
+  // A lift that has settled away from Home leaves the hidden scene at its last
+  // keyframe; drop that before it can be shown again.
+  useLayoutEffect(() => {
+    if (isVisible) return;
+    const container = containerRef.current;
+    if (!container) return;
+    container.getAnimations().forEach((animation) => animation.cancel());
+    container.style.transform = "";
+  }, [isVisible]);
+
+  const preloaderActive = isInitialLoad && isSplineViewport;
+
+  const value = useMemo<DashboardSceneContextValue>(
+    () => ({
+      app,
+      isReady,
+      sceneViewport: isSplineViewport,
+      preloaderActive,
+      containerRef,
+      getRig,
+      setFlip,
+    }),
+    [app, getRig, isReady, isSplineViewport, preloaderActive, setFlip]
+  );
+
+  // Off the first visit, an unready scene shows the static dashboard as its
+  // backdrop (never bare black). The canvas sits fully opaque underneath and
+  // the fallback fades away once Spline has painted its first frames.
+  const showFallback = shouldMountDashboard && (hasSceneError || !isInitialLoad);
+
   return (
-    <DashboardSceneContext.Provider value={{ app, isReady, revealForReturn }}>
+    <DashboardSceneContext.Provider value={value}>
       <div
-        className={`fixed inset-0 ${isReturnOverlay ? "z-[200]" : "z-0"} ${
-          isVisible ? "visible" : "invisible pointer-events-none"
-        }`}
+        ref={containerRef}
+        className={`fixed inset-0 z-0 ${isVisible ? "visible" : "invisible pointer-events-none"}`}
+        style={
+          sceneOnTop
+            ? {
+                zIndex: 3,
+                pointerEvents: "none",
+                // The Spline canvas is transparent over the black body; as a
+                // sheet it carries that same black so it stays opaque.
+                backgroundColor: "#000",
+                boxShadow: sceneShadow ? SHEET_SHADOW : undefined,
+              }
+            : undefined
+        }
         aria-hidden={!isVisible}
       >
         {shouldMountDashboard && sceneUrl && (
           <div
-            className={`absolute inset-0 transition-opacity duration-700 ease-out ${
-              isReady ? "opacity-100" : "opacity-0"
+            className={`absolute inset-0 ${
+              showFallback
+                ? "opacity-100"
+                : `transition-opacity duration-700 ease-out ${isReady ? "opacity-100" : "opacity-0"}`
             }`}
           >
             <SplineObj
               // scene="https://prod.spline.design/bMG02F4Rm1UpL5wP/scene.splinecode"
               scene={sceneUrl}
+              // Its first load must not overlap another live Spline runtime
+              // (Work's plant on an exiting page), or it renders ghosted.
+              waitForSoleRuntime
               onError={() => {
                 // Show the static fallback right away instead of waiting out the timers.
                 setSceneError(true);
                 setInitialLoad(false);
               }}
               onLoad={(loadedApp) => {
+                // react-spline reports load for an Application it has already
+                // disposed (Strict Mode remount, or an unmount mid-load). Adopting
+                // that one would point every later rig write at a dead scene.
+                if (!loadedApp || loadedApp.disposed) return;
+                appRef.current = loadedApp;
+                setHasLoaded(true);
+                // A freshly loaded dashboard always faces forward; a running flip
+                // re-applies its own rotation on the next frame.
+                const rig = loadedApp.findObjectByName?.(FLIP_RIG);
+                if (rig) rig.rotation.x = 0;
                 setApp(loadedApp);
                 // Canvas is unhidden and first frames compiled only after load resolves.
                 waitForFrames(4, () => setReady(true));
@@ -150,7 +256,7 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
             />
           </div>
         )}
-        {shouldMountDashboard && hasSceneError && (
+        {showFallback && (
           <div
             className={`pointer-events-none absolute inset-0 hidden transition-opacity duration-700 ease-out min-[551px]:block ${
               isReady ? "opacity-0" : "opacity-100"
@@ -161,7 +267,7 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
         )}
       </div>
       <AnimatePresence>
-        {isInitialLoad && isSplineViewport && (
+        {preloaderActive && (
           <StairsPreloader
             progress={
               isReady ? 1 : downloadProgress === null ? null : Math.min(downloadProgress, 0.99)

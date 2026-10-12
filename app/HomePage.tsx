@@ -5,85 +5,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import LiquidMetalButton from "@components/LiquidMetalButton";
-import * as gtag from "@lib/gtag";
-import { useDashboardScene } from "@components/DashboardScene";
+import { usePageTransition } from "@components/transition/PageTransitionProvider";
+import { gestureGate, isTransitionLocked } from "@components/transition/transitionStore";
 import { spaceBoards, tasaOrbiter } from "@font";
 
 const Home = () => {
-  const router = useRouter();
-  const { app: splineApp } = useDashboardScene();
-  const isTransitioning = useRef(false);
+  const { navigate } = usePageTransition();
   const scrollIntent = useRef(0);
   const lastWheelAt = useRef(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  const animateFlipRig = useCallback(
-    (flipRig: any, targetRotation: number, onComplete?: () => void) => {
-      const startRotation = flipRig.rotation.x;
-      const duration = 420;
-      const startedAt = window.performance.now();
-
-      const frame = (now: number) => {
-        const progress = Math.min((now - startedAt) / duration, 1);
-        const easedProgress = 1 - Math.pow(1 - progress, 3);
-
-        flipRig.rotation.x =
-          startRotation + (targetRotation - startRotation) * easedProgress;
-
-        if (progress < 1) {
-          window.requestAnimationFrame(frame);
-          return;
-        }
-
-        onComplete?.();
-      };
-
-      window.requestAnimationFrame(frame);
-    },
-    []
+  // The page transition owns the dashboard flip: About pushes up while the
+  // rig turns, so the two read as one motion.
+  const flipToAbout = useCallback(
+    (source: "sequence" | "key") => navigate("/about", { source }),
+    [navigate]
   );
-
-  const flipToAbout = useCallback(() => {
-    if (isTransitioning.current) return;
-
-    isTransitioning.current = true;
-    gtag.event({
-      action: "dashboard_flip_started",
-      category: "portfolio_navigation",
-      label: "home_to_about",
-      value: 1,
-    });
-
-    if (prefersReducedMotion) {
-      router.push("/about");
-      return;
-    }
-
-    if (!splineApp) {
-      isTransitioning.current = false;
-      return;
-    }
-
-    const flipRig = splineApp.findObjectByName("Dashboard Flip Rig");
-
-    if (!flipRig) {
-      console.warn("Dashboard flip rig is not ready; keeping the visitor on Home.");
-      isTransitioning.current = false;
-      return;
-    }
-
-    animateFlipRig(flipRig, -Math.PI, () => {
-      gtag.event({
-        action: "dashboard_flip_completed",
-        category: "portfolio_navigation",
-        label: "home_to_about",
-        value: 1,
-      });
-      router.push("/about");
-    });
-  }, [animateFlipRig, prefersReducedMotion, router, splineApp]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -96,9 +34,11 @@ const Home = () => {
 
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
-      if (event.ctrlKey || event.deltaY <= 0 || isTransitioning.current) return;
+      if (event.ctrlKey || event.deltaY <= 0 || isTransitionLocked()) return;
 
       event.preventDefault();
+      // The tail of the gesture that brought the visitor here never counts.
+      if (gestureGate.swallow(event)) return;
       const now = window.performance.now();
 
       if (now - lastWheelAt.current > 180) {
@@ -108,8 +48,8 @@ const Home = () => {
       lastWheelAt.current = now;
       scrollIntent.current += event.deltaY;
 
-      if (scrollIntent.current >= 80) {
-        flipToAbout();
+      if (scrollIntent.current >= 80 && flipToAbout("sequence")) {
+        scrollIntent.current = 0;
       }
     };
 
@@ -119,6 +59,7 @@ const Home = () => {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (isTransitionLocked()) return;
       const target = event.target as HTMLElement | null;
       const isTyping = target?.matches("input, textarea, select, [contenteditable='true']");
       // Space and arrows belong to a focused control (e.g. Space activates a button).
@@ -128,7 +69,7 @@ const Home = () => {
       if (!["ArrowDown", "PageDown", " "].includes(event.key)) return;
 
       event.preventDefault();
-      flipToAbout();
+      flipToAbout("key");
     };
 
     window.addEventListener("keydown", handleKeyDown);

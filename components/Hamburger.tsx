@@ -127,6 +127,7 @@ const Hamburger = () => {
       </AnimatePresence>
       <motion.nav
         ref={navRef}
+        data-drawer-open={isOpen ? "" : undefined}
         initial={false}
         animate="open"
         custom="100%"
@@ -137,6 +138,9 @@ const Hamburger = () => {
           {isOpen && (
             <motion.aside
               key="drawer-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation"
               className="pointer-events-auto absolute inset-y-0 right-0 flex h-full w-[min(86vw,22rem)] flex-col border-l border-white/10 bg-black/95 shadow-[-24px_0_48px_rgba(0,0,0,0.35)]"
               variants={sheet}
               initial="closed"

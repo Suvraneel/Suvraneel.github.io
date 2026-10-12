@@ -46,15 +46,33 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
     body.style.width = "100%";
     if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
 
-    stateLogger("Project modal", true);
-    currentDialog.showModal();
-    closeButton.current?.focus();
-    return () => {
-      if (currentDialog.open) currentDialog.close();
+    // Released once: on unmount, or as soon as the dialog is closed from
+    // outside (browser Back closes it before the page transition snapshots
+    // the scroll offset, so the page must be unlocked by then).
+    let released = false;
+    const releasePage = () => {
+      if (released) return;
+      released = true;
       root.style.overflow = previousRootOverflow;
       Object.assign(body.style, previousBodyStyles);
       window.scrollTo(0, scrollPosition);
       stateLogger("Project modal", false);
+    };
+
+    // A queued close event from an earlier close() (Strict Mode re-runs this
+    // effect) arrives after showModal() has reopened the dialog: ignore it.
+    const onClose = () => {
+      if (!currentDialog.open) releasePage();
+    };
+
+    stateLogger("Project modal", true);
+    currentDialog.showModal();
+    closeButton.current?.focus();
+    currentDialog.addEventListener("close", onClose);
+    return () => {
+      currentDialog.removeEventListener("close", onClose);
+      if (currentDialog.open) currentDialog.close();
+      releasePage();
     };
   }, []);
 
