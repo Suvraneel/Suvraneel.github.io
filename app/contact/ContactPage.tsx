@@ -1,6 +1,6 @@
 "use client";
 
-import { faArrowUpRightFromSquare, faCalendarDays, faEnvelope, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faCalendarDays } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -9,6 +9,11 @@ import useSound from "use-sound";
 import { spaceBoards, tasaOrbiter } from "@font";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
+import { AnimateIcon } from "@components/animate-ui/icons/icon";
+import { CheckIcon } from "@components/animate-ui/icons/check";
+import { CopyIcon } from "@components/animate-ui/icons/copy";
+import { SendIcon } from "@components/animate-ui/icons/send";
+import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
 
 const CalendlyModal = dynamic(() => import("@components/CalendlyModal"), { ssr: false });
 
@@ -23,6 +28,7 @@ export default function ContactPage() {
   const [playSnap, { stop: stopSnap }] = useSound("/sounds/snap.wav", { volume: 0.25 });
   const [playConfirm] = useSound("/sounds/confirm.wav", { volume: 0.25 });
   const [emailCopied, setEmailCopied] = useState(false);
+  const [sendHovered, setSendHovered] = useState(false);
   const copiedTimer = useRef<number | null>(null);
 
   useEffect(() => () => {
@@ -82,41 +88,46 @@ export default function ContactPage() {
 
             <section className="mt-12 min-w-0 border-t border-white/15 pt-8 sm:mt-14 sm:pt-10 lg:mt-10 lg:pt-6" aria-label="Direct contact options">
               <div className="flex min-h-16 items-center gap-2 border-b border-white/20 transition-[border-color] duration-300 hover:border-accent/70">
+                <AnimateIcon animateOnHover asChild>
                 <button
                   type="button"
                   onClick={copyEmail}
                   aria-label={`Copy email address ${EMAIL}`}
                   className="group flex min-w-0 flex-1 items-center gap-4 py-4 text-left text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
                 >
-                  <FontAwesomeIcon icon={faEnvelope} aria-hidden="true" className="shrink-0 text-accent" />
-                  <span className="min-w-0 break-all text-lg font-medium sm:text-xl">{EMAIL}</span>
+                  <span className="min-w-0 break-all text-base font-medium">{EMAIL}</span>
                   <span
                     aria-hidden="true"
-                    className={`ml-auto shrink-0 text-xs transition-[color,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                      emailCopied ? "text-accent opacity-100" : "text-white/45 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
+                    className={`ml-auto flex size-10 shrink-0 items-center justify-end transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                      emailCopied ? "text-accent" : "text-white/45 group-hover:text-accent group-focus-visible:text-accent"
                     }`}
                   >
-                    {emailCopied ? "Copied" : "Copy"}
+                    {emailCopied ? <CheckIcon size={16} animate /> : <CopyIcon size={16} />}
                   </span>
                 </button>
+                </AnimateIcon>
+                <AnimateIcon animateOnHover asChild>
                 <a
                   href={`mailto:${EMAIL}`}
                   aria-label="Open in your mail app"
                   className="group flex size-10 shrink-0 items-center justify-end rounded-full text-white/45 transition-colors duration-300 hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
-                  <FontAwesomeIcon icon={faArrowUpRightFromSquare} aria-hidden="true" className="text-xs transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                  <SquareArrowOutUpRightIcon aria-hidden="true" size={16} />
                 </a>
+                </AnimateIcon>
                 <span className="sr-only" aria-live="polite">{emailCopied ? "Email address copied" : ""}</span>
               </div>
+              <AnimateIcon animateOnHover asChild>
               <Link
                 href="https://suvraneel.bio.link"
                 target="_blank"
                 rel="noreferrer"
-                className="group flex min-h-14 items-center justify-between gap-4 border-b border-white/10 py-3 text-sm text-white/60 transition-colors duration-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                className="group flex min-h-14 items-center justify-between gap-4 border-b border-white/10 py-3 text-sm font-normal text-white/60 transition-colors duration-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
               >
                 <span className="link-draw">More ways to connect</span>
-                <FontAwesomeIcon icon={faArrowUpRightFromSquare} aria-hidden="true" className="text-xs transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                <SquareArrowOutUpRightIcon aria-hidden="true" size={16} />
               </Link>
+              </AnimateIcon>
 
               <PillButton
                 onClick={() => {
@@ -152,12 +163,21 @@ export default function ContactPage() {
                 <LiquidMetalButton
                   type="submit"
                   disabled={submissionState === "sending"}
-                  onMouseEnter={() => playSnap()}
-                  onMouseLeave={() => stopSnap()}
+                  onMouseEnter={() => {
+                    setSendHovered(true);
+                    playSnap();
+                  }}
+                  onMouseLeave={() => {
+                    setSendHovered(false);
+                    stopSnap();
+                  }}
                   className="min-w-[11rem] w-full sm:w-auto"
                 >
                   {submissionState === "sending" && <span aria-hidden="true" className="block h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" />}
                   {submissionState === "sending" ? "Sending" : "Send message"}
+                  {submissionState !== "sending" && (
+                    <SendIcon aria-hidden="true" size={16} animate={sendHovered} />
+                  )}
                 </LiquidMetalButton>
                 <p className={`max-w-xs text-sm leading-5 text-white/60 ${tasaOrbiter.className}`}>A short note is enough. I&apos;ll reply by email.</p>
               </div>
@@ -169,7 +189,7 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {showScheduler && <CalendlyModal onClose={() => setShowScheduler(false)} closeIcon={faXmark} />}
+      {showScheduler && <CalendlyModal onClose={() => setShowScheduler(false)} />}
     </main>
   );
 }

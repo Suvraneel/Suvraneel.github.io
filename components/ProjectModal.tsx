@@ -1,10 +1,13 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { spaceBoards, tasaOrbiter } from "@font";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
+import { AnimateIcon } from "@components/animate-ui/icons/icon";
+import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
+import { XIcon } from "@components/animate-ui/icons/x";
 import { stateLogger } from "../stateLogger";
 
 type Project = {
@@ -20,6 +23,7 @@ type Project = {
 export default function ProjectModal({ handleClose, project }: Readonly<{ handleClose: () => void; project: Project }>) {
   const dialog = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
+  const [visitHovered, setVisitHovered] = useState(false);
   const reduceMotion = useReducedMotion();
   const hasProjectDemo = !project.video.includes("EKGJ-pzSEns");
   const demoUrl = `${project.video}${project.video.includes("?") ? "&" : "?"}rel=0&iv_load_policy=3&showinfo=0&origin=https://suvraneel.github.io`;
@@ -137,16 +141,20 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
         <div className="flex min-h-0 flex-col overflow-y-auto bg-[#0b0f15]">
           <header className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4 sm:px-7 sm:py-5">
             <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-accent/80">Project case notes</p>
+            <AnimateIcon animateOnHover asChild>
             <button
               ref={closeButton}
-              className="group inline-flex h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.025] px-2.5 text-white/70 transition-[background-color,border-color,color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-white/20 hover:bg-white/[0.07] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.025] px-2.5 text-white/70 transition-[background-color,border-color,color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-white/20 hover:bg-white/[0.07] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
               type="button"
               aria-label="Close project details"
               onClick={handleClose}
             >
               <span className="font-mono text-[0.6rem] uppercase tracking-[0.12em] text-white/40">Esc</span>
-              <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-full bg-white/[0.07] text-base transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:rotate-90">×</span>
+              <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-full bg-white/[0.07] text-base transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]">
+                <XIcon size={14} />
+              </span>
             </button>
+            </AnimateIcon>
           </header>
 
           <div className="flex flex-1 flex-col px-5 pb-6 pt-6 sm:px-7 sm:pb-8 sm:pt-8 lg:px-8">
@@ -185,9 +193,15 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
 
           <footer className="flex flex-wrap gap-3 border-t border-white/[0.08] px-5 py-4 sm:px-7 sm:py-5 lg:px-8">
             {project.url !== "#" && (
-              <LiquidMetalButton href={project.url} target="_blank" rel="noreferrer">
+              <LiquidMetalButton
+                href={project.url}
+                target="_blank"
+                rel="noreferrer"
+                onMouseEnter={() => setVisitHovered(true)}
+                onMouseLeave={() => setVisitHovered(false)}
+              >
                 <span>Visit project</span>
-                <span aria-hidden="true" className="text-base transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none">↗</span>
+                <SquareArrowOutUpRightIcon aria-hidden="true" size={16} animate={visitHovered} />
               </LiquidMetalButton>
             )}
             {project.github !== "#" && (

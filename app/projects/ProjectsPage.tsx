@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useMotionValue, useMotionValueEvent, useReduce
 import { useLayoutEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
 import useSound from "use-sound";
 import ProjectModal from "@components/ProjectModal";
+import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
 import { arrivalView, whenPlaced } from "@components/transition/arrival";
 import { getTransition, isInFlight } from "@components/transition/transitionStore";
 import projectsData from "@data/projectsDat";
@@ -346,7 +347,10 @@ function ProjectTile({
             </span>
           ))}
         </div>
-        <span className="mt-4 text-xs font-semibold text-white">Open case notes ↗</span>
+        <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-white">
+          Open case notes
+          <ArrowRightIcon aria-hidden="true" size={14} className="transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 motion-reduce:transition-none" />
+        </span>
       </div>
     </motion.button>
   );

@@ -1,14 +1,12 @@
 "use client";
 
-import {
-  LayoutDashboardIcon,
-  SendIcon,
-  TerminalIcon,
-} from "@animateicons/react/lucide";
 import { Disc3Icon } from "@components/animate-ui/icons/disc-3";
 import { FingerprintIcon } from "@components/animate-ui/icons/fingerprint";
+import { LayoutDashboardIcon } from "@components/animate-ui/icons/layout-dashboard";
 import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
+import { MessageCircleMoreIcon } from "@components/animate-ui/icons/message-circle-more";
 import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
+import { TerminalIcon } from "@components/animate-ui/icons/terminal";
 import { motion, scrollInfo, useMotionValue, useReducedMotion, type MotionValue } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,21 +19,15 @@ type RailItem = {
   name: string;
   href: string;
   icon: ElementType;
-  animateWithState?: boolean;
-};
-
-type AnimatedIconHandle = {
-  startAnimation: () => void;
-  stopAnimation: () => void;
 };
 
 const railItems: RailItem[] = [
   { name: "Home", href: "/", icon: LayoutDashboardIcon },
-  { name: "About", href: "/about", icon: FingerprintIcon, animateWithState: true },
-  { name: "Work", href: "/work", icon: PickaxeIcon, animateWithState: true },
-  { name: "Projects", href: "/projects", icon: LightbulbIcon, animateWithState: true },
+  { name: "About", href: "/about", icon: FingerprintIcon },
+  { name: "Work", href: "/work", icon: PickaxeIcon },
+  { name: "Projects", href: "/projects", icon: LightbulbIcon },
   { name: "Skills", href: "/skills", icon: TerminalIcon },
-  { name: "Contact", href: "/contact", icon: SendIcon },
+  { name: "Contact", href: "/contact", icon: MessageCircleMoreIcon },
 ];
 
 const currentYear = new Date().getFullYear();
@@ -230,7 +222,6 @@ function RailLink({
   onStopSnap: () => void;
   onConfirm: () => void;
 }) {
-  const iconRef = useRef<AnimatedIconHandle>(null);
   const [isHovered, setIsHovered] = useState(false);
   const Icon = item.icon;
 
@@ -242,21 +233,17 @@ function RailLink({
       onMouseEnter={() => {
         setIsHovered(true);
         onSnap();
-        if (!item.animateWithState && !reduceMotion) iconRef.current?.startAnimation();
       }}
       onMouseLeave={() => {
         setIsHovered(false);
         onStopSnap();
-        if (!item.animateWithState && !reduceMotion) iconRef.current?.stopAnimation();
       }}
       onFocus={() => {
         // Keyboard focus animates the icon but stays silent.
         setIsHovered(true);
-        if (!item.animateWithState && !reduceMotion) iconRef.current?.startAnimation();
       }}
       onBlur={() => {
         setIsHovered(false);
-        if (!item.animateWithState && !reduceMotion) iconRef.current?.stopAnimation();
       }}
       onClick={onConfirm}
     >
@@ -266,11 +253,7 @@ function RailLink({
         </span>
       )}
       <span className="rail-icon transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105">
-        {item.animateWithState ? (
-          <Icon aria-hidden="true" size={24} animate={isHovered && !reduceMotion} />
-        ) : (
-          <Icon ref={iconRef} aria-hidden="true" size={24} duration={0.7} isAnimated={false} />
-        )}
+        <Icon aria-hidden="true" size={24} animate={isHovered && !reduceMotion} />
       </span>
       <span className="rail-label">{item.name}</span>
     </Link>
