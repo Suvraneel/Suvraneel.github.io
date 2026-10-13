@@ -11,11 +11,40 @@ const HOVER_SPEED = 1;
 const CLICK_SPEED = 2.4;
 const CLICK_BURST_MS = 300;
 const RIPPLE_MS = 600;
+// Remounts allowed after the GPU drops a context, so a lost-context loop can't thrash.
+const MAX_CONTEXT_RESTORES = 2;
+const CONTEXT_RESTORE_DELAY_MS = 1000;
 
 type ShaderMount = {
+  canvasElement: HTMLCanvasElement;
   dispose: () => void;
   setSpeed: (speed: number) => void;
 };
+
+// The shader needs WebGL2 (GLSL ES 3.00). Some setups have none: hardened Firefox
+// forks (webgl.disabled), blocklisted GPUs/drivers, webgl.enable-webgl2=false.
+// Probed once per page (the probe canvas is left to GC: forcing its loss makes
+// Firefox log "WebGL context was lost" on every load).
+let webgl2Support: boolean | null = null;
+function supportsWebGL2() {
+  if (webgl2Support !== null) return webgl2Support;
+  try {
+    webgl2Support = Boolean(document.createElement("canvas").getContext("webgl2"));
+  } catch {
+    webgl2Support = false;
+  }
+  return webgl2Support;
+}
+
+// Free a canvas's WebGL context now instead of at GC, so mounts/unmounts
+// (page lifts, modal open/close) never pile up live contexts.
+function releaseContext(canvas: HTMLCanvasElement) {
+  try {
+    canvas.getContext("webgl2")?.getExtension("WEBGL_lose_context")?.loseContext();
+  } catch {
+    // Already lost or never created.
+  }
+}
 
 type LiquidMetalButtonProps = {
   children: ReactNode;
@@ -65,6 +94,55 @@ export default function LiquidMetalButton({
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const mobileViewport = mobileOnly ? window.matchMedia("(max-width: 550px)") : null;
     let disposed = false;
+    let contextRestores = 0;
+    let restoreTimer: number | null = null;
+
+    // data-metal: "shader" while the WebGL rim runs, "static" when this engine
+    // can't run it (globals.css paints a static rim), absent otherwise.
+    const setMetal = (state: "shader" | "static" | null) => {
+      if (state) container.dataset.metal = state;
+      else delete container.dataset.metal;
+    };
+
+    const releaseShader = () => {
+      const mount = shaderMount.current;
+      if (!mount) return;
+      shaderMount.current = null;
+      mount.canvasElement.removeEventListener("webglcontextlost", handleContextLost);
+      mount.dispose();
+      releaseContext(mount.canvasElement);
+    };
+
+    const fallBack = (reason: unknown) => {
+      // ShaderMount adds its canvas before it asks for a context; drop any leftover.
+      container.querySelectorAll(":scope > canvas").forEach((canvas) => {
+        releaseContext(canvas as HTMLCanvasElement);
+        canvas.remove();
+      });
+      container.removeAttribute("data-paper-shader");
+      setMetal("static");
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[LiquidMetalButton] WebGL2 shader unavailable, using the static rim.", reason);
+      }
+    };
+
+    // GPU reset, driver crash or too many live contexts: drop the dead mount and
+    // try a fresh one shortly (bounded), else keep the static rim.
+    function handleContextLost() {
+      releaseShader();
+      if (disposed) return;
+      if (contextRestores >= MAX_CONTEXT_RESTORES) {
+        fallBack(new Error("WebGL context lost"));
+        return;
+      }
+      contextRestores += 1;
+      setMetal("static");
+      if (restoreTimer) window.clearTimeout(restoreTimer);
+      restoreTimer = window.setTimeout(() => {
+        restoreTimer = null;
+        void mountShader();
+      }, CONTEXT_RESTORE_DELAY_MS);
+    }
 
     const mountShader = async () => {
       if (
@@ -73,6 +151,12 @@ export default function LiquidMetalButton({
         (mobileViewport && !mobileViewport.matches) ||
         shaderMount.current
       ) return;
+
+      if (!supportsWebGL2()) {
+        // Skip the shader chunk entirely.
+        fallBack(new Error("WebGL2 is not available"));
+        return;
+      }
 
       try {
         const { liquidMetalFragmentShader, ShaderMount } = await import("@paper-design/shaders");
@@ -103,15 +187,18 @@ export default function LiquidMetalButton({
           undefined,
           container.parentElement?.matches(":hover, :focus-within") ? HOVER_SPEED : IDLE_SPEED,
         );
-      } catch {
+        shaderMount.current.canvasElement.addEventListener("webglcontextlost", handleContextLost);
+        setMetal("shader");
+      } catch (error) {
         shaderMount.current = null;
+        fallBack(error);
       }
     };
 
     const updateShader = () => {
       if (reducedMotion.matches || (mobileViewport && !mobileViewport.matches)) {
-        shaderMount.current?.dispose();
-        shaderMount.current = null;
+        releaseShader();
+        setMetal(null);
         return;
       }
 
@@ -126,8 +213,8 @@ export default function LiquidMetalButton({
       disposed = true;
       reducedMotion.removeEventListener("change", updateShader);
       mobileViewport?.removeEventListener("change", updateShader);
-      shaderMount.current?.dispose();
-      shaderMount.current = null;
+      if (restoreTimer) window.clearTimeout(restoreTimer);
+      releaseShader();
       if (burstTimer.current) window.clearTimeout(burstTimer.current);
     };
   }, [mobileOnly]);
@@ -176,7 +263,9 @@ export default function LiquidMetalButton({
 
   const surface = (
     <>
-      <span ref={shaderContainer} aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-full transition-transform duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] group-active:translate-y-px group-active:scale-[0.98] motion-reduce:transition-none" />
+      {/* [&>canvas]: the shader library positions its canvas with nested CSS, which
+          Firefox < 117 (ESR 115) ignores; these flat rules do the same job everywhere. */}
+      <span ref={shaderContainer} aria-hidden="true" className="liquid-metal-shader pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-full [&>canvas]:absolute [&>canvas]:inset-0 [&>canvas]:block [&>canvas]:h-full [&>canvas]:w-full transition-transform duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] group-active:translate-y-px group-active:scale-[0.98] motion-reduce:transition-none" />
       {/* Inner pill sinks on press with an inset shadow, like a physical key. */}
       <span aria-hidden="true" className="pointer-events-none absolute inset-[2px] z-10 rounded-full bg-gradient-to-b from-[#202020] to-black shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)] transition-[transform,box-shadow] duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] group-active:translate-y-px group-active:scale-[0.98] group-active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),inset_0_1px_2px_rgba(0,0,0,0.3)] motion-reduce:transition-none" />
       {ripples.map((ripple) => (

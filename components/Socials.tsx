@@ -51,7 +51,7 @@ function AnimatedSocialLink({ name, href, brandColor, icon: Icon }: AnimatedSoci
       onFocus={() => startInteraction(false)}
       onBlur={endInteraction}
       onClick={() => playEffect("/sounds/confirm.wav")}
-      className="transition-colors duration-200"
+      className="rounded-md transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
       style={{ color: isHovered ? brandColor : "white" }}
     >
       <Icon ref={iconRef} size={24} className="grid h-6 w-6 place-items-center" aria-hidden="true" />

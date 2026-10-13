@@ -31,7 +31,7 @@ import {
   type PageTransition,
   type TransitionSource,
 } from "@lib/pageTransition";
-import { cubicBezier } from "framer-motion";
+import { cubicBezier } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,

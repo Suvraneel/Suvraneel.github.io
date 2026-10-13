@@ -283,9 +283,11 @@ function ProjectTile({
       {thumbnail && !thumbnailFailed ? (
         <div className="relative z-0 h-full w-full overflow-hidden bg-[#060606]">
           {/* Let the thumbnail's colours soften into the tile behind its crisp, uncropped copy. */}
+          {/* Own compositing layer: WebKit otherwise re-renders the 40px blur in software on every
+              repaint of the page, which cost ~100ms frames as a lift mounted /projects and as it settled. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-2xl"
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-2xl will-change-transform"
             src={thumbnail}
             alt=""
             aria-hidden="true"

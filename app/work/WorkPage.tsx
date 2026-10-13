@@ -122,7 +122,7 @@ const Work = () => {
   }, []);
 
   return (
-      <main ref={mainRef} className="relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
+      <main ref={mainRef} className="page-scroller relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
         <div className="min-h-screen grid md:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[24rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)] gap-0">
           <aside ref={plantAside} aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen self-start overflow-hidden border-r border-white/10 md:block">
             {/*<SplineObj scene={"https://prod.spline.design/ZqRCvFgqp5-tcTea/scene.splinecode"} />*/}

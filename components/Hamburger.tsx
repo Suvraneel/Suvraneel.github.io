@@ -163,11 +163,13 @@ const Hamburger = () => {
                     variants={variantsItem}
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
+                    // Motion makes whileTap elements focusable; the link inside is the one tab stop.
+                    tabIndex={-1}
                     className="sidebar-item flex justify-start"
                   >
                     <Link
                       href={href}
-                      className="flex w-full items-center gap-4 rounded-2xl border border-white/8 px-4 py-3 text-white transition hover:border-white/16 hover:bg-white/[0.04] hover:text-accent"
+                      className="flex w-full items-center gap-4 rounded-2xl border border-white/8 px-4 py-3 text-white transition hover:border-white/16 hover:bg-white/[0.04] hover:text-accent focus-visible:border-white/16 focus-visible:bg-white/[0.04] focus-visible:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                       onClick={closeDrawer}
                     >
                       <Icon aria-hidden="true" size={21} animateOnHover />

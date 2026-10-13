@@ -123,7 +123,8 @@ const Home = () => {
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-4 grid w-full grid-cols-2 gap-3"
+          // Phone-only actions: on wider screens this hero is visually hidden (sr-only), so keep its buttons out of the tab order too.
+          className="mt-4 grid w-full grid-cols-2 gap-3 min-[551px]:hidden"
         >
           <LiquidMetalButton href="/work" mobileOnly className="h-[54px] w-full">
             Explore my work

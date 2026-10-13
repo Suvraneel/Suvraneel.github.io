@@ -380,6 +380,17 @@ a:focus-visible > .link-draw::after {
   }
 }
 
+/* Touch: the page edge belongs to the pull-to-continue gesture
+   (PageSequenceScroll), so the browser's own bounce and pull-to-refresh are off. */
+@media (hover: none) and (pointer: coarse) {
+  /* The viewport (html) and real scrollers only: on <body> or a
+     non-scrolling <main> it stops the touch scroll from reaching the page. */
+  html,
+  .page-scroller {
+    overscroll-behavior-y: none;
+  }
+}
+
 /* Projects: hover brief adapts to the tile. Most tiles keep the right-hand
    panel; only very small ones (too short for the panel's overview) keep their
    image as the hero: the title lifts and one compact row (stack chips +
@@ -644,6 +655,28 @@ hr {
   100% {
     height: 2px;
   }
+}
+
+/* LiquidMetalButton: static metal rim for engines that can't run its WebGL2
+   shader (WebGL off or blocklisted, context lost for good). Only the 2px band
+   outside the inner pill shows; no motion, so nothing to reduce. */
+.liquid-metal-shader[data-metal="static"] {
+  background: linear-gradient(
+    120deg,
+    #8d9097 0%,
+    #f3f4f7 11%,
+    #e8eeff 15%,
+    #55585e 25%,
+    #1c1d20 33%,
+    #c4c7ce 45%,
+    #fdfdfe 52%,
+    #fff0ea 56%,
+    #66696f 65%,
+    #202124 74%,
+    #b3b6bd 86%,
+    #eef0f4 94%,
+    #8d9097 100%
+  );
 }
 
 /* LiquidMetalButton click ripple */
