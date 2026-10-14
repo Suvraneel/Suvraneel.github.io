@@ -1,6 +1,6 @@
 "use client";
 
-import { useIsPresent } from "framer-motion";
+import { useIsPresent } from "motion/react";
 import { LayoutRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useContext, useState, type ReactNode } from "react";
 

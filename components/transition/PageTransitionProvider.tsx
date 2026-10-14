@@ -9,12 +9,14 @@ import {
   EASE_FADE,
   EASE_FLIP,
   EASE_LIFT,
+  EASE_THROW,
   FADE_MS,
   FLIP_LEAD_MS,
   FLIP_MS,
   LANDING_MS,
   LIFT_MS,
   SCRIM_MAX,
+  THROW_MS,
   UNDER_OFFSET,
   cssEase,
   deriveKind,
@@ -31,7 +33,7 @@ import {
   type PageTransition,
   type TransitionSource,
 } from "@lib/pageTransition";
-import { cubicBezier } from "framer-motion";
+import { cubicBezier } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
@@ -55,6 +57,7 @@ import {
   layerRegistry,
   markSettled,
   markStarted,
+  notifyArrival,
   setTransition,
   setTransitionLocked,
   useTransitionState,
@@ -398,8 +401,14 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       // The earlier page is always the sheet; reduced motion fades the outgoing one.
       const sheet: PagePath =
         kind === "fade" || kind === "instant" ? from : direction > 0 ? from : to;
+      // A lift a finger started (a touch pull, or any lift in the phone
+      // layout) is thrown: shorter, leaving at speed and decelerating. The
+      // dashboard flip, where it applies, keeps its proportions to the lift.
+      const plain = prefersPlainLift();
+      const thrown = options.input === "touch" || plain;
+      const liftScale = thrown ? THROW_MS / LIFT_MS : 1;
       const duration =
-        kind === "instant" ? 0 : kind === "fade" ? FADE_MS * scale : LIFT_MS * scale;
+        kind === "instant" ? 0 : kind === "fade" ? FADE_MS * scale : (thrown ? THROW_MS : LIFT_MS) * scale;
       // A sheet that arrived but has not been unframed yet (a history step
       // fast-forwarded it) is still framed at this offset, not window.scrollY.
       const pending = pendingArrival.current;
@@ -429,13 +438,14 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
         direction,
         arrival,
         source: options.source,
-        plain: prefersPlainLift(),
+        plain,
         sheet,
         startedAt: origin,
-        liftStartAt: kind === "flip" ? origin + FLIP_LEAD_MS * scale : origin,
+        liftStartAt: kind === "flip" ? origin + FLIP_LEAD_MS * liftScale * scale : origin,
         commitAt: null,
         duration,
-        flipDuration: FLIP_MS * scale,
+        ease: thrown ? EASE_THROW : EASE_LIFT,
+        flipDuration: FLIP_MS * liftScale * scale,
         homeVisualIsScene,
         popScrollY: framedScrollY ?? (options.source === "pop" ? window.scrollY : undefined),
         settled: false,
@@ -588,7 +598,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
     const offset = Math.max(t.liftStartAt, committedAt) - track.origin;
     const timing: KeyframeAnimationOptions = {
       duration: t.duration,
-      easing: cssEase(EASE_LIFT),
+      easing: cssEase(t.ease),
       fill: "both",
     };
     const play = (
@@ -646,7 +656,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
         startFlip(track, {
           offset,
           duration: t.duration,
-          ease: EASE_LIFT,
+          ease: t.ease,
           from: -Math.PI,
           to: 0,
         });
@@ -663,6 +673,15 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       play(exiting?.el, out, false, fade);
       if (t.homeVisualIsScene && t.from === "/" && container) play(container, out, false, fade);
     }
+
+    // The arriving page is placed: let it measure its arrival view and, on a
+    // lift, tie its own entrance to this timeline.
+    notifyArrival(
+      t,
+      lift
+        ? { add: (animation) => track.add(animation, offset, true), duration: t.duration }
+        : null
+    );
 
     if (track.duration > 0) armSettle(t, track);
     else window.requestAnimationFrame(() => settle());

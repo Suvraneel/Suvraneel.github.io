@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, usePresence } from "framer-motion";
+import { AnimatePresence, usePresence } from "motion/react";
 import { usePathname } from "next/navigation";
 import {
   Component,
@@ -10,7 +10,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { SCRIM_MAX, SHEET_SHADOW, type PageTransition } from "@lib/pageTransition";
+import { SCRIM_MAX, SHEET_EDGE, SHEET_SHADOW, type PageTransition } from "@lib/pageTransition";
 import FrozenRouter from "./FrozenRouter";
 import { usePageTransition } from "./PageTransitionProvider";
 import { getTransition, isInFlight, layerRegistry, useTransitionState } from "./transitionStore";
@@ -131,9 +131,10 @@ function PageLayer({ path, children }: { path: string; children: ReactNode }) {
       style.overflow = "hidden";
     }
     // The leading edge. Home's desktop sheet is the 3D scene, which carries
-    // its own shadow.
+    // its own shadow. Phones also draw a hairline on the sheet's moving
+    // (bottom) edge, so black over black still reads as a sheet.
     if (lift && role === "sheet" && !(path === "/" && flight.homeVisualIsScene)) {
-      style.boxShadow = SHEET_SHADOW;
+      style.boxShadow = flight.plain ? `${SHEET_EDGE}, ${SHEET_SHADOW}` : SHEET_SHADOW;
     }
   }
 

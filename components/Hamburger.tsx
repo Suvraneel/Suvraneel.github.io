@@ -1,9 +1,11 @@
 "use client";
 
-import { LayoutDashboardIcon, SendIcon, TerminalIcon } from "@animateicons/react/lucide";
 import { FingerprintIcon } from "@components/animate-ui/icons/fingerprint";
+import { LayoutDashboardIcon } from "@components/animate-ui/icons/layout-dashboard";
 import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
+import { MessageCircleMoreIcon } from "@components/animate-ui/icons/message-circle-more";
 import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
+import { TerminalIcon } from "@components/animate-ui/icons/terminal";
 import { AnimatePresence, motion, type Variants } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -57,11 +59,11 @@ const Hamburger = () => {
   const [isOpen, setIsOpen] = useState(false);
   const menu = [
     { name: "Home", href: "/", icon: LayoutDashboardIcon },
-    { name: "About", href: "/about", icon: FingerprintIcon, animateWithState: true },
-    { name: "Work", href: "/work", icon: PickaxeIcon, animateWithState: true },
-    { name: "Projects", href: "/projects", icon: LightbulbIcon, animateWithState: true },
+    { name: "About", href: "/about", icon: FingerprintIcon },
+    { name: "Work", href: "/work", icon: PickaxeIcon },
+    { name: "Projects", href: "/projects", icon: LightbulbIcon },
     { name: "Skills", href: "/skills", icon: TerminalIcon },
-    { name: "Contact", href: "/contact", icon: SendIcon },
+    { name: "Contact", href: "/contact", icon: MessageCircleMoreIcon },
   ];
 
   const navRef = useRef<HTMLElement>(null);
@@ -155,24 +157,22 @@ const Hamburger = () => {
                 exit="closed"
                 className="mt-20 flex flex-1 flex-col gap-2 px-5"
               >
-                {menu.map(({ name, href, icon: Icon, animateWithState }) => (
+                {menu.map(({ name, href, icon: Icon }) => (
                   <motion.li
                     key={name}
                     variants={variantsItem}
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
+                    // Motion makes whileTap elements focusable; the link inside is the one tab stop.
+                    tabIndex={-1}
                     className="sidebar-item flex justify-start"
                   >
                     <Link
                       href={href}
-                      className="flex w-full items-center gap-4 rounded-2xl border border-white/8 px-4 py-3 text-white transition hover:border-white/16 hover:bg-white/[0.04] hover:text-accent"
+                      className="flex w-full items-center gap-4 rounded-2xl border border-white/8 px-4 py-3 text-white transition hover:border-white/16 hover:bg-white/[0.04] hover:text-accent focus-visible:border-white/16 focus-visible:bg-white/[0.04] focus-visible:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                       onClick={closeDrawer}
                     >
-                      {animateWithState ? (
-                        <Icon aria-hidden="true" size={21} animateOnHover />
-                      ) : (
-                        <Icon aria-hidden="true" size={21} duration={0.7} />
-                      )}
+                      <Icon aria-hidden="true" size={21} animateOnHover />
                       <span className="text-lg font-medium">{name}</span>
                     </Link>
                   </motion.li>

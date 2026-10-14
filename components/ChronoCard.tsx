@@ -16,6 +16,7 @@ const ChronoCard = ({
   );
   return (
     <article
+      data-reveal
       className={`group relative grid gap-4 border-b border-white/10 py-8 transition-colors duration-300 motion-reduce:transition-none sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-6 ${
         isWork ? "sm:py-10" : "sm:py-7"
       }`}
@@ -46,12 +47,19 @@ const ChronoCard = ({
       </div>
 
       <div className="relative sm:pl-5">
+        {/* Lights (dim -> its colour) as the entry passes the middle of the view. */}
         <div
           aria-hidden="true"
-          className={`absolute left-0 top-1 hidden h-2 w-2 rounded-full sm:block transition-transform duration-300 group-hover:scale-150 ${
-            isWork ? "bg-accent shadow-[0_0_18px_rgb(var(--accent)/0.9)]" : "bg-white/50"
-          }`}
-        />
+          data-timeline-dot
+          className="absolute left-0 top-1 hidden h-2 w-2 sm:block transition-transform duration-300 group-hover:scale-150"
+        >
+          <span className="timeline-dot-dim absolute inset-0 rounded-full bg-white/25" />
+          <span
+            className={`timeline-dot-lit absolute inset-0 rounded-full ${
+              isWork ? "bg-accent shadow-[0_0_18px_rgb(var(--accent)/0.9)]" : "bg-accent shadow-[0_0_12px_rgb(var(--accent)/0.6)]"
+            }`}
+          />
+        </div>
         <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:block ${isWork ? "text-accent/70" : "text-white/45"} ${tasaOrbiter.className}`}>
           {curElem.company}
         </p>
