@@ -657,8 +657,9 @@ hr {
   }
 }
 
-/* LiquidMetalButton: static metal rim for engines that can't run its WebGL2
-   shader (WebGL off or blocklisted, context lost for good). Only the 2px band
+/* LiquidMetalButton: static metal rim whenever the WebGL2 shader isn't running:
+   engines that can't run it (WebGL off or blocklisted, context lost for good),
+   reduced motion, and mobileOnly buttons on wide screens. Only the 3px band
    outside the inner pill shows; no motion, so nothing to reduce. */
 .liquid-metal-shader[data-metal="static"] {
   background: linear-gradient(

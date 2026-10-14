@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type MouseEvent, ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { tasaOrbiter } from "@font";
 import { useMagnetic } from "@hooks/useMagnetic";
 import { isPlainAnchor } from "@lib/linkKind";
 
@@ -49,6 +50,11 @@ function releaseContext(canvas: HTMLCanvasElement) {
 type LiquidMetalButtonProps = {
   children: ReactNode;
   ariaLabel?: string;
+  /**
+   * Below sm (640px): a 44px round icon button (pass an ariaLabel and hide the
+   * text label there); from sm up, the regular pill.
+   */
+  circleBelowSm?: boolean;
   className?: string;
   disabled?: boolean;
   /** Link only: download the target instead of navigating to it. */
@@ -68,6 +74,7 @@ type LiquidMetalButtonProps = {
 export default function LiquidMetalButton({
   children,
   ariaLabel,
+  circleBelowSm = false,
   className = "",
   disabled = false,
   download,
@@ -97,12 +104,14 @@ export default function LiquidMetalButton({
     let contextRestores = 0;
     let restoreTimer: number | null = null;
 
-    // data-metal: "shader" while the WebGL rim runs, "static" when this engine
-    // can't run it (globals.css paints a static rim), absent otherwise.
-    const setMetal = (state: "shader" | "static" | null) => {
-      if (state) container.dataset.metal = state;
-      else delete container.dataset.metal;
+    // data-metal: "shader" while the WebGL rim runs; "static" whenever it doesn't
+    // (engine can't run it, reduced motion, or a mobileOnly button on a wide
+    // screen), so globals.css paints a static rim and the primary never looks flat.
+    const setMetal = (state: "shader" | "static") => {
+      container.dataset.metal = state;
     };
+
+    const shaderWanted = () => !reducedMotion.matches && (!mobileViewport || mobileViewport.matches);
 
     const releaseShader = () => {
       const mount = shaderMount.current;
@@ -145,12 +154,11 @@ export default function LiquidMetalButton({
     }
 
     const mountShader = async () => {
-      if (
-        disposed ||
-        reducedMotion.matches ||
-        (mobileViewport && !mobileViewport.matches) ||
-        shaderMount.current
-      ) return;
+      if (disposed || shaderMount.current) return;
+      if (!shaderWanted()) {
+        setMetal("static");
+        return;
+      }
 
       if (!supportsWebGL2()) {
         // Skip the shader chunk entirely.
@@ -160,12 +168,11 @@ export default function LiquidMetalButton({
 
       try {
         const { liquidMetalFragmentShader, ShaderMount } = await import("@paper-design/shaders");
-        if (
-          disposed ||
-          reducedMotion.matches ||
-          (mobileViewport && !mobileViewport.matches) ||
-          shaderMount.current
-        ) return;
+        if (disposed || shaderMount.current) return;
+        if (!shaderWanted()) {
+          setMetal("static");
+          return;
+        }
 
         shaderMount.current = new ShaderMount(
           container,
@@ -196,9 +203,9 @@ export default function LiquidMetalButton({
     };
 
     const updateShader = () => {
-      if (reducedMotion.matches || (mobileViewport && !mobileViewport.matches)) {
+      if (!shaderWanted()) {
         releaseShader();
-        setMetal(null);
+        setMetal("static");
         return;
       }
 
@@ -259,15 +266,22 @@ export default function LiquidMetalButton({
     onClick?.(event);
   };
 
-  const sharedClassName = `group relative isolate inline-flex min-h-12 [font-family:Helvetica,Arial,sans-serif] min-w-0 items-center justify-center gap-3 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[#111] px-5 text-sm font-normal text-white/65 shadow-[0_3px_12px_rgba(0,0,0,0.3)] transition-[border-color,transform,box-shadow] duration-300 hover:border-white/45 hover:shadow-[0_6px_20px_rgba(255,255,255,0.1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-70 motion-reduce:transition-none ${className}`;
+  // The whole button (hairline border, metal band, inner pill) presses as one, so
+  // the border never parts from the band; the inner pill also sinks (inset shadow).
+  // Label: brighter than PillButton's at rest (white/90), pure white on hover/focus.
+  const sizeClassName = circleBelowSm
+    ? "h-[44px] w-[44px] min-h-[44px] px-0 sm:h-auto sm:w-auto sm:min-h-12 sm:px-5"
+    : "min-h-12 px-5";
+  const sharedClassName = `group relative isolate inline-flex ${sizeClassName} min-w-0 items-center justify-center gap-3 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[#111] text-sm font-normal text-white/90 shadow-[0_3px_12px_rgba(0,0,0,0.3)] transition-[border-color,color,transform,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-white/45 hover:text-white hover:shadow-[0_6px_20px_rgba(255,255,255,0.1)] focus-visible:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent active:translate-y-px active:scale-[0.98] active:duration-150 disabled:cursor-wait disabled:opacity-70 motion-reduce:transition-none ${tasaOrbiter.className} ${className}`;
 
   const surface = (
     <>
       {/* [&>canvas]: the shader library positions its canvas with nested CSS, which
           Firefox < 117 (ESR 115) ignores; these flat rules do the same job everywhere. */}
-      <span ref={shaderContainer} aria-hidden="true" className="liquid-metal-shader pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-full [&>canvas]:absolute [&>canvas]:inset-0 [&>canvas]:block [&>canvas]:h-full [&>canvas]:w-full transition-transform duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] group-active:translate-y-px group-active:scale-[0.98] motion-reduce:transition-none" />
-      {/* Inner pill sinks on press with an inset shadow, like a physical key. */}
-      <span aria-hidden="true" className="pointer-events-none absolute inset-[2px] z-10 rounded-full bg-gradient-to-b from-[#202020] to-black shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)] transition-[transform,box-shadow] duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] group-active:translate-y-px group-active:scale-[0.98] group-active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),inset_0_1px_2px_rgba(0,0,0,0.3)] motion-reduce:transition-none" />
+      <span ref={shaderContainer} aria-hidden="true" className="liquid-metal-shader pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-full [&>canvas]:absolute [&>canvas]:inset-0 [&>canvas]:block [&>canvas]:h-full [&>canvas]:w-full" />
+      {/* Inner pill: inset 3px leaves an even 3px metal band. On press it sinks with
+          an inset shadow, like a physical key. */}
+      <span aria-hidden="true" className="pointer-events-none absolute inset-[3px] z-10 rounded-full bg-gradient-to-b from-[#202020] to-black shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)] transition-shadow duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] group-active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),inset_0_1px_2px_rgba(0,0,0,0.3)] motion-reduce:transition-none" />
       {ripples.map((ripple) => (
         <span
           key={ripple.id}

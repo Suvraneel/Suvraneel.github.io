@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { MouseEvent, ReactNode, RefObject } from "react";
+import { tasaOrbiter } from "@font";
 import { useMagnetic } from "@hooks/useMagnetic";
 import { isPlainAnchor } from "@lib/linkKind";
 
@@ -27,7 +28,7 @@ type PillButtonProps = {
 // The calm secondary action that pairs with LiquidMetalButton: same height,
 // font size and weight, with a hairline border and a faint fill.
 const baseClassName =
-  "inline-flex min-h-12 [font-family:Helvetica,Arial,sans-serif] min-w-0 items-center justify-center gap-3 whitespace-nowrap rounded-full border border-white/[0.18] bg-white/[0.04] px-5 text-sm font-normal text-white transition-[border-color,background-color,transform] duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-white/[0.32] hover:bg-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent active:translate-y-px active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 motion-reduce:transition-none";
+  "inline-flex min-h-12 min-w-0 items-center justify-center gap-3 whitespace-nowrap rounded-full border border-white/[0.18] bg-white/[0.04] px-5 text-sm font-normal text-white transition-[border-color,background-color,transform] duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-white/[0.32] hover:bg-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent active:translate-y-px active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 motion-reduce:transition-none";
 
 export default function PillButton({
   children,
@@ -45,7 +46,7 @@ export default function PillButton({
   type = "button",
 }: PillButtonProps) {
   const magnet = useMagnetic<HTMLElement>();
-  const classes = `${baseClassName} ${className}`;
+  const classes = `${baseClassName} ${tasaOrbiter.className} ${className}`;
   const content = (
     <>
       {icon}

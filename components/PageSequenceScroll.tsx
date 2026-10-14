@@ -1,3 +1,4 @@
+import { spaceBoards, tasaOrbiter } from "@font";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
@@ -18,6 +19,8 @@ const minimumIntentEvents = 3;
 const postNavigationCooldownMs = 999;
 /** How far past a scroll edge a touch pull must travel to move to the next page. */
 const pullThreshold = 70;
+/** Pull distance from which the hint starts to show. */
+const pullHintFrom = 20;
 
 const pageLabels: Record<(typeof pageOrder)[number], string> = {
   "/": "Home",
@@ -212,16 +215,29 @@ const PageSequenceScroll = () => {
   // pull is measured from the moment the page reaches its edge, so a swipe
   // that starts mid-page and keeps going counts; a fling that only reaches the
   // edge after the finger lifts does not. While pulling, the page stretches
-  // and a "Release for <next>" hint appears once the pull is far enough.
+  // and a pill at the edge reads "Pull for <next>", the next page's name set
+  // as its wordmark, with a progress fill, then "Release for <next>" once far
+  // enough.
   useEffect(() => {
     const pageIndex = pageOrder.indexOf(pathname as (typeof pageOrder)[number]);
     if (pageIndex === -1) return;
 
     const hint = document.createElement("div");
     hint.setAttribute("aria-hidden", "true");
-    hint.className =
-      "pointer-events-none fixed left-1/2 z-[1500] -translate-x-1/2 rounded-full border border-white/15 bg-black/80 px-4 py-2 text-sm font-medium text-white opacity-0 shadow-[0_12px_32px_rgba(0,0,0,0.45)] backdrop-blur-md transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]";
-    document.body.appendChild(hint);
+    hint.className = `pointer-events-none fixed left-1/2 z-[1500] flex items-center gap-2 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-white/10 px-4 py-2 text-white opacity-0 shadow-[0_12px_32px_rgba(0,0,0,0.45)] backdrop-blur-md transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] ${tasaOrbiter.className}`;
+    hint.style.transform = "translate(-50%, 0.5rem)";
+    // Accent fill, left to right with the pull; full at the threshold.
+    const hintFill = document.createElement("span");
+    hintFill.className =
+      "absolute inset-0 origin-left bg-accent/25 transition-transform duration-100 ease-linear motion-reduce:transition-none";
+    hintFill.style.transform = "scaleX(0)";
+    const hintAction = document.createElement("span");
+    hintAction.className = "relative text-sm font-medium text-white/85";
+    // The next page's name as its wordmark, sized to the pill.
+    const hintTitle = document.createElement("span");
+    hintTitle.className = `animated-heading relative text-[1.2rem] font-bold leading-none tracking-[-0.04em] ${spaceBoards.className}`;
+    hint.append(hintFill, hintAction, hintTitle);
+    document.body.append(hint);
 
     type Pull = {
       scroller: Element;
@@ -241,25 +257,74 @@ const PageSequenceScroll = () => {
     let pull: Pull | null = null;
     let frame = 0;
 
+    // Window-scrolled pages stretch their <main>; About has none, so its
+    // content root inside the freeze wrapper (never the wrapper itself, which
+    // the lift uses to hold the page at its scroll offset).
     const pullTarget = (scroller: Element | undefined) =>
       !scroller
         ? null
         : isDocumentScroller(scroller)
-          ? document.querySelector<HTMLElement>(`[data-page="${pathname}"] main`)
+          ? (document.querySelector<HTMLElement>(`[data-page="${pathname}"] main`) ??
+            document.querySelector<HTMLElement>(`[data-page="${pathname}"] [data-freeze] > *`))
           : (scroller as HTMLElement);
 
-    const showHint = (direction: 1 | -1 | null, visible: boolean) => {
+    // The haptic tick fires once per crossing of the threshold.
+    let crossed = false;
+    // Shrinks the pill where it would not fit its row; kept while it fades out.
+    let hintScale = 1;
+    const gutter = 16;
+    const menuGap = 8;
+
+    /** The hint for a pull `distance` px past the edge (0 hides it). */
+    const showHint = (direction: 1 | -1 | null, distance: number) => {
       const nextPath = direction ? pageOrder[pageIndex + direction] : undefined;
-      if (visible && nextPath) {
-        hint.textContent = `Release for ${pageLabels[nextPath]}`;
-        hint.style.top = direction === -1 ? "calc(env(safe-area-inset-top) + 1.25rem)" : "";
-        hint.style.bottom = direction === 1 ? "calc(env(safe-area-inset-bottom) + 1.5rem)" : "";
-        hint.style.opacity = "1";
-        hint.style.transform = "translate(-50%, 0)";
-      } else {
+      const away = direction === -1 ? -1 : 1;
+      if (!nextPath || distance < pullHintFrom) {
         hint.style.opacity = "0";
-        hint.style.transform = `translate(-50%, ${direction === -1 ? "-0.5rem" : "0.5rem"})`;
+        hint.style.transform = `translate(-50%, ${away * 0.5}rem) scale(${hintScale})`;
+        return;
       }
+
+      const forward = direction === 1;
+      hintAction.textContent = distance >= pullThreshold ? "Release for" : "Pull for";
+      hintTitle.textContent = pageLabels[nextPath];
+      hintFill.style.transform = `scaleX(${Math.min(1, distance / pullThreshold)})`;
+
+      // At the edge being pulled. Going forward: the bottom, over the page's
+      // bottom padding. Going back: in the top bar's row, beside the menu
+      // button, above the page's own heading rather than on it.
+      const viewport = document.documentElement.clientWidth;
+      const width = hint.offsetWidth;
+      const menu = forward ? null : document.querySelector<HTMLElement>("button.hamburger")?.getBoundingClientRect();
+      let center = viewport / 2;
+      let room = viewport - gutter * 2;
+      if (menu && menu.width > 0 && menu.left - menuGap > viewport / 2) {
+        const end = menu.left - menuGap;
+        if (center + width / 2 > end) {
+          // Centred on the page it would run into the button: centre it in the space left of it.
+          center = (gutter + end) / 2;
+          room = end - gutter;
+        }
+        hint.style.top = `${menu.top + (menu.height - hint.offsetHeight) / 2}px`;
+      } else {
+        hint.style.top = forward ? "" : "calc(env(safe-area-inset-top) + 0.75rem)";
+      }
+      hintScale = width > room ? room / width : 1;
+      hint.style.left = `${center}px`;
+      hint.style.bottom = forward ? "calc(env(safe-area-inset-bottom) + 1.5rem)" : "";
+      hint.style.opacity = "1";
+      hint.style.transform = `translate(-50%, 0) scale(${hintScale})`;
+    };
+
+    const tick = (ready: boolean) => {
+      if (ready && !crossed) {
+        try {
+          navigator.vibrate?.(10);
+        } catch {
+          // No haptics here (iOS Safari, or no user activation yet).
+        }
+      }
+      crossed = ready;
     };
 
     const stretch = (offset: number) => {
@@ -281,7 +346,8 @@ const PageSequenceScroll = () => {
     const release = () => {
       cancelAnimationFrame(frame);
       relax(pullTarget(pull?.scroller));
-      showHint(pull?.direction ?? null, false);
+      showHint(pull?.direction ?? null, 0);
+      crossed = false;
       pull = null;
     };
 
@@ -293,7 +359,8 @@ const PageSequenceScroll = () => {
       current.distance = 0;
       cancelAnimationFrame(frame);
       relax(pullTarget(current.scroller));
-      showHint(direction, false);
+      showHint(direction, 0);
+      crossed = false;
     };
 
     // Finger travel the scroller did not follow at all is a page held at its
@@ -376,12 +443,13 @@ const PageSequenceScroll = () => {
       const hasNext = Boolean(pageOrder[pageIndex + direction]);
       // Rubber band: about a third of the finger's travel, and stiffer at the very ends of the sequence.
       const offset = prefersReducedMotion() ? 0 : -direction * Math.min(pull.distance * (hasNext ? 0.35 : 0.12), 120);
-      const ready = hasNext && pull.distance >= pullThreshold;
+      const distance = hasNext ? pull.distance : 0;
+      tick(distance >= pullThreshold);
 
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         stretch(offset);
-        showHint(direction, ready);
+        showHint(direction, distance);
       });
     };
 
@@ -403,7 +471,8 @@ const PageSequenceScroll = () => {
         // rides away with the lift from where the finger left it, instead of
         // springing back first and then setting off from rest.
         cancelAnimationFrame(frame);
-        showHint(ended.direction, false);
+        showHint(ended.direction, 0);
+        crossed = false;
         const target = pullTarget(ended.scroller);
         pull = null;
         if (navigate(nextPath, { source: "sequence", input: "touch" })) {

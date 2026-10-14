@@ -36,12 +36,17 @@ export const isDrawerOpen = () =>
   typeof document !== "undefined" && Boolean(document.querySelector("[data-drawer-open]"));
 
 // ---------------------------------------------------------------------------
-// Motion tokens. One heavy, symmetric ease and one duration for every layer of
-// the lift, so the sheet, its content and the page underneath stay in lockstep.
+// Motion tokens. One ease and one duration for every layer of a lift, so the
+// sheet, its content and the page underneath stay in lockstep: heavy and
+// symmetric for desktop lifts, a shorter decelerating throw for lifts a finger
+// starts (touch pulls, and every phone-layout lift).
 // ---------------------------------------------------------------------------
 
 export const EASE_LIFT = [0.76, 0, 0.24, 1] as const;
 export const LIFT_MS = 1100;
+/** Touch and phone lifts leave at speed, like a released sheet, and decelerate into place. */
+export const EASE_THROW = [0.22, 1, 0.36, 1] as const;
+export const THROW_MS = 750;
 /** The page underneath starts this far down (fraction of the viewport): ~0.2x the sheet. */
 export const UNDER_OFFSET = 0.2;
 /** Foreground content inside the sheet travels this much further than the sheet. */
@@ -50,6 +55,12 @@ export const CONTENT_LEAD = 0.12;
 export const SCRIM_MAX = 0.25;
 /** Soft leading edge under the lifting sheet (in flight only). */
 export const SHEET_SHADOW = "0 40px 80px rgba(0, 0, 0, 0.55)";
+/**
+ * Phones (plain lift): a hairline just past the sheet's bottom edge, the edge
+ * that moves across the screen either way, so a black page over a black page
+ * still reads as a sheet. In flight only.
+ */
+export const SHEET_EDGE = "0 1px 0 rgba(255, 255, 255, 0.08)";
 
 export const FLIP_MS = 1000;
 export const EASE_FLIP = [0.65, 0, 0.35, 1] as const;
@@ -153,6 +164,8 @@ export type PageTransition = {
   commitAt: number | null;
   /** Lift/fade length in ms (already time-scaled). */
   duration: number;
+  /** Cubic-bezier of every lift track: EASE_LIFT, or EASE_THROW for touch and phone lifts. */
+  ease: readonly number[];
   /** Dashboard flip length in ms (already time-scaled). */
   flipDuration: number;
   /** Home's desktop visual is the fixed 3D scene, so it rides on Home's sheet. */

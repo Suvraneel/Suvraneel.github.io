@@ -50,7 +50,7 @@ const ARRIVAL_FROM = { opacity: 0.4, y: 18 };
 /**
  * Reached by a lift, the cards the visitor arrives at settle with it: each
  * rises from 18px and 40% opacity (never invisible) on the lift's own
- * timeline, 60ms apart, all landing as the lift settles, so seeks, resumes
+ * timeline and curve, 60ms apart, all landing as the lift settles, so seeks, resumes
  * and settle carry them too. Cells sit outside the cards, so the cards' own
  * hover, tap and tilt transforms stay theirs.
  */
@@ -72,7 +72,8 @@ function useLiftEntrance(galleryRef: RefObject<HTMLElement | null>) {
               { opacity: ARRIVAL_FROM.opacity, transform: `translate3d(0px, ${ARRIVAL_FROM.y}px, 0px)` },
               { opacity: 1, transform: "translate3d(0px, 0px, 0px)" },
             ],
-            { duration: length, delay: index * REVEAL_STAGGER_MS, easing: cssEase(EASE_LIFT), fill: "both" }
+            // The lift's own curve: EASE_THROW on touch and phone lifts, else EASE_LIFT.
+            { duration: length, delay: index * REVEAL_STAGGER_MS, easing: cssEase(t.ease ?? EASE_LIFT), fill: "both" }
           )
         );
       });

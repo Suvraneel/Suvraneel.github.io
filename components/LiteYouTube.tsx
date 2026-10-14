@@ -47,15 +47,21 @@ export default function LiteYouTube({ src, title }: Readonly<{ src: string; titl
         }}
       />
       <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-      <div className="absolute inset-0 grid place-items-center">
+      {/* Bottom-left, on the gradient: YouTube posters usually carry a centred
+          title, which a centred button would cover. Inset >= the focus ring's
+          6px reach so the poster's overflow-hidden never clips the ring. */}
+      {/* Phones get a 44px round icon button in the corner, so the poster's own
+          text stays clear; sm and up keep the labelled pill. */}
+      <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5">
         <LiquidMetalButton
+          ariaLabel={`Play demo: ${title}`}
+          circleBelowSm
           onClick={() => setPlaying(true)}
           onMouseEnter={() => setPlayHovered(true)}
           onMouseLeave={() => setPlayHovered(false)}
         >
           <PlayIcon aria-hidden="true" size={16} animate={playHovered} />
-          <span>Play demo</span>
-          <span className="sr-only">: {title}</span>
+          <span className="max-sm:hidden">Play demo</span>
         </LiquidMetalButton>
       </div>
     </div>
