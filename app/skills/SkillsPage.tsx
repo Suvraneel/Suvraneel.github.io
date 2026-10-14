@@ -64,7 +64,7 @@ export default function SkillsPage() {
 
   return (
     <main className="nav-gap min-h-[100dvh] overflow-x-hidden bg-black text-white">
-      <div className="mx-auto max-w-[1440px] px-5 pb-24 pt-20 sm:px-10 sm:pb-28 sm:pt-24 lg:px-14 xl:px-20">
+      <div className="mx-auto max-w-[1440px] px-5 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-24 lg:px-14 xl:px-20">
         <header className="max-w-4xl">
           <h1 className={`animated-heading text-4xl font-bold leading-none tracking-[-0.04em] sm:text-6xl ${spaceBoards.className}`}>
             Skills

@@ -102,7 +102,7 @@ const About = () => {
       <div className="relative min-h-[100dvh] overflow-hidden bg-black text-white">
         <div className="relative z-10 grid min-h-[100dvh] grid-cols-1 lg:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.82fr)]">
           {/* Phones: the bottom padding keeps the CTAs clear of the "Pull for" pill. */}
-          <section className="flex min-h-[100dvh] items-start px-5 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-16 sm:px-10 sm:pb-16 sm:pt-20 lg:items-center lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
+          <section className="flex min-h-[100dvh] items-start px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-16 sm:pt-20 lg:items-center lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
             <div className="max-w-2xl">
               <p className={`mb-3 text-xs font-medium uppercase tracking-[0.2em] text-accent/70 ${tasaOrbiter.className}`}>
                 Profile

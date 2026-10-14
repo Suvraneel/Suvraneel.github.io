@@ -224,16 +224,27 @@ const PageSequenceScroll = () => {
     hint.setAttribute("aria-hidden", "true");
     hint.className = `pointer-events-none fixed left-1/2 z-[1500] flex items-center gap-2 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-white/10 px-4 py-2 text-white opacity-0 shadow-[0_12px_32px_rgba(0,0,0,0.45)] backdrop-blur-md transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] ${tasaOrbiter.className}`;
     hint.style.transform = "translate(-50%, 0.5rem)";
-    // Accent fill, left to right with the pull; full at the threshold.
+    // A faint fill, left to right with the pull; full at the threshold.
     const hintFill = document.createElement("span");
     hintFill.className =
-      "absolute inset-0 origin-left bg-accent/25 transition-transform duration-100 ease-linear motion-reduce:transition-none";
+      "absolute inset-0 origin-left bg-white/[0.14] transition-transform duration-100 ease-linear motion-reduce:transition-none";
     hintFill.style.transform = "scaleX(0)";
+    // Both labels share one grid cell, so the pill keeps the longer one's width
+    // and the words crossfade at the threshold instead of resizing it.
     const hintAction = document.createElement("span");
-    hintAction.className = "relative text-sm font-medium text-white/85";
-    // The next page's name as its wordmark, sized to the pill.
+    hintAction.className = "relative grid justify-items-end text-sm font-medium text-white/85";
+    const labelClass =
+      "[grid-area:1/1] transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none";
+    const pullLabel = document.createElement("span");
+    pullLabel.className = labelClass;
+    pullLabel.textContent = "Pull for";
+    const releaseLabel = document.createElement("span");
+    releaseLabel.className = labelClass;
+    releaseLabel.textContent = "Release for";
+    hintAction.append(pullLabel, releaseLabel);
+    // The next page's name as its wordmark, at the label's scale.
     const hintTitle = document.createElement("span");
-    hintTitle.className = `animated-heading relative text-[1.2rem] font-bold leading-none tracking-[-0.04em] ${spaceBoards.className}`;
+    hintTitle.className = `animated-heading relative text-[0.95rem] font-bold leading-none tracking-[-0.02em] ${spaceBoards.className}`;
     hint.append(hintFill, hintAction, hintTitle);
     document.body.append(hint);
 
@@ -284,7 +295,9 @@ const PageSequenceScroll = () => {
       }
 
       const forward = direction === 1;
-      hintAction.textContent = distance >= pullThreshold ? "Release for" : "Pull for";
+      const ready = distance >= pullThreshold;
+      pullLabel.style.opacity = ready ? "0" : "1";
+      releaseLabel.style.opacity = ready ? "1" : "0";
       hintTitle.textContent = pageLabels[nextPath];
       hintFill.style.transform = `scaleX(${Math.min(1, distance / pullThreshold)})`;
 

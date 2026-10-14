@@ -98,7 +98,7 @@ export default function ContactPage() {
 
   return (
     <main className="nav-gap min-h-[100dvh] overflow-x-hidden bg-black text-white">
-      <div className="mx-auto max-w-[1440px] px-5 pb-24 pt-28 sm:px-10 sm:pb-28 sm:pt-24 lg:px-14 lg:pb-12 lg:pt-[max(4rem,calc((100dvh-30rem)/2))] xl:px-20">
+      <div className="mx-auto max-w-[1440px] px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-24 lg:px-14 lg:pb-12 lg:pt-[max(4rem,calc((100dvh-30rem)/2))] xl:px-20">
         {/* Editorial split: intro and direct options on the left, the form from the top on the right, so Send stays above the fold.
             Desktop top padding centres the ~30rem composition from the viewport height alone, so the growing textarea never shifts it. */}
         <div className="grid gap-12 lg:grid-cols-[minmax(17rem,0.95fr)_minmax(0,1.05fr)] lg:gap-0 min-[1440px]:grid-cols-[minmax(17rem,0.72fr)_minmax(0,1.28fr)]">

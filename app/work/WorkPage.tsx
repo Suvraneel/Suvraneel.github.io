@@ -150,7 +150,7 @@ const Work = () => {
           </aside>
           {/* Positioned, so the text paints over the plant's canvas where the glow runs under it. */}
           <div className="relative min-w-0">
-            <div className="max-w-6xl px-5 pb-20 pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:px-14">
+            <div className="max-w-6xl px-5 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:px-14">
           <header className="max-w-4xl">
             <h1 className={`animated-heading text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
               Work &amp; experience
