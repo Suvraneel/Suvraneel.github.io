@@ -10,6 +10,7 @@ import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
 import { gestureGate, isTransitionLocked } from "@components/transition/transitionStore";
+import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
 
 const isAtPageBottom = () =>
   window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
@@ -33,6 +34,8 @@ const About = () => {
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
       if (isTransitionLocked() || event.ctrlKey || event.deltaY === 0) return;
+      // An open drawer or dialog scrolls its own content.
+      if (isDialogOpen() || isDrawerOpen()) return;
 
       // The tail of the gesture that brought the visitor here never counts.
       if (gestureGate.swallow(event)) {
@@ -101,8 +104,10 @@ const About = () => {
   return (
       <div className="relative min-h-[100dvh] overflow-hidden bg-black text-white">
         <div className="relative z-10 grid min-h-[100dvh] grid-cols-1 lg:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.82fr)]">
-          {/* Phones: the bottom padding keeps the CTAs clear of the "Pull for" pill. */}
-          <section className="flex min-h-[100dvh] items-start px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-16 sm:pt-20 lg:items-center lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
+          {/* Phones: the bottom padding keeps the CTAs clear of the "Pull for" pill.
+              Tablets: the text starts past the 50px nav rail (shown from 769px wide and
+              521px tall, as in globals.css), as .nav-gap does on the other pages. */}
+          <section className="flex min-h-[100dvh] items-start px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-16 sm:pt-20 min-[769px]:max-lg:[@media(min-height:521px)]:pl-[calc(50px+2.5rem)] lg:items-center lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
             <div className="max-w-2xl">
               <p className={`mb-3 text-xs font-medium uppercase tracking-[0.2em] text-accent/70 ${tasaOrbiter.className}`}>
                 Profile

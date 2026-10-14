@@ -4,17 +4,39 @@ import "../styles/Home.module.css";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SPLINE_MIN_WIDTH, useDashboardScene } from "@components/DashboardScene";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
 import { gestureGate, isTransitionLocked } from "@components/transition/transitionStore";
 import { spaceBoards, tasaOrbiter } from "@font";
+import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
 
 const Home = () => {
   const { navigate } = usePageTransition();
+  const { isReady, sceneViewport, sceneFailed, preloaderActive } = useDashboardScene();
   const scrollIntent = useRef(0);
   const lastWheelAt = useRef(0);
+  const preloaderActiveRef = useRef(preloaderActive);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  /** Home has been seen at phone width (then widened or rotated past it). */
+  const [wasNarrow, setWasNarrow] = useState(
+    () => typeof window !== "undefined" && window.innerWidth <= SPLINE_MIN_WIDTH
+  );
+  // Wide screens show the 3D dashboard instead of this hero. A phone widened
+  // past SPLINE_MIN_WIDTH, or a scene that failed, keeps the hero on screen
+  // until the scene is ready, so Home is never empty. Arriving from another
+  // page while the scene loads keeps the dashboard's own backdrop, as before.
+  const heroOnScreen = sceneViewport && !isReady && !preloaderActive && (wasNarrow || sceneFailed);
+
+  useEffect(() => {
+    const narrow = window.matchMedia(`(max-width: ${SPLINE_MIN_WIDTH}px)`);
+    const onChange = () => {
+      if (narrow.matches) setWasNarrow(true);
+    };
+    narrow.addEventListener("change", onChange);
+    return () => narrow.removeEventListener("change", onChange);
+  }, []);
 
   // The page transition owns the dashboard flip: About pushes up while the
   // rig turns, so the two read as one motion.
@@ -22,6 +44,11 @@ const Home = () => {
     (source: "sequence" | "key") => navigate("/about", { source }),
     [navigate]
   );
+
+  // Read through a ref, so the wheel listener is not re-added when the preloader ends.
+  useEffect(() => {
+    preloaderActiveRef.current = preloaderActive;
+  }, [preloaderActive]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -35,10 +62,14 @@ const Home = () => {
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
       if (event.ctrlKey || event.deltaY <= 0 || isTransitionLocked()) return;
+      // The tail of the gesture that brought the visitor here never counts
+      // (the provider's wheel gate holds it).
+      if (gestureGate.swallow(event)) return;
+      // While navigate() would refuse the flip (open drawer or dialog, preloader
+      // up), the wheel is left to the page.
+      if (preloaderActiveRef.current || isDialogOpen() || isDrawerOpen() || !gestureGate.canStart()) return;
 
       event.preventDefault();
-      // The tail of the gesture that brought the visitor here never counts.
-      if (gestureGate.swallow(event)) return;
       const now = window.performance.now();
 
       if (now - lastWheelAt.current > 180) {
@@ -68,8 +99,9 @@ const Home = () => {
       if (isTyping || isControl || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       if (!["ArrowDown", "PageDown", " "].includes(event.key)) return;
 
-      event.preventDefault();
-      flipToAbout("key");
+      // The key is only taken by a flip that starts; one navigate() refuses
+      // (open drawer, preloader up) leaves it to the page.
+      if (flipToAbout("key")) event.preventDefault();
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -77,11 +109,15 @@ const Home = () => {
   }, [flipToAbout]);
 
   return (
-    <main className="min-h-[100dvh] max-[550px]:relative max-[550px]:z-10">
+    <main
+      className={`min-h-[100dvh] max-[550px]:relative max-[550px]:z-10 ${heroOnScreen ? "relative z-10" : ""}`}
+    >
       {/* Phones never load the 3D dashboard, so this hero is their landing view. */}
       <section
         aria-label="Portfolio introduction"
-        className="flex min-h-[100dvh] flex-col justify-start px-5 pb-10 pt-8 text-white min-[551px]:sr-only"
+        className={`flex min-h-[100dvh] flex-col justify-start px-5 pb-10 pt-8 text-white ${
+          heroOnScreen ? "nav-gap" : "min-[551px]:sr-only"
+        }`}
       >
         <motion.div
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}

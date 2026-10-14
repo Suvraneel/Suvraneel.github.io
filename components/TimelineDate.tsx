@@ -2,7 +2,7 @@ export default function TimelineDate({ duration }: Readonly<{ duration: string }
   const [startDate, endDate] = duration.split(" - ");
 
   return (
-    <div className="hidden sm:block">
+    <div className="hidden sm:[@container(min-width:28rem)]:block">
       <span className="sr-only">Period: {duration}</span>
       <div aria-hidden="true" className="relative mt-1 flex flex-col gap-2 pl-4 font-mono text-xs leading-4 tabular-nums text-white/55">
         <span className="absolute bottom-2 left-1 top-2 w-px bg-white/25" />

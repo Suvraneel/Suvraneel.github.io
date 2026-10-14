@@ -96,8 +96,10 @@ a:hover {
 .hamburger {
   display: none;
 }
-@media only screen and (max-width: 768px) {
-  /* For mobile phones: */
+/* Phones, and windows too short for the rail's links (landscape phones, short
+   desktop windows): the drawer instead. Keep in step with .nav-gap below and
+   WorkPage's plant offset. */
+@media only screen and (max-width: 768px), only screen and (max-height: 520px) {
   .sidebar-container {
     display: none;
   }
@@ -468,20 +470,33 @@ a:focus-visible > .link-draw::after {
   filter: invert(100%) hue-rotate(128deg) brightness(1.15);
 }
 
-/* Animated Heading */
+/* Animated Heading: the texture shows through the text. Plain accent text where
+   text clipping is unsupported; the accent under the (opaque) texture shows
+   only if the image fails to load. */
 .animated-heading {
-  background: url("/images/seed-46867.png") repeat;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: move 50s linear infinite;
+  color: rgb(var(--accent));
 }
-@keyframes move {
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .animated-heading {
+    background: rgb(var(--accent)) url("/images/seed-46867.png") 0% 30% repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: heading-texture-drift 50s linear infinite;
+  }
+}
+@keyframes heading-texture-drift {
   0% {
     background-position: 0% 30%;
   }
   100% {
     background-position: 100% 70%;
+  }
+}
+/* Reduced motion: the texture holds its first frame. */
+@media (prefers-reduced-motion: reduce) {
+  .animated-heading {
+    animation: none;
   }
 }
 
@@ -494,8 +509,8 @@ hr {
   margin-left: 50px;
   width: calc(100% - 50px) !important;
 }
-@media only screen and (max-width: 768px) {
-  /* For mobile phones: */
+/* No rail here: same breakpoints as the rail/hamburger swap. */
+@media only screen and (max-width: 768px), only screen and (max-height: 520px) {
   .nav-gap {
     margin-left: 0px;
     width: 100% !important;

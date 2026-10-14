@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useSpring } from "motion/react";
-import { useLayoutEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
+import { useLayoutEffect, useRef, useState, type FocusEvent, type PointerEvent, type RefObject } from "react";
 import useSound from "use-sound";
 import ProjectModal from "@components/ProjectModal";
 import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
@@ -242,8 +242,10 @@ function ProjectTile({
   const thumbnail = "thumbnail" in project ? project.thumbnail : undefined;
   const overview = project.details.split("|")[0]?.trim();
 
+  // Reduced motion keeps every preview paused on its first frame.
   const startPreview = () => {
-    previewVideo.current?.play().catch(() => undefined);
+    // Read live as well: useReducedMotion only captures the setting at mount.
+    if (!reduceMotion && !prefersReducedMotion()) previewVideo.current?.play().catch(() => undefined);
     onHoverStart();
   };
 
@@ -253,7 +255,9 @@ function ProjectTile({
   };
 
   // Keyboard focus previews the tile silently; the snap sound is for pointer hover.
-  const startFocusPreview = () => {
+  // Pointer focus (a click, or focus handed back by a closed modal) leaves it to hover.
+  const startFocusPreview = (event: FocusEvent<HTMLElement>) => {
+    if (reduceMotion || prefersReducedMotion() || !event.currentTarget.matches(":focus-visible")) return;
     previewVideo.current?.play().catch(() => undefined);
   };
 

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useMotionValue, useScroll, useSpring, type MotionValue } from "motion/react";
 import type { Application } from "@splinetool/runtime";
-import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 import ChronoCard from "@components/ChronoCard";
 import TimelineSpine from "@components/TimelineSpine";
 import TimelineDate from "@components/TimelineDate";
@@ -21,6 +21,18 @@ const PLANT_SPRING = { stiffness: 300, damping: 50 };
 
 /** An entry's dot lights once it has passed this share of the view. */
 const DOT_LIGHT_AT = 0.5;
+
+/** Where the plant's column shows (md, as on its <aside>). Below it the plant isn't mounted at all. */
+const PLANT_QUERY = "(min-width: 768px)";
+let plantQuery: MediaQueryList | null = null;
+const getPlantQuery = () => (plantQuery ??= window.matchMedia(PLANT_QUERY));
+const subscribePlantQuery = (onChange: () => void) => {
+  const query = getPlantQuery();
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+const isPlantShown = () => getPlantQuery().matches;
+const isPlantShownOnServer = () => false;
 
 /**
  * Lights each entry's dot (dim -> its own colour) as it passes the middle of
@@ -88,6 +100,9 @@ const Work = () => {
   const plantTarget = useMotionValue(0);
   const plantProgress = useSpring(plantTarget, PLANT_SPRING);
   const seekPlant = useRef<((progress: number) => void) | null>(null);
+  // Its column is display:none below md; an invisible canvas would still load
+  // a Spline runtime. Mounted again later, the plant syncs on load (scrubPlant).
+  const plantShown = useSyncExternalStore(subscribePlantQuery, isPlantShown, isPlantShownOnServer);
 
   useReveal(entriesRef, { rootRef: mainRef });
   useTimelineDots(mainRef, scrollY);
@@ -111,6 +126,11 @@ const Work = () => {
       seekPlant.current = null;
     };
   }, [scrollY, plantTarget, plantProgress]);
+
+  // A hidden plant is unmounted (its runtime disposed); stop seeking it.
+  useEffect(() => {
+    if (!plantShown) seekPlant.current = null;
+  }, [plantShown]);
 
   // The scene loads as the full plant. Reached from below (a backward lift
   // lands at Work's bottom) or restored part way down, it starts where the page
@@ -137,22 +157,25 @@ const Work = () => {
 
   return (
       <main ref={mainRef} className="page-scroller relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
-        <div className="min-h-screen grid md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)] gap-0">
-          <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen self-start md:block">
+        <div className="min-h-[100dvh] grid md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)] gap-0">
+          <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-[100dvh] self-start md:block">
             {/* The plant centres in the space you can see (right of the nav rail). */}
-            <div className="absolute inset-y-0 left-0 right-0 min-[769px]:left-[50px]">
+            <div className="absolute inset-y-0 left-0 right-0 min-[769px]:[@media(min-height:521px)]:left-[50px]">
               {/* Never clipped: the canvas is at least as wide as the ground glow (about half
                   its height), so the glow fades out on its own, under the glass rail and the text. */}
               <div className="pointer-events-none absolute inset-y-0 left-[calc(50%-max(50%,32.5vh))] w-[max(100%,65vh)]">
-                <SplineObj scene={"/spline/scene-plantNEW.splinecode"} onLoad={scrubPlant} />
+                {plantShown && <SplineObj scene={"/spline/scene-plantNEW.splinecode"} onLoad={scrubPlant} />}
               </div>
             </div>
           </aside>
           {/* Positioned, so the text paints over the plant's canvas where the glow runs under it. */}
           <div className="relative min-w-0">
-            <div className="max-w-6xl px-5 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:px-14">
+            {/* A size container: beside the md plant (about 768-900px wide) the column is too
+                narrow for the full-size title and the two-column entries, which ask it for room. */}
+            <div className="max-w-6xl px-5 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-20 [container-type:inline-size] sm:px-10 sm:pb-28 sm:pt-14 lg:px-14">
           <header className="max-w-4xl">
-            <h1 className={`animated-heading text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
+            {/* Shrinks with the column only where "experience" would not fit at full size. */}
+            <h1 className={`animated-heading text-4xl font-bold leading-none tracking-[-0.045em] sm:text-[length:min(3.75rem,13cqi)] ${spaceBoards.className}`}>
               Work &amp; experience
             </h1>
             <p className={`mt-5 max-w-2xl text-base leading-7 text-white/65 sm:text-lg ${tasaOrbiter.className}`}>
@@ -191,8 +214,9 @@ const Work = () => {
             <h2 id="education" className="text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
               Education
             </h2>
-            <article data-reveal className="relative mt-2 grid gap-4 py-8 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-6 sm:py-7">
-              <div className="flex items-start gap-3 sm:flex-col sm:items-start sm:gap-4">
+            {/* Two columns (dates | details) as in ChronoCard: from sm, once the column has 28rem. */}
+            <article data-reveal className="relative mt-2 grid gap-4 py-8 sm:py-7 sm:[@container(min-width:28rem)]:grid-cols-[6rem_minmax(0,1fr)] sm:[@container(min-width:28rem)]:gap-6">
+              <div className="flex items-start gap-3 sm:[@container(min-width:28rem)]:flex-col sm:items-start sm:[@container(min-width:28rem)]:gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] p-1">
                   <Image
                     src={`/images/work-assets/${educationData.image}`}
@@ -202,7 +226,7 @@ const Work = () => {
                     className="h-full w-full object-contain invert"
                   />
                 </div>
-                <div className="pt-2 sm:hidden">
+                <div className="pt-2 sm:[@container(min-width:28rem)]:hidden">
                   <p className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/40">
                     {educationData.duration}
                   </p>
@@ -212,13 +236,13 @@ const Work = () => {
                 </div>
                 <TimelineDate duration={educationData.duration} />
               </div>
-              <div className="relative grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-8 sm:pl-5">
-                <div aria-hidden="true" data-timeline-dot className="absolute left-0 top-1 hidden h-2 w-2 sm:block">
+              <div className="relative grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-8 sm:[@container(min-width:28rem)]:pl-5">
+                <div aria-hidden="true" data-timeline-dot className="absolute left-0 top-1 hidden h-2 w-2 sm:[@container(min-width:28rem)]:block">
                   <span className="timeline-dot-dim absolute inset-0 rounded-full bg-white/25" />
                   <span className="timeline-dot-lit absolute inset-0 rounded-full bg-white/50" />
                 </div>
                 <div>
-                  <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] text-accent/70 sm:block ${tasaOrbiter.className}`}>
+                  <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] text-accent/70 sm:[@container(min-width:28rem)]:block ${tasaOrbiter.className}`}>
                     {educationData.institution}
                   </p>
                   <h3 className="mt-2 text-xl font-semibold leading-tight tracking-[-0.035em] text-white sm:text-2xl">

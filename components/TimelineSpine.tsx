@@ -78,7 +78,7 @@ export default function TimelineSpine({ scrollY }: Readonly<{ scrollY: MotionVal
       ref={spineRef}
       aria-hidden="true"
       // Clipped to its own length only; the head's glow may spill sideways.
-      className="pointer-events-none absolute hidden w-px [clip-path:inset(0_-12px)] sm:block"
+      className="pointer-events-none absolute hidden w-px [clip-path:inset(0_-12px)] sm:[@container(min-width:28rem)]:block"
       // Through the dots at the left edge of the content column (6rem dates column + 1.5rem gap + dot centre).
       style={{ left: "calc(7.5rem + 3.5px)", top: geometry.top, height: geometry.height }}
     >

@@ -47,6 +47,8 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
     const currentDialog = dialog.current;
     if (!currentDialog) return;
 
+    // The tile that opened the dialog, to hand focus back to on close.
+    const trigger = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     const scrollPosition = window.scrollY;
     const root = document.documentElement;
     const body = document.body;
@@ -94,6 +96,11 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
       currentDialog.removeEventListener("close", onClose);
       if (currentDialog.open) currentDialog.close();
       releasePage();
+      // By now the dialog has left the DOM after its exit animation, so the
+      // browser's own focus restore never ran. Only when focus was dropped:
+      // a page transition that closed the dialog keeps its own focus.
+      const focusDropped = document.activeElement === null || document.activeElement === document.body;
+      if (trigger?.isConnected && focusDropped) trigger.focus({ preventScroll: true });
     };
   }, []);
 
@@ -165,10 +172,11 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
               {hasProjectDemo ? (
                 <LiteYouTube src={project.video} title={`${project.name} demo`} />
               ) : (
+                // Reduced motion: the demo stays paused on its first frame.
                 <video
                   className="h-full w-full object-cover"
                   src={`/images/project-assets/${project.gif}`}
-                  autoPlay
+                  autoPlay={!reduceMotion}
                   muted
                   loop
                   playsInline

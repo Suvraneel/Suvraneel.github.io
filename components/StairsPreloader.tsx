@@ -15,8 +15,12 @@ export default function StairsPreloader({ progress }: { progress: number | null 
   const isRepeatVisit = useRef(false);
 
   useEffect(() => {
-    isRepeatVisit.current = window.sessionStorage.getItem(SEEN_KEY) === "1";
-    window.sessionStorage.setItem(SEEN_KEY, "1");
+    try {
+      isRepeatVisit.current = window.sessionStorage.getItem(SEEN_KEY) === "1";
+      window.sessionStorage.setItem(SEEN_KEY, "1");
+    } catch {
+      // sessionStorage throws when site data is blocked; the visit then counts as a first one.
+    }
   }, []);
 
   useEffect(() => {

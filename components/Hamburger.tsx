@@ -143,7 +143,9 @@ const Hamburger = () => {
               role="dialog"
               aria-modal="true"
               aria-label="Navigation"
-              className="pointer-events-auto absolute inset-y-0 right-0 flex h-full w-[min(86vw,22rem)] flex-col border-l border-white/10 bg-black/95 shadow-[-24px_0_48px_rgba(0,0,0,0.35)]"
+              // Windows shorter than the sheet's ~570px of content (landscape phones, short
+              // desktop windows): it scrolls instead of cutting off its last links.
+              className="pointer-events-auto absolute inset-y-0 right-0 flex h-full w-[min(86vw,22rem)] flex-col [@media(max-height:640px)]:overflow-y-auto [@media(max-height:640px)]:overscroll-contain border-l border-white/10 bg-black/95 shadow-[-24px_0_48px_rgba(0,0,0,0.35)]"
               variants={sheet}
               initial="closed"
               animate="open"

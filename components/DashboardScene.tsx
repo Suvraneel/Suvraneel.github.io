@@ -22,7 +22,7 @@ import {
 const DASHBOARD_SCENE = "/spline/sceneDACCORD_NEW.splinecode";
 const FLIP_RIG = "Dashboard Flip Rig";
 // SplineObj skips rendering at or below this width.
-const SPLINE_MIN_WIDTH = 550;
+export const SPLINE_MIN_WIDTH = 550;
 const FALLBACK_AFTER_MS = 8000;
 const PRELOADER_MAX_MS = 30000;
 // Extra hold at 100% so slow GPUs finish settling before the reveal.
@@ -33,6 +33,8 @@ type DashboardSceneContextValue = {
   isReady: boolean;
   /** Viewport is wide enough for the 3D dashboard (phones get the static hero). */
   sceneViewport: boolean;
+  /** The scene failed to load or start. */
+  sceneFailed: boolean;
   /** The first-visit stairs preloader is covering the screen. */
   preloaderActive: boolean;
   /** The fixed full-screen scene wrapper; page transitions lift it with the Home sheet. */
@@ -49,6 +51,7 @@ const DashboardSceneContext = createContext<DashboardSceneContextValue>({
   app: null,
   isReady: false,
   sceneViewport: false,
+  sceneFailed: false,
   preloaderActive: false,
   containerRef: { current: null },
   getRig: () => null,
@@ -108,8 +111,9 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   }, []);
 
   // Download the scene ourselves for real progress, then hand Spline the same bytes.
+  // Phones never download it; one widened or rotated past SPLINE_MIN_WIDTH does then.
   useEffect(() => {
-    if (!needsScene || window.innerWidth <= SPLINE_MIN_WIDTH) return;
+    if (!needsScene || !isSplineViewport) return;
 
     const controller = new AbortController();
     // Warm the lazy Spline runtime chunk in parallel with the scene download.
@@ -122,8 +126,11 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
       });
 
     return () => controller.abort();
-  }, [needsScene]);
+  }, [needsScene, isSplineViewport]);
 
+  // Re-checked when the viewport crosses SPLINE_MIN_WIDTH: once narrow, the first
+  // visit has no preloader (widened later, Home keeps its hero until the scene is
+  // ready). The width is read directly: isSplineViewport is false on the first pass.
   useEffect(() => {
     if (!shouldMountDashboard || window.innerWidth <= SPLINE_MIN_WIDTH) {
       setInitialLoad(false);
@@ -133,7 +140,7 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
 
     const timeoutId = window.setTimeout(() => setInitialLoad(false), READY_HOLD_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [isReady, shouldMountDashboard]);
+  }, [isReady, isSplineViewport, shouldMountDashboard]);
 
   useEffect(() => {
     if (!isInitialLoad) return;
@@ -189,12 +196,13 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
       app,
       isReady,
       sceneViewport: isSplineViewport,
+      sceneFailed: hasSceneError,
       preloaderActive,
       containerRef,
       getRig,
       setFlip,
     }),
-    [app, getRig, isReady, isSplineViewport, preloaderActive, setFlip]
+    [app, getRig, hasSceneError, isReady, isSplineViewport, preloaderActive, setFlip]
   );
 
   // Off the first visit, an unready scene shows the static dashboard as its
