@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
 import AppShell from "@components/AppShell";
+import { GA_TRACKING_ID, gtagInit } from "@lib/gtag";
 import { siteDescription, siteName, siteUrl } from "@lib/seo";
 
 export const metadata: Metadata = {
@@ -66,6 +67,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
+        {GA_TRACKING_ID && (
+          <>
+            <script dangerouslySetInnerHTML={{ __html: gtagInit(GA_TRACKING_ID) }} />
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`} />
+          </>
+        )}
         <AppShell>{children}</AppShell>
       </body>
     </html>
