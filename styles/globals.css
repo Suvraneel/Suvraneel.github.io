@@ -380,6 +380,12 @@ a:focus-visible > .link-draw::after {
   }
 }
 
+/* Work timeline spine fill (TimelineSpine): quiet along its length, brightening
+   over its last 7rem into the head, wherever the fill has reached. */
+.timeline-spine-fill {
+  background: linear-gradient(to bottom, rgb(var(--accent) / 0.22) calc(100% - 7rem), rgb(var(--accent) / 0.85));
+}
+
 /* Touch: the page edge belongs to the pull-to-continue gesture
    (PageSequenceScroll), so the browser's own bounce and pull-to-refresh are off. */
 @media (hover: none) and (pointer: coarse) {

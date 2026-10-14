@@ -123,10 +123,15 @@ const Work = () => {
 
   return (
       <main ref={mainRef} className="page-scroller relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
-        <div className="min-h-screen grid md:grid-cols-[20rem_minmax(0,1fr)] lg:grid-cols-[24rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)] gap-0">
-          <aside ref={plantAside} aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen self-start overflow-hidden border-r border-white/10 md:block">
-            {/*<SplineObj scene={"https://prod.spline.design/ZqRCvFgqp5-tcTea/scene.splinecode"} />*/}
-            <SplineObj scene={"/spline/scene-PLANT.splinecode"} onLoad={syncPlantToScroll} />
+        <div className="min-h-screen grid md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)] gap-0">
+          <aside ref={plantAside} aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen self-start overflow-hidden md:block">
+            {/* The canvas starts at the nav rail's edge, so the plant centres in the space you can see. */}
+            <div className="absolute inset-y-0 left-0 right-0 min-[769px]:left-[50px]">
+              <SplineObj scene={"/spline/scene-PLANT.splinecode"} onLoad={syncPlantToScroll} />
+            </div>
+            {/* No divider: the ground glow fades out at both edges instead of ending in a hard line. */}
+            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-black to-transparent min-[769px]:left-[50px]" />
+            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-black to-transparent" />
           </aside>
           <div className="min-w-0">
             <div className="max-w-6xl px-5 pb-20 pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:px-14">

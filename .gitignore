@@ -42,4 +42,5 @@ yarn-error.log*
 .opencode/
 .windsurf/
 .playwright-mcp/
+.playwright-cli/
 graphify-out/

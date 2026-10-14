@@ -72,7 +72,7 @@ const ChronoCard = ({
         <ul className={`mt-5 max-w-3xl space-y-2 text-sm leading-6 text-white/55 ${tasaOrbiter.className}`}>
           {curElem.highlights.map((highlight) => (
             <li key={highlight} className="flex gap-3">
-              <div aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent/60" />
+              <div aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-white/30" />
               <div className="min-w-0 flex-1">{highlight}</div>
             </li>
           ))}

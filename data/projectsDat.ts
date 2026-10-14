@@ -27,7 +27,7 @@ const projectsData = [
     id: "gssoc-website",
     name: "GirlScript SoC 2022 Official Website",
     details:
-      "A production grade web based application developed using Next.js & TailwindCSS Frameworks intended for the 8000+ contributors participating in the annually organized opensource program.|Was indispensable in showcasing the impact & commitment of the program across student communities during the sponsor pitches & conforms to their guidelines.|Was developed using Agile methodologies & CI/CD pipeline, prototyped in Figma, built with NextJS, TailwindCSS, ChakraUI & a plethora of npm libraries, hosted in Vercel, includes a dynamically updating paginated leaderboard & on-chain certificate verification.",
+      "A production grade web based application developed using Next.js & TailwindCSS Frameworks intended for the 6,000+ contributors participating in the annually organized opensource program.|Was indispensable in showcasing the impact & commitment of the program across student communities during the sponsor pitches & conforms to their guidelines.|Was developed using Agile methodologies & CI/CD pipeline, prototyped in Figma, built with NextJS, TailwindCSS, ChakraUI & a plethora of npm libraries, hosted in Vercel, includes a dynamically updating paginated leaderboard & on-chain certificate verification.",
     github: "http://github.com/girlscript/gssoc-website-new",
     url: "https://gssoc.girlscript.tech",
     gif: "gssoc-website.webm",

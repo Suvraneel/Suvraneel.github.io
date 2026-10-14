@@ -18,7 +18,7 @@ export type EducationEntry = {
 
 export const workData: ExperienceEntry[] = [
   {
-    role: "Advanced Application Engineering Senior Analyst",
+    role: "Advanced App Engineering Sr. Analyst",
     company: "Accenture",
     duration: "2023 - Present",
     image: "ACN.svg",
@@ -68,7 +68,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
     summary: "Led delivery of the official platform and contributor programme for a national open-source initiative.",
     highlights: [
       "Recruited and managed a 30-person team and ran the end-to-end contributor workflow.",
-      "Built and maintained the official Next.js website for 8,000+ contributors, supporting applications and registration.",
+      "Built and maintained the official Next.js website for 6,000+ contributors, supporting applications and registration.",
       "Mentored 6,000+ contributors and hosted 15+ hours of workshops and community events.",
       "Secured 10+ organisational partnerships and more than $10k in sponsorships.",
       "Served as the primary point of contact for stakeholders throughout the programme.",

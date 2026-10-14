@@ -16,13 +16,17 @@ const FULL: Geometry = { top: 0, height: 0, range: [-1, 0] };
  * One continuous line through a list's timeline dots. A faint track runs from
  * the first dot to the last; an accent fill follows the scroller (Work's
  * <main>) and reaches each dot as that dot lights, at the middle of the view.
+ * The fill stays quiet along its length and brightens into a glowing head.
  * At the scroller's end (a backward arrival included) the fill is complete.
  */
 export default function TimelineSpine({ scrollY }: Readonly<{ scrollY: MotionValue<number> }>) {
   const spineRef = useRef<HTMLDivElement>(null);
   const [geometry, setGeometry] = useState<Geometry>(FULL);
   const still = useMotionValue(0);
-  const scaleY = useTransform(scrollY ?? still, geometry.range, [0, 1]);
+  const progress = useTransform(scrollY ?? still, geometry.range, [0, 1]);
+  // The fill slides down inside the clipped spine instead of stretching, so its head keeps one length.
+  const fillY = useTransform(progress, (reached) => `${(reached - 1) * 100}%`);
+  const headOpacity = useTransform(progress, [0, 0.01], [0, 1]);
 
   useLayoutEffect(() => {
     const spine = spineRef.current;
@@ -73,12 +77,18 @@ export default function TimelineSpine({ scrollY }: Readonly<{ scrollY: MotionVal
     <div
       ref={spineRef}
       aria-hidden="true"
-      className="pointer-events-none absolute hidden w-px sm:block"
+      // Clipped to its own length only; the head's glow may spill sideways.
+      className="pointer-events-none absolute hidden w-px [clip-path:inset(0_-12px)] sm:block"
       // Through the dots at the left edge of the content column (6rem dates column + 1.5rem gap + dot centre).
       style={{ left: "calc(7.5rem + 3.5px)", top: geometry.top, height: geometry.height }}
     >
       <span className="absolute inset-0 bg-white/[0.12]" />
-      <motion.span className="absolute inset-0 origin-top bg-accent/70" style={{ scaleY }} />
+      <motion.span className="timeline-spine-fill absolute inset-0" style={{ y: fillY }}>
+        <motion.span
+          className="absolute bottom-0 left-0 h-4 w-px rounded-full shadow-[0_0_10px_2px_rgb(var(--accent)/0.45)]"
+          style={{ opacity: headOpacity }}
+        />
+      </motion.span>
     </div>
   );
 }
