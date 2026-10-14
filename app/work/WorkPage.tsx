@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useScroll, type MotionValue } from "motion/react";
+import { useMotionValue, useScroll, useSpring, type MotionValue } from "motion/react";
+import type { Application } from "@splinetool/runtime";
 import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import ChronoCard from "@components/ChronoCard";
 import TimelineSpine from "@components/TimelineSpine";
@@ -13,10 +14,10 @@ import { isUnrendered, layoutTop, whenPlaced } from "@components/transition/arri
 import { getTransition } from "@components/transition/transitionStore";
 import { useReveal } from "@hooks/useReveal";
 import { prefersReducedMotion } from "@lib/pageTransition";
-import { stepSplineScroll } from "@lib/splineScroll";
+import { scrubSplineScroll } from "@lib/splineScroll";
 
-// The plant's Spline Scroll event (scene-PLANT.splinecode, object "plant") has 40 steps.
-const PLANT_STEPS = 40;
+/** The plant trails the page by a short settle, so a mouse wheel's steps read as one motion. */
+const PLANT_SPRING = { stiffness: 300, damping: 50 };
 
 /** An entry's dot lights once it has passed this share of the view. */
 const DOT_LIGHT_AT = 0.5;
@@ -81,59 +82,74 @@ function useTimelineDots(mainRef: RefObject<HTMLElement | null>, scrollY: Motion
 }
 
 const Work = () => {
-  const plantAside = useRef<HTMLElement>(null);
-  const plantObserver = useRef<IntersectionObserver | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   const entriesRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll({ container: mainRef });
+  const plantTarget = useMotionValue(0);
+  const plantProgress = useSpring(plantTarget, PLANT_SPRING);
+  const seekPlant = useRef<((progress: number) => void) | null>(null);
 
   useReveal(entriesRef, { rootRef: mainRef });
   useTimelineDots(mainRef, scrollY);
 
-  useEffect(() => () => plantObserver.current?.disconnect(), []);
-
-  // The plant always loads as the full plant. When Work is reached from below
-  // (a backward lift lands at its bottom) or restored part way down, step it
-  // to match, once its canvas is in view so the Spline runtime counts the steps.
-  const syncPlantToScroll = useCallback(() => {
-    const aside = plantAside.current;
-    const main = aside?.closest("main");
-    const canvas = aside?.querySelector("canvas");
-    if (!aside || !main || !canvas) return;
-
-    const t = getTransition();
-    const range = main.scrollHeight - main.clientHeight;
-    const progress =
-      t && !t.settled && t.to === "/work"
-        ? t.direction < 0 ? 1 : 0
-        : range > 0 ? main.scrollTop / range : 0;
-    const steps = Math.round(progress * PLANT_STEPS);
-    if (!steps) return;
-
-    plantObserver.current?.disconnect();
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries.some((entry) => entry.isIntersecting)) return;
-      observer.disconnect();
-      // One frame later, so Spline's own in-view observer has flipped too.
-      requestAnimationFrame(() => stepSplineScroll(steps));
+  // The plant follows <main>'s scroll: full at the top (today), back to its pot
+  // at the bottom (where it started). Reduced motion drops the trailing settle.
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    const reduced = prefersReducedMotion();
+    const stopScroll = scrollY.on("change", (y) => {
+      const range = main.scrollHeight - main.clientHeight;
+      const progress = range > 0 ? y / range : 0;
+      if (reduced) plantProgress.jump(progress);
+      else plantTarget.set(progress);
     });
-    plantObserver.current = observer;
-    observer.observe(canvas);
-  }, []);
+    const stopSeek = plantProgress.on("change", (progress) => seekPlant.current?.(progress));
+    return () => {
+      stopScroll();
+      stopSeek();
+      seekPlant.current = null;
+    };
+  }, [scrollY, plantTarget, plantProgress]);
+
+  // The scene loads as the full plant. Reached from below (a backward lift
+  // lands at Work's bottom) or restored part way down, it starts where the page
+  // is. A scene the runtime can't scrub keeps its own wheel stepping.
+  const scrubPlant = useCallback(
+    (spline: Application) => {
+      const main = mainRef.current;
+      const seek = scrubSplineScroll(spline);
+      if (!main || !seek) return;
+
+      const t = getTransition();
+      const range = main.scrollHeight - main.clientHeight;
+      const progress =
+        t && !t.settled && t.to === "/work"
+          ? t.direction < 0 ? 1 : 0
+          : range > 0 ? main.scrollTop / range : 0;
+      seekPlant.current = seek;
+      plantTarget.jump(progress);
+      plantProgress.jump(progress);
+      seek(progress);
+    },
+    [plantTarget, plantProgress],
+  );
 
   return (
       <main ref={mainRef} className="page-scroller relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
         <div className="min-h-screen grid md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)] gap-0">
-          <aside ref={plantAside} aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen self-start overflow-hidden md:block">
-            {/* The canvas starts at the nav rail's edge, so the plant centres in the space you can see. */}
+          <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-screen self-start md:block">
+            {/* The plant centres in the space you can see (right of the nav rail). */}
             <div className="absolute inset-y-0 left-0 right-0 min-[769px]:left-[50px]">
-              <SplineObj scene={"/spline/scene-PLANT.splinecode"} onLoad={syncPlantToScroll} />
+              {/* Never clipped: the canvas is at least as wide as the ground glow (about half
+                  its height), so the glow fades out on its own, under the glass rail and the text. */}
+              <div className="pointer-events-none absolute inset-y-0 left-[calc(50%-max(50%,32.5vh))] w-[max(100%,65vh)]">
+                <SplineObj scene={"/spline/scene-plantNEW.splinecode"} onLoad={scrubPlant} />
+              </div>
             </div>
-            {/* No divider: the ground glow fades out at both edges instead of ending in a hard line. */}
-            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-black to-transparent min-[769px]:left-[50px]" />
-            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-black to-transparent" />
           </aside>
-          <div className="min-w-0">
+          {/* Positioned, so the text paints over the plant's canvas where the glow runs under it. */}
+          <div className="relative min-w-0">
             <div className="max-w-6xl px-5 pb-20 pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:px-14">
           <header className="max-w-4xl">
             <h1 className={`animated-heading text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>

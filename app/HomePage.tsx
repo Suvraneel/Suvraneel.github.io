@@ -8,7 +8,6 @@ import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
 import { gestureGate, isTransitionLocked } from "@components/transition/transitionStore";
-import { isSyntheticScrollStep } from "@lib/splineScroll";
 import { spaceBoards, tasaOrbiter } from "@font";
 
 const Home = () => {
@@ -35,7 +34,7 @@ const Home = () => {
 
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
-      if (isSyntheticScrollStep(event) || event.ctrlKey || event.deltaY <= 0 || isTransitionLocked()) return;
+      if (event.ctrlKey || event.deltaY <= 0 || isTransitionLocked()) return;
 
       event.preventDefault();
       // The tail of the gesture that brought the visitor here never counts.

@@ -46,7 +46,6 @@ import {
   type ReactNode,
 } from "react";
 import { adoptHistoryEntry, rememberScroll, savedScrollFor } from "./historyScroll";
-import { isSyntheticScrollStep } from "@lib/splineScroll";
 import { TransitionTimeline } from "./timeline";
 import {
   gestureGate,
@@ -809,12 +808,11 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
   // too, so the gate knows whether input is still the same gesture at
   // settle). In flight, and while the gesture that brought the visitor here
   // is still being swallowed, the event neither scrolls nor reaches anything
-  // past the window's capture phase: the Spline plant counts raw wheel events
-  // on a window bubble listener whatever their defaultPrevented. Pinch-zoom
+  // past the window's capture phase: Spline scenes take raw wheel events on a
+  // window listener whatever their defaultPrevented. Pinch-zoom
   // (ctrlKey) keeps its default and, once settled, is never gated.
   useEffect(() => {
     const onWheel = (event: WheelEvent) => {
-      if (isSyntheticScrollStep(event)) return;
       const swallowed = gestureGate.swallow(event);
       const locked = isTransitionLocked();
       // An open modal scrolls its own content, as it always has.
