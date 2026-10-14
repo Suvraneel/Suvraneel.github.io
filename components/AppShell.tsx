@@ -10,6 +10,7 @@ import { DashboardSceneProvider } from "@components/DashboardScene";
 import PageSequenceScroll from "@components/PageSequenceScroll";
 import PageStage from "@components/transition/PageLayer";
 import { PageTransitionProvider } from "@components/transition/PageTransitionProvider";
+import SplineLinkGuard from "@components/SplineLinkGuard";
 import * as gtag from "@lib/gtag";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -43,6 +44,7 @@ gtag('config', '${gtag.GA_TRACKING_ID}', { page_path: window.location.pathname }
               </>
             )}
             <PageSequenceScroll />
+            <SplineLinkGuard />
             <PageStage>{children}</PageStage>
           </Layout>
         </PageTransitionProvider>
