@@ -78,7 +78,7 @@ Use the source and date beside every factual claim. The following figures are cu
 | GirlScript Summer of Code 2021: 14 merged pull requests; top 100 active contributors from 7,000+ participants | `data/workData.ts` | Historical, source-listed figures; verify before external use. |
 | B.Tech Computer Science & Engineering, University of Calcutta, 2019–2023; 9.24 CGPA | `data/workData.ts` | Keep exact qualification and institution. |
 
-**Projects in the current data:** GirlScript SoC 2022 Official Website, EthCommerce, DeStackOverflow, SoLingo, CrewS, NFT Haven, JailBreak, Bounty Gunslinger, CoWIN Clone, Short-term Stock Market Price Trend Prediction, Meteorologyly, and Diablo Music App. Canonical descriptions, links, and technology lists are in `data/projectsDat.ts`.
+**Projects in the current data:** GirlScript SoC 2022 Official Website, EthCommerce, StakeOverflow, SoLingo, CrewS, NFT Haven, JailBreak, Bounty Gunslinger, CoWIN Clone, Short-term Stock Market Price Trend Prediction, Meteorologyly, and Diablo Music App. Canonical descriptions, links, and technology lists are in `data/projectsDat.ts`.
 
 **Project freshness warning:** Most project entries describe work from 2021–2023. Home's Daccord scene has been noted as featuring Monoma and SettleX, but neither is in `data/projectsDat.ts`. Confirm their status, role, and approved case-study facts before drafting copy about them.
 

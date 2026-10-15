@@ -27,9 +27,9 @@ const projectsData = [
     id: "gssoc-website",
     name: "GirlScript SoC 2022 Official Website",
     details:
-      "A production grade web based application developed using Next.js & TailwindCSS Frameworks intended for the 6,000+ contributors participating in the annually organized opensource program.|Was indispensable in showcasing the impact & commitment of the program across student communities during the sponsor pitches & conforms to their guidelines.|Was developed using Agile methodologies & CI/CD pipeline, prototyped in Figma, built with NextJS, TailwindCSS, ChakraUI & a plethora of npm libraries, hosted in Vercel, includes a dynamically updating paginated leaderboard & on-chain certificate verification.",
-    github: "http://github.com/girlscript/gssoc-website-new",
-    url: "https://gssoc.girlscript.tech",
+      "The official website for GirlScript Summer of Code 2022, a national open-source programme; 6,000+ contributors applied and registered through it.|Featured a live, paginated contributor leaderboard and on-chain certificate verification.|Prototyped in Figma, then built with Next.js, Tailwind CSS and Chakra UI, and shipped to Vercel through a CI/CD pipeline.|Used in sponsor pitches to show the programme's reach across student communities.|Originally hosted at [gssoc.girlscript.org](https://gssoc.girlscript.org) for GSSoC 2022; the live link is a preserved snapshot of that release.",
+    github: "https://github.com/Suvraneel/gssoc-website-new",
+    url: "https://gssoc-2022.vercel.app/",
     gif: "gssoc-website.webm",
     video: "https://www.youtube.com/embed/EKGJ-pzSEns",
     tech_stk: [
@@ -67,12 +67,13 @@ const projectsData = [
     ],
   },
   {
-    id: "de-stack-overflow",
-    name: "DeStackOverflow",
+    id: "stake-overflow",
+    name: "StakeOverflow",
     details:
       "Decentralized version of the most popular public forum for developers: Stack Overflow|Gives freedom to all users to post their questions, doubts & error logs.| Veteran developers in that tech stack can then post their answers.|Throughout this whole process, Privacy is maintained + Crypto donations and the Karma system helps incentivize the forum & encourage more people to resolve/answer the doubts.",
-    github: "https://github.com/Open-Sorcerer/DeStackOverflow",
-    url: "https://destackoverflow.on.fleek.co/",
+    github: "https://github.com/Open-Sorcerer/StakeOverflow",
+    url: "https://stake-overflow.vercel.app/",
+    thumbnail: "/images/project-assets/stakeoverflow-thumbnail.webp",
     gif: "destackoverflow.webm",
     video: "https://www.youtube.com/embed/unKt1LBCh7I",
     tech_stk: ["IPFS", "React", "AntDesign", "Solidity"],

@@ -11,6 +11,30 @@ import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-a
 import { XIcon } from "@components/animate-ui/icons/x";
 import { stateLogger } from "../stateLogger";
 
+/** A case note's text, with markdown-style `[label](https://…)` links as real links. */
+const NOTE_LINK = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+function noteContent(note: string) {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  for (const match of note.matchAll(NOTE_LINK)) {
+    parts.push(note.slice(last, match.index));
+    parts.push(
+      <a
+        key={match.index}
+        href={match[2]}
+        target="_blank"
+        rel="noreferrer"
+        className="text-white/85 underline decoration-white/30 underline-offset-[3px] transition-colors duration-200 hover:text-accent hover:decoration-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        {match[1]}
+      </a>
+    );
+    last = match.index + match[0].length;
+  }
+  parts.push(note.slice(last));
+  return parts;
+}
+
 type Project = {
   name: string;
   details: string;
@@ -128,8 +152,11 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
         Narrower: one scrolling column with a sticky close bar on top and the
         actions in a sticky bar at the bottom (no nested scroll box).
       */}
+      {/* Wide layout: the preview column is as wide as its 16:9 video can be at this
+          height (the modal's height less 18.72rem of chrome, plus 5.61rem of side padding),
+          capped at the old 1.5fr:0.78fr share, so short screens give the notes the room. */}
       <motion.section
-        className="relative flex h-full w-full max-w-[1480px] flex-col overflow-y-auto overscroll-contain rounded-[1.5rem] border border-white/10 bg-[#0b0f15] shadow-[0_32px_100px_rgba(0,0,0,0.55)] sm:h-[min(92dvh,920px)] min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,1.5fr)_minmax(24rem,0.78fr)] min-[1200px]:grid-rows-[auto_minmax(0,1fr)_auto_auto] min-[1200px]:overflow-hidden"
+        className="relative flex h-full w-full max-w-[1480px] flex-col overflow-y-auto overscroll-contain rounded-[1.5rem] border border-white/10 bg-[#0b0f15] shadow-[0_32px_100px_rgba(0,0,0,0.55)] sm:h-[min(92dvh,920px)] min-[1200px]:grid min-[1200px]:grid-cols-[min(65.8%,calc((min(92dvh,920px)_-_18.72rem)*16/9_+_5.61rem))_minmax(24rem,1fr)] min-[1200px]:grid-rows-[auto_minmax(0,1fr)_auto_auto] min-[1200px]:overflow-hidden"
         initial={reduceMotion ? false : { opacity: 0, y: 20, scale: 0.985 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.985 }}
@@ -205,7 +232,7 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
               {notes.map((detail, index) => (
                 <li key={detail} className="grid grid-cols-[2rem_1fr] gap-3">
                   <span className="pt-0.5 font-mono text-[0.65rem] text-accent/70">{String(index + 1).padStart(2, "0")}</span>
-                  <p className={`text-sm leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>{detail}</p>
+                  <p className={`text-sm leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>{noteContent(detail)}</p>
                 </li>
               ))}
             </ol>

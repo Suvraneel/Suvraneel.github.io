@@ -36,6 +36,7 @@ yarn-error.log*
 .idea/*
 .vscode/*
 .ai/
+.agents/
 .clinerules/
 .cursor/
 .impeccable/
