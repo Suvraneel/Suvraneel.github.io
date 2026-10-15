@@ -1,11 +1,11 @@
 "use client";
 
-import useSound from "use-sound";
 import Canvas from "@components/Particle";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as gtag from "@lib/gtag";
+import { useSfx } from "@hooks/useSfx";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
@@ -20,10 +20,8 @@ const About = () => {
   const { navigate } = usePageTransition();
   const scrollIntent = useRef(0);
   const lastWheelAt = useRef(0);
-  const snapSfx = "/sounds/snap.wav";
-  const confirmSfx = "/sounds/confirm.wav";
-  const [playSnap, { stop: stopSnap }] = useSound(snapSfx, { volume: 0.25 });
-  const [playConfirm] = useSound(confirmSfx, { volume: 0.25 });
+  const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
+  const [playConfirm] = useSfx("confirm", { volume: 0.25 });
 
   useEffect(() => {
     // Keep the next route and its remote scene in the browser cache while the

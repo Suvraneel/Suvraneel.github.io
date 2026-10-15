@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { FormEvent, SyntheticEvent, useCallback, useEffect, useRef, useState } from "react";
-import useSound from "use-sound";
+import { useSfx } from "@hooks/useSfx";
 import { spaceBoards, tasaOrbiter } from "@font";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
@@ -57,8 +57,8 @@ export default function ContactPage() {
   // Stable, so a re-render while the scheduler is open does not re-run its open effect (and refocus it).
   const closeScheduler = useCallback(() => setShowScheduler(false), []);
   const [submissionState, setSubmissionState] = useState<SubmissionState>("idle");
-  const [playSnap, { stop: stopSnap }] = useSound("/sounds/snap.wav", { volume: 0.25 });
-  const [playConfirm] = useSound("/sounds/confirm.wav", { volume: 0.25 });
+  const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
+  const [playConfirm] = useSfx("confirm", { volume: 0.25 });
   const [emailCopied, setEmailCopied] = useState(false);
   const [sendHovered, setSendHovered] = useState(false);
   const [bookHovered, setBookHovered] = useState(false);
@@ -66,6 +66,7 @@ export default function ContactPage() {
   const [attempted, setAttempted] = useState(false);
   const copiedTimer = useRef<number | null>(null);
   const schedulerOpener = useRef<HTMLElement | null>(null);
+  const sentHeading = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => () => {
     if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
@@ -78,6 +79,13 @@ export default function ContactPage() {
     schedulerOpener.current.focus();
     schedulerOpener.current = null;
   }, [showScheduler]);
+
+  // A send removes the form, and the focused Send button with it, which drops
+  // focus to <body>: hand it to the confirmation, unless it was moved elsewhere meanwhile.
+  useEffect(() => {
+    if (submissionState !== "success") return;
+    if (document.activeElement === null || document.activeElement === document.body) sentHeading.current?.focus();
+  }, [submissionState]);
 
   const copyEmail = async () => {
     try {
@@ -224,7 +232,7 @@ export default function ContactPage() {
                 <span className="grid size-12 place-items-center rounded-full border border-accent/40 text-accent">
                   <SendIcon aria-hidden="true" size={20} animate />
                 </span>
-                <p className="text-xl font-semibold tracking-[-0.02em] text-white sm:text-2xl">Message sent.</p>
+                <p ref={sentHeading} tabIndex={-1} className="text-xl font-semibold tracking-[-0.02em] text-white outline-none sm:text-2xl">Message sent.</p>
                 <p className="text-base leading-7 text-white/70">I&apos;ll get back to you soon.</p>
                 <button
                   type="button"
@@ -314,7 +322,8 @@ function Field({
   error?: string;
 }>) {
   // Underline fields: focus thickens the rule to 2px accent instead of drawing a box.
-  const className = "mt-1 w-full rounded-none border-0 border-b border-white/25 bg-transparent px-0 py-2 text-base text-white outline-none transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] placeholder:text-white/50 hover:border-white/50 focus:border-accent focus:shadow-[0_1px_0_0_rgb(var(--accent))]";
+  // Resting rule at white/40, the lightest step with 3:1 on black (white/35 is 2.998:1).
+  const className = "mt-1 w-full rounded-none border-0 border-b border-white/40 bg-transparent px-0 py-2 text-base text-white outline-none transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] placeholder:text-white/50 hover:border-white/50 focus:border-accent focus:shadow-[0_1px_0_0_rgb(var(--accent))]";
 
   // Grow with the message instead of exposing the browser's resize grip.
   const autoGrow = (event: FormEvent<HTMLTextAreaElement>) => {

@@ -11,6 +11,7 @@ import { motion, scrollInfo, useMotionValue, useReducedMotion, type MotionValue 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ElementType } from "react";
+import { useSfx } from "@hooks/useSfx";
 import type { PageTransition } from "@lib/pageTransition";
 import { getTransition, isInFlight, onArrival, subscribeTransition } from "./transition/transitionStore";
 import Socials from "./Socials";
@@ -115,24 +116,13 @@ export default function Navbar() {
   const reduceMotion = useReducedMotion();
   const [isPlaying, setIsPlaying] = useState(false);
   const musicRef = useRef<HTMLAudioElement>(null);
-  const snapAudioRef = useRef<HTMLAudioElement | null>(null);
   const progress = useRailProgress(reduceMotion);
-
-  const playEffect = (source: string) => {
-    const audio = new Audio(source);
-    audio.volume = 0.25;
-    void audio.play().catch(() => undefined);
-    return audio;
-  };
+  const [playSnapSfx, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
+  const [playConfirm] = useSfx("confirm", { volume: 0.25 });
 
   const playSnap = () => {
-    snapAudioRef.current?.pause();
-    snapAudioRef.current = playEffect("/sounds/snap.wav");
-  };
-
-  const stopSnap = () => {
-    snapAudioRef.current?.pause();
-    snapAudioRef.current = null;
+    stopSnap();
+    playSnapSfx();
   };
 
   const toggleMusic = async () => {
@@ -159,8 +149,11 @@ export default function Navbar() {
       <audio ref={musicRef} preload="none" src="/sounds/RoadsideFlowers.mp3" onEnded={() => setIsPlaying(false)} />
       <button
         type="button"
+        // A mouse press leaves no focus here: a later scroll key would turn it
+        // into keyboard focus and hold the rail open over the page.
+        onMouseDown={(event) => event.preventDefault()}
         onClick={() => {
-          playEffect("/sounds/confirm.wav");
+          playConfirm();
           void toggleMusic();
         }}
         onMouseEnter={playSnap}
@@ -183,7 +176,7 @@ export default function Navbar() {
             reduceMotion={reduceMotion}
             onSnap={playSnap}
             onStopSnap={stopSnap}
-            onConfirm={() => playEffect("/sounds/confirm.wav")}
+            onConfirm={playConfirm}
           />
         ))}
       </div>
@@ -230,6 +223,8 @@ function RailLink({
       href={item.href}
       aria-current={active ? "page" : undefined}
       className={`rail-link group ${active ? "rail-link-active" : ""}`}
+      // As the music button: a click leaves no focus to reopen the rail later.
+      onMouseDown={(event) => event.preventDefault()}
       onMouseEnter={() => {
         setIsHovered(true);
         onSnap();

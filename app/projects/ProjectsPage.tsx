@@ -2,7 +2,6 @@
 
 import { AnimatePresence, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useSpring } from "motion/react";
 import { useLayoutEffect, useRef, useState, type FocusEvent, type PointerEvent, type RefObject } from "react";
-import useSound from "use-sound";
 import ProjectModal from "@components/ProjectModal";
 import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
 import { arrivalView, whenPlaced } from "@components/transition/arrival";
@@ -10,6 +9,7 @@ import { getTransition, isInFlight } from "@components/transition/transitionStor
 import projectsData from "@data/projectsDat";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { REVEAL_STAGGER_MS, useReveal } from "@hooks/useReveal";
+import { useSfx } from "@hooks/useSfx";
 import { EASE_LIFT, cssEase, prefersReducedMotion } from "@lib/pageTransition";
 
 type Project = (typeof projectsData)[number];
@@ -94,8 +94,8 @@ export default function ProjectsPage() {
 
   useReveal(gallery);
   useLiftEntrance(gallery);
-  const [playSnap, { stop: stopSnap }] = useSound("/sounds/snap.wav", { volume: 0.35 });
-  const [playPop] = useSound("/sounds/pop.wav", { volume: 0.45 });
+  const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.35 });
+  const [playPop] = useSfx("pop", { volume: 0.45 });
 
   const openProject = (project: Project) => {
     setSelectedProject(project);
@@ -242,10 +242,18 @@ function ProjectTile({
   const thumbnail = "thumbnail" in project ? project.thumbnail : undefined;
   const overview = project.details.split("|")[0]?.trim();
 
-  // Reduced motion keeps every preview paused on its first frame.
-  const startPreview = () => {
+  // The clips are 5-16 MB each, so a tile fetches its own only on the first hover
+  // or keyboard focus, and never on touch screens or under reduced motion.
+  const playPreview = () => {
+    const video = previewVideo.current;
     // Read live as well: useReducedMotion only captures the setting at mount.
-    if (!reduceMotion && !prefersReducedMotion()) previewVideo.current?.play().catch(() => undefined);
+    if (!video || reduceMotion || prefersReducedMotion() || !hasFineHover()) return;
+    if (!video.src) video.src = `/images/project-assets/${project.gif}`;
+    video.play().catch(() => undefined);
+  };
+
+  const startPreview = () => {
+    playPreview();
     onHoverStart();
   };
 
@@ -257,8 +265,7 @@ function ProjectTile({
   // Keyboard focus previews the tile silently; the snap sound is for pointer hover.
   // Pointer focus (a click, or focus handed back by a closed modal) leaves it to hover.
   const startFocusPreview = (event: FocusEvent<HTMLElement>) => {
-    if (reduceMotion || prefersReducedMotion() || !event.currentTarget.matches(":focus-visible")) return;
-    previewVideo.current?.play().catch(() => undefined);
+    if (event.currentTarget.matches(":focus-visible")) playPreview();
   };
 
   const stopFocusPreview = () => {
@@ -311,14 +318,18 @@ function ProjectTile({
           />
         </div>
       ) : hasDedicatedPreview ? (
+        // No src until playPreview: preload is only a hint browsers may override.
+        // The poster is the clip's first frame (what the tile showed when the video
+        // preloaded), so the tile looks the same at rest, on phones and under reduced motion.
         <video
           ref={previewVideo}
+          aria-hidden="true"
+          poster={`/images/project-assets/${project.gif.replace(/\.webm$/, ".poster.webp")}`}
           className="h-full w-full object-cover opacity-75 transition duration-500 ease-out group-hover:scale-[1.035] group-hover:opacity-100 motion-reduce:transition-none"
-          preload="metadata"
+          preload="none"
           muted
           loop
           playsInline
-          src={`/images/project-assets/${project.gif}`}
         />
       ) : hasVideoThumbnail ? (
         // YouTube provides a project-specific still until a real walkthrough is available.
@@ -340,9 +351,11 @@ function ProjectTile({
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[#07090d] via-[#07090d]/80 to-transparent px-5 pb-5 pt-16 sm:px-6 sm:pb-6">
         {/* Smaller tiles (see .tile-title-lift in globals.css): the title lifts and one compact row fades in under it. */}
-        <h2 className="tile-title-lift max-w-[22ch] text-xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-2xl">
+        {/* A span, not a heading: a button may hold only phrasing content. Hidden from
+            assistive tech because the button's aria-label already reads "Open <name>". */}
+        <span aria-hidden="true" className="tile-title-lift block max-w-[22ch] text-xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-2xl">
           {project.name}
-        </h2>
+        </span>
         <div aria-hidden="true" className="tile-brief-meta absolute inset-x-5 bottom-5 hidden items-center gap-1.5 sm:inset-x-6 sm:bottom-6">
           {project.tech_stk.slice(0, 3).map((tech) => (
             <span key={tech} className="tile-brief-chip shrink-0 rounded-full border border-white/15 bg-black/30 px-2.5 py-1 text-[0.65rem] font-medium text-white/75">
@@ -355,9 +368,10 @@ function ProjectTile({
           </span>
         </div>
       </div>
-      <div className="tile-brief-side pointer-events-none absolute inset-y-0 right-0 z-20 hidden w-[52%] translate-x-4 flex-col border-l border-white/10 bg-[#0a0f16]/90 p-5 opacity-0 backdrop-blur-md transition duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none sm:p-6">
+      {/* A visual preview of the case notes the dialog opens, so assistive tech skips it. */}
+      <div aria-hidden="true" className="tile-brief-side pointer-events-none absolute inset-y-0 right-0 z-20 hidden w-[52%] translate-x-4 flex-col border-l border-white/10 bg-[#0a0f16]/90 p-5 opacity-0 backdrop-blur-md transition duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none sm:p-6">
         <span className="font-mono text-[0.65rem] uppercase tracking-[0.22em] text-accent">Project brief</span>
-        <h3 className="mt-3 text-lg font-semibold leading-tight tracking-[-0.025em] text-white lg:text-xl">{project.name}</h3>
+        <span className="mt-3 block text-lg font-semibold leading-tight tracking-[-0.025em] text-white lg:text-xl">{project.name}</span>
         <p className={`mt-3 line-clamp-4 text-sm leading-6 text-white/65 ${tasaOrbiter.className}`}>{overview}</p>
         <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
           {project.tech_stk.slice(0, 3).map((tech) => (
@@ -375,9 +389,10 @@ function ProjectTile({
   );
 }
 
+// Decorative stand-in for missing media; the tile's aria-label carries its name.
 function ProjectArchivePreview({ project }: { project: Project }) {
   return (
-    <div className="relative flex h-full w-full overflow-hidden bg-[#0c1420] p-6 sm:p-8">
+    <div aria-hidden="true" className="relative flex h-full w-full overflow-hidden bg-[#0c1420] p-6 sm:p-8">
       <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(rgb(var(--accent)/0.09)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--accent)/0.09)_1px,transparent_1px)] [background-size:2rem_2rem]" />
       <div className="relative flex w-full flex-col justify-between border border-accent/20 p-4 sm:p-5">
         <span className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-accent">Project archive</span>

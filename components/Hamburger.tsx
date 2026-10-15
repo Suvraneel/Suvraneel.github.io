@@ -6,8 +6,9 @@ import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
 import { MessageCircleMoreIcon } from "@components/animate-ui/icons/message-circle-more";
 import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
 import { TerminalIcon } from "@components/animate-ui/icons/terminal";
-import { AnimatePresence, motion, type Variants } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import MenuToggle from "./DrawerToggler";
 import Socials from "./Socials";
@@ -29,6 +30,11 @@ const sheet: Variants = {
       damping: 24,
     },
   },
+};
+// Reduced motion: the sheet fades in place, like the backdrop; its links hold still.
+const sheetReduced: Variants = {
+  open: { opacity: 1, transition: { duration: 0.15 } },
+  closed: { opacity: 0, transition: { duration: 0.15 } },
 };
 const variantsItem: Variants = {
   open: {
@@ -57,6 +63,8 @@ const variantsNav = {
 
 const Hamburger = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  const reduceMotion = useReducedMotion();
   const menu = [
     { name: "Home", href: "/", icon: LayoutDashboardIcon },
     { name: "About", href: "/about", icon: FingerprintIcon },
@@ -146,7 +154,7 @@ const Hamburger = () => {
               // Windows shorter than the sheet's ~570px of content (landscape phones, short
               // desktop windows): it scrolls instead of cutting off its last links.
               className="pointer-events-auto absolute inset-y-0 right-0 flex h-full w-[min(86vw,22rem)] flex-col [@media(max-height:640px)]:overflow-y-auto [@media(max-height:640px)]:overscroll-contain border-l border-white/10 bg-black/95 shadow-[-24px_0_48px_rgba(0,0,0,0.35)]"
-              variants={sheet}
+              variants={reduceMotion ? sheetReduced : sheet}
               initial="closed"
               animate="open"
               exit="closed"
@@ -162,7 +170,7 @@ const Hamburger = () => {
                 {menu.map(({ name, href, icon: Icon }) => (
                   <motion.li
                     key={name}
-                    variants={variantsItem}
+                    variants={reduceMotion ? undefined : variantsItem}
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
                     // Motion makes whileTap elements focusable; the link inside is the one tab stop.
@@ -171,7 +179,9 @@ const Hamburger = () => {
                   >
                     <Link
                       href={href}
-                      className="flex w-full items-center gap-4 rounded-2xl border border-white/8 px-4 py-3 text-white transition hover:border-white/16 hover:bg-white/[0.04] hover:text-accent focus-visible:border-white/16 focus-visible:bg-white/[0.04] focus-visible:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      // The current page carries the accent, as on the desktop rail.
+                      aria-current={pathname === href ? "page" : undefined}
+                      className={`flex w-full items-center gap-4 rounded-2xl border border-white/10 px-4 py-3 transition hover:border-white/15 hover:bg-white/[0.04] hover:text-accent focus-visible:border-white/15 focus-visible:bg-white/[0.04] focus-visible:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${pathname === href ? "text-accent" : "text-white"}`}
                       onClick={closeDrawer}
                     >
                       <Icon aria-hidden="true" size={21} animateOnHover />
@@ -180,7 +190,7 @@ const Hamburger = () => {
                   </motion.li>
                 ))}
               </motion.ul>
-              <motion.div variants={variantsItem} initial="closed" animate="open" exit="closed" className="border-t border-white/10 px-5 py-5">
+              <motion.div variants={reduceMotion ? undefined : variantsItem} initial="closed" animate="open" exit="closed" className="border-t border-white/10 px-5 py-5">
                 <Socials />
               </motion.div>
             </motion.aside>

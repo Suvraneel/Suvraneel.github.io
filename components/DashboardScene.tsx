@@ -27,6 +27,7 @@ const FALLBACK_AFTER_MS = 8000;
 const PRELOADER_MAX_MS = 30000;
 // Extra hold at 100% so slow GPUs finish settling before the reveal.
 const READY_HOLD_MS = 2000;
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 type DashboardSceneContextValue = {
   app: any;
@@ -68,6 +69,7 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   const [isReady, setReady] = useState(false);
   const [hasSceneError, setSceneError] = useState(false);
   const [isSplineViewport, setSplineViewport] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
   // While a transition into or out of Home is in flight, the scene is Home's
   // sheet (it lifts away or comes down with Home), so it stays shown and mounted.
   const homeFlight = inFlight && (transition.from === "/" || transition.to === "/");
@@ -108,6 +110,14 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     updateViewport();
     viewport.addEventListener("change", updateViewport);
     return () => viewport.removeEventListener("change", updateViewport);
+  }, []);
+
+  useEffect(() => {
+    const query = window.matchMedia(REDUCED_MOTION_QUERY);
+    const updatePreference = () => setReduceMotion(query.matches);
+    updatePreference();
+    query.addEventListener("change", updatePreference);
+    return () => query.removeEventListener("change", updatePreference);
   }, []);
 
   // Download the scene ourselves for real progress, then hand Spline the same bytes.
@@ -151,11 +161,19 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
 
   // Hidden, the scene does no work: its render loop and events are paused
   // (only after its first frames are compiled, so a later reveal never stalls).
+  // Under reduced motion a shown scene is held still; play() rebuilds its
+  // events, which restarts the idle loop, so the hold follows every play().
   useLayoutEffect(() => {
     if (!app || !isReady) return;
-    if (isVisible) app.play?.();
-    else app.stop?.();
-  }, [app, isReady, isVisible]);
+    if (!isVisible) {
+      app.stop?.();
+      return;
+    }
+    // Released from reduced motion: a restart brings the idle loop back.
+    if (!reduceMotion && releaseSceneStill(app)) app.stop?.();
+    app.play?.();
+    if (reduceMotion) holdSceneStill(app);
+  }, [app, isReady, isVisible, reduceMotion]);
 
   useEffect(() => {
     if (!shouldMountDashboard || isReady) return;
@@ -174,7 +192,10 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   const setFlip = useCallback(
     (rotation: number) => {
       const rig = getRig();
-      if (rig && rig.rotation.x !== rotation) rig.rotation.x = rotation;
+      if (!rig || rig.rotation.x === rotation) return;
+      rig.rotation.x = rotation;
+      // A scene held still draws only on request (a rig write makes none).
+      requestSceneFrame(appRef.current);
     },
     [getRig]
   );
@@ -322,6 +343,66 @@ function waitForFrames(count: number, callback: () => void) {
     return;
   }
   window.requestAnimationFrame(() => waitForFrames(count - 1, callback));
+}
+
+// ---------------------------------------------------------------------------
+// Reduced motion holds the dashboard still: its idle loop (the blob's looping
+// Start transition) and its autoplaying card videos are paused, and frames are
+// drawn only when something changes. Hover states and links still run: they
+// are the scene's own events, and they request their frames themselves.
+//
+// This reaches into the runtime's event manager and controls, which are not
+// public API (lib/splineScroll.ts does the same). Checked against
+// @splinetool/runtime 2.0.75 (pinned): on any other shape it does nothing.
+// ---------------------------------------------------------------------------
+
+type StartTransition = { loopsForever?: boolean; pause: () => void };
+type StartEvent = { actions?: { Transition?: StartTransition[] } };
+
+function holdSceneStill(app: any) {
+  const start = app?.eventManager?.handlers?.Start;
+  const controls = app?._controls;
+  const update = controls && Object.getPrototypeOf(controls).update;
+  if (
+    !(start?.eventsPerObject instanceof Map) ||
+    typeof start.pauseVideos !== "function" ||
+    typeof update !== "function" ||
+    typeof app._requestRenderAutoMode !== "function"
+  ) {
+    return;
+  }
+
+  for (const events of start.eventsPerObject.values() as Iterable<StartEvent[]>) {
+    for (const event of events) {
+      event.actions?.Transition?.forEach((transition) => {
+        if (transition.loopsForever) transition.pause();
+      });
+    }
+  }
+  start.pauseVideos();
+  // Otherwise the runtime draws every frame while the scene has videos.
+  start.hasVideoAction = false;
+  // controls.update() keeps its "nothing moved" verdict to itself, so the
+  // "auto" render mode draws every frame anyway, each with a new TAA jitter
+  // (a still scene shimmers). Reported, frames stop once the image settles.
+  controls.update = function (this: { skipRender?: boolean }, dt: number) {
+    update.call(this, dt);
+    return this.skipRender;
+  };
+  requestSceneFrame(app);
+}
+
+/** Undoes holdSceneStill's render patch; true if the scene was held. */
+function releaseSceneStill(app: any) {
+  const controls = app?._controls;
+  if (!controls || !Object.hasOwn(controls, "update")) return false;
+  delete controls.update;
+  return true;
+}
+
+/** Draws a fresh frame in "auto" render mode (the public requestRender() is for "manual" only). */
+function requestSceneFrame(app: any) {
+  app?._requestRenderAutoMode?.();
 }
 
 function DashboardFallback() {

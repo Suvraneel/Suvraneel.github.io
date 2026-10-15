@@ -155,8 +155,20 @@ const Work = () => {
     [plantTarget, plantProgress],
   );
 
+  // Focusable, so scroll keys reach <main> without tabbing into the entries.
+  // An arrival focuses it from script, which matches :focus-visible too, so the
+  // inset ring waits for Tab (its keyup lands on the element it focused).
   return (
-      <main ref={mainRef} className="page-scroller relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50">
+      <main
+        ref={mainRef}
+        tabIndex={0}
+        aria-label="Work and experience"
+        onKeyUp={(event) => {
+          if (event.key === "Tab" && event.target === event.currentTarget) event.currentTarget.setAttribute("data-tab-focus", "");
+        }}
+        onBlur={(event) => event.currentTarget.removeAttribute("data-tab-focus")}
+        className="page-scroller relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50 outline-none data-[tab-focus]:focus-visible:outline data-[tab-focus]:focus-visible:outline-2 data-[tab-focus]:focus-visible:-outline-offset-2 data-[tab-focus]:focus-visible:outline-accent"
+      >
         <div className="min-h-[100dvh] grid md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)] gap-0">
           <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-[100dvh] self-start md:block">
             {/* The plant centres in the space you can see (right of the nav rail). */}
