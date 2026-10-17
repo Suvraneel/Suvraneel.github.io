@@ -240,7 +240,11 @@ function ProjectTile({
   const youtubeId = getYouTubeId(project.video);
   const hasVideoThumbnail = Boolean(youtubeId && youtubeId !== placeholderDemoId && !thumbnailFailed);
   const thumbnail = "thumbnail" in project ? project.thumbnail : undefined;
-  const overview = project.details.split("|")[0]?.trim();
+  // Plain text here: case-note links ([label](url)) keep only their label on the tile.
+  const overview = project.details
+    .split("|")[0]
+    ?.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, "$1")
+    .trim();
 
   // The clips are 5-16 MB each, so a tile fetches its own only on the first hover
   // or keyboard focus, and never on touch screens or under reduced motion.
