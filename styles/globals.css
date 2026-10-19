@@ -483,6 +483,58 @@ a:focus-visible > .link-draw::after {
   filter: invert(100%) hue-rotate(128deg) brightness(1.15);
 }
 
+/* First-visit Home preloader (components/StairsPreloader.tsx). The name is a
+   stroked ghost (visible text from the first paint); a textured copy fills it
+   from the bottom by --p, using counter-translated transforms, not a clip. */
+.preloader {
+  /* Server HTML paints it before any JS; if JS never arrives it gets out of the way. */
+  animation: preloader-failsafe 0.4s ease-out 8s forwards;
+}
+.preloader[data-live] {
+  animation: none;
+}
+@keyframes preloader-failsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+.preloader-name {
+  font-size: clamp(4rem, 9vw, 12rem);
+}
+.preloader-ghost,
+.preloader-texture {
+  padding: 0.08em 0 0.22em;
+}
+.preloader-ghost {
+  color: transparent;
+  -webkit-text-stroke: 1px rgb(255 255 255 / 0.2);
+}
+.preloader-fill {
+  transform: translateY(calc((1 - var(--p)) * 100%));
+}
+.preloader-texture {
+  transform: translateY(calc((var(--p) - 1) * 100%));
+  color: rgb(var(--accent));
+}
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .preloader-texture {
+    /* The heading texture (a 27 KB WebP, shared with .animated-heading) at the same scale. */
+    background: rgb(var(--accent)) url("/images/seed-46867.webp") 0% 30% repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+.preloader-drift {
+  animation: heading-texture-drift 12s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .preloader-drift {
+    animation: none;
+  }
+}
+
 /* Digits 0-9 drawn for Space Boards (its demo has none); original outlines,
    used only as Space Boards' fallback (styles/fonts.ts). */
 @font-face {
@@ -500,7 +552,7 @@ a:focus-visible > .link-draw::after {
 }
 @supports (background-clip: text) or (-webkit-background-clip: text) {
   .animated-heading {
-    background: rgb(var(--accent)) url("/images/seed-46867.png") 0% 30% repeat;
+    background: rgb(var(--accent)) url("/images/seed-46867.webp") 0% 30% repeat;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

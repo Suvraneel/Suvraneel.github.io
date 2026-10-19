@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import SplineObj from "@components/SplineObject";
-import StairsPreloader from "@components/StairsPreloader";
+import StairsPreloader, { PRELOADER_FAILSAFE_MS, type PreloaderStatus } from "@components/StairsPreloader";
 import { isInFlight, useTransitionState } from "@components/transition/transitionStore";
 import { SHEET_SHADOW } from "@lib/pageTransition";
 import { AnimatePresence } from "motion/react";
@@ -25,6 +25,8 @@ const FLIP_RIG = "Dashboard Flip Rig";
 export const SPLINE_MIN_WIDTH = 550;
 const FALLBACK_AFTER_MS = 8000;
 const PRELOADER_MAX_MS = 30000;
+// How long the preloader shows "still loading" or "unavailable" before opening onto the fallback.
+const SLOW_NOTICE_MS = 1200;
 // Extra hold at 100% so slow GPUs finish settling before the reveal.
 const READY_HOLD_MS = 2000;
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
@@ -68,6 +70,8 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   const [app, setApp] = useState<any>(null);
   const [isReady, setReady] = useState(false);
   const [hasSceneError, setSceneError] = useState(false);
+  // Spline reported a failed load (hasSceneError alone may just mean "slow").
+  const [sceneLoadFailed, setSceneLoadFailed] = useState(false);
   const [isSplineViewport, setSplineViewport] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   // While a transition into or out of Home is in flight, the scene is Home's
@@ -100,6 +104,11 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   const [isInitialLoad, setInitialLoad] = useState(pathname === "/");
   const [sceneUrl, setSceneUrl] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  /** ms from navigation start to the scene's first rendered frames (the preloader prints it). */
+  const [readyAt, setReadyAt] = useState<number | null>(null);
+  // The server HTML of Home carries the preloader's first frame; it stays until
+  // the effects below decide whether this visit gets the preloader at all.
+  const [hydrated, setHydrated] = useState(false);
   const needsScene = shouldMountDashboard && !sceneUrl;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const appRef = useRef<any>(null);
@@ -108,6 +117,9 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     const viewport = window.matchMedia(`(min-width: ${SPLINE_MIN_WIDTH + 1}px)`);
     const updateViewport = () => setSplineViewport(viewport.matches);
     updateViewport();
+    // Hydrated after the server-rendered cover's failsafe hid it: no preloader this visit.
+    if (performance.now() >= PRELOADER_FAILSAFE_MS) setInitialLoad(false);
+    setHydrated(true);
     viewport.addEventListener("change", updateViewport);
     return () => viewport.removeEventListener("change", updateViewport);
   }, []);
@@ -151,6 +163,14 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     const timeoutId = window.setTimeout(() => setInitialLoad(false), READY_HOLD_MS);
     return () => window.clearTimeout(timeoutId);
   }, [isReady, isSplineViewport, shouldMountDashboard]);
+
+  // Not ready by FALLBACK_AFTER_MS: say so for a moment, then open onto the static
+  // dashboard, which the scene replaces whenever it does arrive.
+  useEffect(() => {
+    if (!isInitialLoad || !hasSceneError || isReady) return;
+    const timeoutId = window.setTimeout(() => setInitialLoad(false), SLOW_NOTICE_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [hasSceneError, isInitialLoad, isReady]);
 
   useEffect(() => {
     if (!isInitialLoad) return;
@@ -211,6 +231,24 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   }, [isVisible]);
 
   const preloaderActive = isInitialLoad && isSplineViewport;
+  // Weighted so the end means "the scene is drawing", not just "bytes arrived":
+  // download 0-70%, scene handed to Spline 72%, loaded 85%, first frames 100%.
+  const preloaderProgress = isReady
+    ? 1
+    : app
+      ? 0.85
+      : sceneUrl
+        ? 0.72
+        : (downloadProgress ?? 0.02) * 0.7;
+  // The scene error timer fires on a slow load too; the preloader says which, then opens onto the fallback.
+  const preloaderStatus: PreloaderStatus = isReady
+    ? "ready"
+    : sceneLoadFailed
+      ? "failed"
+      : hasSceneError
+        ? "slow"
+        : "loading";
+  const skipPreloaderHold = useCallback(() => setInitialLoad(false), []);
 
   const value = useMemo<DashboardSceneContextValue>(
     () => ({
@@ -265,9 +303,10 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
               // (Work's plant on an exiting page), or it renders ghosted.
               waitForSoleRuntime
               onError={() => {
-                // Show the static fallback right away instead of waiting out the timers.
+                // Show the static fallback right away instead of waiting out the timers;
+                // a first-visit preloader says so for a moment first (SLOW_NOTICE_MS).
                 setSceneError(true);
-                setInitialLoad(false);
+                setSceneLoadFailed(true);
               }}
               onLoad={(loadedApp) => {
                 // react-spline reports load for an Application it has already
@@ -282,7 +321,10 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
                 if (rig) rig.rotation.x = 0;
                 setApp(loadedApp);
                 // Canvas is unhidden and first frames compiled only after load resolves.
-                waitForFrames(4, () => setReady(true));
+                waitForFrames(4, () => {
+                  setReadyAt((current) => current ?? performance.now());
+                  setReady(true);
+                });
               }}
             />
           </div>
@@ -298,11 +340,12 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
         )}
       </div>
       <AnimatePresence>
-        {preloaderActive && (
+        {(preloaderActive || (!hydrated && pathname === "/")) && (
           <StairsPreloader
-            progress={
-              isReady ? 1 : downloadProgress === null ? null : Math.min(downloadProgress, 0.99)
-            }
+            progress={preloaderProgress}
+            status={preloaderStatus}
+            readyAt={readyAt}
+            onSkip={isReady ? skipPreloaderHold : undefined}
           />
         )}
       </AnimatePresence>

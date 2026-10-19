@@ -62,6 +62,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Without JavaScript the Home preloader's cover would never lift: never show it. */}
+        <noscript>
+          <style>{`.preloader{display:none}`}</style>
+        </noscript>
+      </head>
       <body>
         <script
           type="application/ld+json"
