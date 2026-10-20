@@ -1,11 +1,12 @@
 "use client";
 
-import Canvas from "@components/Particle";
 import { spaceBoards, tasaOrbiter } from "@font";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import * as gtag from "@lib/gtag";
+import { useLiftEntrance } from "@hooks/useLiftEntrance";
 import { useSfx } from "@hooks/useSfx";
+import LiftHeading from "@components/LiftHeading";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
@@ -15,6 +16,20 @@ import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
 const isAtPageBottom = () =>
   window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
 
+/** Where the portrait's column shows (lg, as on its <aside>); only there is the photo fetched. */
+const PORTRAIT_MEDIA = "(min-width: 1024px)";
+/** What the <img> holds below lg: a 1x1 transparent GIF, inline, so phones and tablets fetch nothing. */
+const NO_PHOTO = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+/**
+ * The studio backdrop is near black, not the page's #000: its left and top
+ * edges fade into the page so the frame never reads as a rectangle (the right
+ * and bottom edges are the viewport's).
+ */
+const PHOTO_FADE: CSSProperties = {
+  maskImage: "linear-gradient(to right, transparent, #000 4.5rem), linear-gradient(to bottom, transparent, #000 10%)",
+  maskComposite: "intersect",
+};
+
 const About = () => {
   const router = useRouter();
   const { navigate } = usePageTransition();
@@ -22,6 +37,9 @@ const About = () => {
   const lastWheelAt = useRef(0);
   const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
   const [playConfirm] = useSfx("confirm", { volume: 0.25 });
+  // Reached by a lift, the copy settles with it line by line instead of arriving as one block.
+  const copy = useRef<HTMLDivElement>(null);
+  useLiftEntrance(copy);
 
   useEffect(() => {
     // Keep the next route and its remote scene in the browser cache while the
@@ -106,28 +124,30 @@ const About = () => {
               Tablets: the text starts past the 50px nav rail (shown from 769px wide and
               521px tall, as in globals.css), as .nav-gap does on the other pages. */}
           <section className="flex min-h-[100dvh] items-start px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-16 sm:pt-20 min-[769px]:max-lg:[@media(min-height:521px)]:pl-[calc(50px+2.5rem)] lg:items-center lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
-            <div className="max-w-2xl">
-              <p className={`mb-3 text-xs font-medium uppercase tracking-[0.2em] text-accent/70 ${tasaOrbiter.className}`}>
+            {/* The column itself is the sheet's depth layer, so the entrance goes on its children. */}
+            <div ref={copy} className="max-w-2xl">
+              <p data-reveal className={`mb-3 text-xs font-medium uppercase tracking-[0.2em] text-accent/70 ${tasaOrbiter.className}`}>
                 Profile
               </p>
-              <h1 className={`animated-heading max-w-xl text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
+              <LiftHeading data-reveal className={`max-w-xl text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
                 About Me
-              </h1>
+              </LiftHeading>
               <div className="mt-8 max-w-2xl space-y-5">
-                <p className={`text-xl font-medium leading-8 tracking-[-0.025em] text-white sm:text-2xl ${tasaOrbiter.className}`}>
+                <p data-reveal className={`text-xl font-medium leading-8 tracking-[-0.025em] text-white sm:text-2xl ${tasaOrbiter.className}`}>
                   I like building things that are useful, not just impressive.
                 </p>
-                <p className={`text-base leading-7 text-white/75 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
+                <p data-reveal className={`text-base leading-7 text-white/75 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
                   I&apos;m Suvraneel Bhuin, an Advanced Application Engineering Senior Analyst at Accenture. I build dependable backend services, integrations, and workflows for enterprise-scale products.
                 </p>
-                <p className={`text-base leading-7 text-white/60 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
+                <p data-reveal className={`text-base leading-7 text-white/60 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
                   I studied Computer Science &amp; Engineering at the University of Calcutta. Open-source programmes and Web3 communities taught me to pair technical depth with clear ownership, useful documentation, and thoughtful collaboration.
                 </p>
-                <p className={`text-base leading-7 text-white/60 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
+                <p data-reveal className={`text-base leading-7 text-white/60 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
                   I like turning ambiguous requirements into clear, maintainable systems and working closely with the people who rely on them.
                 </p>
               </div>
-              <div className="mt-9 flex flex-wrap gap-3">
+              {/* On the row, so the buttons' own press and magnetic transforms stay theirs. */}
+              <div data-reveal className="mt-9 flex flex-wrap gap-3">
                 <LiquidMetalButton
                   href="/docs/Suvraneel_Bhuin_Resume.pdf"
                   target="_blank"
@@ -150,10 +170,26 @@ const About = () => {
               </div>
             </div>
           </section>
-          <aside aria-label="Portrait of Suvraneel Bhuin" className="relative hidden min-h-[100dvh] overflow-hidden border-l border-white/10 lg:block">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_54%,rgba(139,205,215,0.13),transparent_48%)]" />
-            <div className="absolute inset-0 flex items-end justify-center opacity-90 pointer-events-none">
-              <Canvas />
+          {/* The aside is the photo's frame: it moves with the sheet and clips the
+              photo layer, overscanned 6% above and below so it can trail the sheet
+              in a lift (LAG_SELECTOR in lib/pageTransition) without an edge showing. */}
+          <aside aria-label="Portrait of Suvraneel Bhuin" className="relative hidden min-h-[100dvh] overflow-hidden lg:block">
+            <div data-depth="photo" className="pointer-events-none absolute inset-x-0 -inset-y-[6%] [container-type:inline-size]">
+              <picture>
+                <source media={PORTRAIT_MEDIA} srcSet="/images/Suvraneel_DP.jpeg" />
+                {/* Bottom-anchored, a little short of the layer so the hair keeps some
+                    headroom under the top fade and, in a tall narrow frame, no taller
+                    than 2.22x its width, so the cover crop never cuts into the face. */}
+                <img
+                  src={NO_PHOTO}
+                  alt="Black-and-white portrait of Suvraneel Bhuin"
+                  width={1456}
+                  height={1456}
+                  decoding="async"
+                  className="absolute bottom-0 left-0 h-[95%] max-h-[222cqw] w-full object-cover object-[40%_100%] grayscale"
+                  style={PHOTO_FADE}
+                />
+              </picture>
             </div>
           </aside>
         </div>

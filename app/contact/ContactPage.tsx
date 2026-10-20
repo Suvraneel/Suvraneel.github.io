@@ -1,10 +1,11 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
-import { FormEvent, SyntheticEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, Suspense, SyntheticEvent, lazy, useCallback, useEffect, useRef, useState } from "react";
+import { preconnect, prefetchDNS } from "react-dom";
 import { useSfx } from "@hooks/useSfx";
 import { spaceBoards, tasaOrbiter } from "@font";
+import LiftHeading from "@components/LiftHeading";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { AnimateIcon } from "@components/animate-ui/icons/icon";
@@ -14,7 +15,22 @@ import { CopyIcon } from "@components/animate-ui/icons/copy";
 import { SendIcon } from "@components/animate-ui/icons/send";
 import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
 
-const CalendlyModal = dynamic(() => import("@components/CalendlyModal"), { ssr: false });
+// One loader for the click and the warm-up: next/dynamic would wrap its import() in a separate chunk.
+const loadScheduler = () => import("@components/CalendlyModal");
+const CalendlyModal = lazy(loadScheduler);
+
+let schedulerWarmed = false;
+/** Hover or focus on "Book a conversation" starts the scheduler's chunk and Calendly connections before the click. */
+function warmScheduler() {
+  if (schedulerWarmed) return;
+  schedulerWarmed = true;
+  // The same loader lazy() uses, so the click reuses this download. A failed load is retried on click.
+  loadScheduler().catch(() => {});
+  for (const origin of ["https://calendly.com", "https://assets.calendly.com"]) {
+    preconnect(origin);
+    prefetchDNS(origin);
+  }
+}
 
 type SubmissionState = "idle" | "sending" | "success" | "error";
 type FieldName = "user_name" | "user_email" | "message";
@@ -143,9 +159,9 @@ export default function ContactPage() {
         <div className="grid gap-12 lg:grid-cols-[minmax(17rem,0.95fr)_minmax(0,1.05fr)] lg:gap-0 min-[1440px]:grid-cols-[minmax(17rem,0.72fr)_minmax(0,1.28fr)]">
           <div className="min-w-0 lg:pr-8 min-[1440px]:pr-12">
             <header className="max-w-4xl">
-              <h1 className={`animated-heading w-max text-4xl font-bold leading-none tracking-[-0.04em] sm:text-6xl lg:text-5xl min-[1440px]:text-6xl ${spaceBoards.className}`}>
+              <LiftHeading className={`w-max text-4xl font-bold leading-none tracking-[-0.04em] sm:text-6xl lg:text-5xl min-[1440px]:text-6xl ${spaceBoards.className}`}>
                 Contact
-              </h1>
+              </LiftHeading>
               <p className={`mt-6 max-w-3xl text-lg leading-8 text-white/70 sm:text-xl ${tasaOrbiter.className}`}>
                 Let&apos;s make something useful. I&apos;m open to thoughtful product work, dependable engineering problems, and collaborations with people who care about the details.
               </p>
@@ -194,6 +210,8 @@ export default function ContactPage() {
               </Link>
               </AnimateIcon>
 
+              {/* Box-less wrapper: PillButton forwards no pointer or focus handlers. */}
+              <div className="contents" onPointerEnter={warmScheduler} onFocus={warmScheduler}>
               <PillButton
                 onClick={(event) => {
                   schedulerOpener.current = event.currentTarget;
@@ -214,6 +232,7 @@ export default function ContactPage() {
                 <span>Book a conversation</span>
                 <span className="text-xs font-normal text-white/55">via Calendly</span>
               </PillButton>
+              </div>
             </section>
           </div>
 
@@ -297,7 +316,11 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {showScheduler && <CalendlyModal onClose={closeScheduler} />}
+      {showScheduler && (
+        <Suspense fallback={null}>
+          <CalendlyModal onClose={closeScheduler} />
+        </Suspense>
+      )}
     </main>
   );
 }
@@ -347,11 +370,11 @@ function Field({
       ) : (
         <input name={name} type={type} required autoComplete={autoComplete} maxLength={maxLength} {...a11y} className={fieldClassName} />
       )}
-      {invalid && (
-        <span id={errorId} className="mt-2 block text-xs font-normal text-[#f0b6b6]">
-          {error}
-        </span>
-      )}
+      {/* Always mounted at one line's fixed height, so an error fills it without moving anything below.
+          A rare wrapped second line (long email error near 1024px) spills into the gap under the field. */}
+      <span id={errorId} className="block h-[1.25rem] pt-1 text-xs font-normal text-[#f0b6b6]">
+        {error}
+      </span>
     </label>
   );
 }

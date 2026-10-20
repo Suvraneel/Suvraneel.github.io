@@ -4,6 +4,8 @@ import SplineObj from "@components/SplineObject";
 import StairsPreloader, { PRELOADER_FAILSAFE_MS, type PreloaderStatus } from "@components/StairsPreloader";
 import { isInFlight, useTransitionState } from "@components/transition/transitionStore";
 import { SHEET_SHADOW } from "@lib/pageTransition";
+// WAAPI only: no motion value is left behind to write the transform back after it is cleared.
+import { animate } from "motion/mini";
 import { AnimatePresence } from "motion/react";
 import { usePathname } from "next/navigation";
 import {
@@ -29,6 +31,11 @@ const PRELOADER_MAX_MS = 30000;
 const SLOW_NOTICE_MS = 1200;
 // Extra hold at 100% so slow GPUs finish settling before the reveal.
 const READY_HOLD_MS = 2000;
+// Under the preloader the scene waits slightly large and low, then settles into
+// place as the columns lift, so they open onto a scene still arriving.
+const PRELOADER_HOLD = "translateY(10px) scale(1.04)";
+const SETTLE_TO = "translateY(0px) scale(1)";
+const SETTLE_EASE = [0.16, 1, 0.3, 1] as const;
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 type DashboardSceneContextValue = {
@@ -111,6 +118,9 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   const [hydrated, setHydrated] = useState(false);
   const needsScene = shouldMountDashboard && !sceneUrl;
   const containerRef = useRef<HTMLDivElement | null>(null);
+  // The wrapper inside containerRef: page transitions own containerRef's transform.
+  const sceneRef = useRef<HTMLDivElement | null>(null);
+  const wasPreloading = useRef(false);
   const appRef = useRef<any>(null);
 
   useEffect(() => {
@@ -231,6 +241,35 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   }, [isVisible]);
 
   const preloaderActive = isInitialLoad && isSplineViewport;
+  const holdUnderPreloader = preloaderActive && !reduceMotion;
+
+  // The cover leaving (its hold ending, or a skip) lets the held scene settle
+  // under the lifting columns. Reduced motion never held it.
+  useLayoutEffect(() => {
+    const handOff = wasPreloading.current && !preloaderActive;
+    wasPreloading.current = preloaderActive;
+    const scene = sceneRef.current;
+    if (!handOff || !scene || reduceMotion) return;
+    // React has just dropped the held transform; keep it until the settle starts.
+    scene.style.transform = PRELOADER_HOLD;
+    const settle = animate(
+      scene,
+      { transform: [PRELOADER_HOLD, SETTLE_TO] },
+      { duration: 1.1, delay: 0.1, ease: SETTLE_EASE }
+    );
+    const clear = () => {
+      scene.style.transform = "";
+      // Spline caches the canvas rect for pointer hits and re-reads it only on resize or
+      // document scroll (which this site never fires); it was read under the hold.
+      appRef.current?._onScroll?.();
+    };
+    void settle.then(clear);
+    return () => {
+      settle.stop();
+      clear();
+    };
+  }, [preloaderActive, reduceMotion]);
+
   // Weighted so the end means "the scene is drawing", not just "bytes arrived":
   // download 0-70%, scene handed to Spline 72%, loaded 85%, first frames 100%.
   const preloaderProgress = isReady
@@ -290,6 +329,8 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
       >
         {shouldMountDashboard && sceneUrl && (
           <div
+            ref={sceneRef}
+            style={holdUnderPreloader ? { transform: PRELOADER_HOLD } : undefined}
             className={`absolute inset-0 ${
               showFallback
                 ? "opacity-100"
@@ -390,9 +431,10 @@ function waitForFrames(count: number, callback: () => void) {
 
 // ---------------------------------------------------------------------------
 // Reduced motion holds the dashboard still: its idle loop (the blob's looping
-// Start transition) and its autoplaying card videos are paused, and frames are
-// drawn only when something changes. Hover states and links still run: they
-// are the scene's own events, and they request their frames themselves.
+// Start transition) and its autoplaying card videos are paused, its camera no
+// longer turns toward the pointer, and frames are drawn only when something
+// changes. Hover states and links still run: they are the scene's own events,
+// and they request their frames themselves.
 //
 // This reaches into the runtime's event manager and controls, which are not
 // public API (lib/splineScroll.ts does the same). Checked against
@@ -401,8 +443,21 @@ function waitForFrames(count: number, callback: () => void) {
 
 type StartTransition = { loopsForever?: boolean; pause: () => void };
 type StartEvent = { actions?: { Transition?: StartTransition[] } };
+type OrbitControls = { hoverRotatePanMode?: unknown };
+
+/** Hover mode (1 rotate, 2 pan) of each held camera, put back on release. */
+const heldHoverModes = new WeakMap<OrbitControls, number>();
 
 function holdSceneStill(app: any) {
+  // The pointer-follow is the camera's hover rotate (the scene has no LookAt or
+  // Follow events); mode 0 turns it off. It does not depend on the checks below,
+  // and the controls outlive stop() / play(), so only a release puts it back.
+  const orbit: OrbitControls | undefined = app?._controls?.orbitControls;
+  if (typeof orbit?.hoverRotatePanMode === "number" && !heldHoverModes.has(orbit)) {
+    heldHoverModes.set(orbit, orbit.hoverRotatePanMode);
+    orbit.hoverRotatePanMode = 0;
+  }
+
   const start = app?.eventManager?.handlers?.Start;
   const controls = app?._controls;
   const update = controls && Object.getPrototypeOf(controls).update;
@@ -435,8 +490,15 @@ function holdSceneStill(app: any) {
   requestSceneFrame(app);
 }
 
-/** Undoes holdSceneStill's render patch; true if the scene was held. */
+/** Undoes holdSceneStill's patches; true if the idle loop was held (it needs a restart). */
 function releaseSceneStill(app: any) {
+  const orbit: OrbitControls | undefined = app?._controls?.orbitControls;
+  const hoverMode = orbit ? heldHoverModes.get(orbit) : undefined;
+  if (orbit && hoverMode !== undefined) {
+    orbit.hoverRotatePanMode = hoverMode;
+    heldHoverModes.delete(orbit);
+  }
+
   const controls = app?._controls;
   if (!controls || !Object.hasOwn(controls, "update")) return false;
   delete controls.update;
@@ -450,7 +512,7 @@ function requestSceneFrame(app: any) {
 
 function DashboardFallback() {
   return (
-    <div className="absolute inset-0 overflow-hidden bg-[#05080c]" aria-hidden="true">
+    <div className="absolute inset-0 overflow-hidden bg-black" aria-hidden="true">
       <div className="absolute inset-0 opacity-[0.1] [background-image:linear-gradient(rgb(var(--accent)/0.8)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--accent)/0.8)_1px,transparent_1px)] [background-size:4rem_4rem]" />
       <div className="absolute left-[18%] top-[20%] h-[26rem] w-[26rem] rounded-full border border-accent/25 bg-[#0b2730]/30 blur-[1px]" />
       <div className="absolute right-[14%] top-[14%] h-[18rem] w-[18rem] rounded-full border border-white/10 bg-white/[0.025]" />

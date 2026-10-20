@@ -177,7 +177,7 @@ export default function StairsPreloader({ progress, status, readyAt, onSkip }: P
         <motion.div
           key={i}
           aria-hidden="true"
-          className="relative h-full flex-1 overflow-hidden bg-[#05080c] -ml-px first:ml-0"
+          className="relative h-full flex-1 overflow-hidden bg-black -ml-px first:ml-0"
           initial={false}
           exit={reduceMotion ? undefined : { y: "-100%" }}
           transition={{ duration: 0.6, ease: EASE, delay: i * 0.07 }}

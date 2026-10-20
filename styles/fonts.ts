@@ -15,15 +15,3 @@ const tasaOrbiter = localFont({
 });
 
 export { spaceBoards, tasaOrbiter }
-
-// @import url("https://fonts.googleapis.com/css2?family=Playfair+Display&family=Poiret+One&family=Raleway&display=swap");
-
-// @import url("https://fonts.googleapis.com/css?family=Montserrat:100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i");
-// @import url("https://fonts.googleapis.com/css?family=Poppins:400,500,600,700,800,900");
-// /* styles/fonts.css */
-// @font-face {
-//   font-family: 'spaceBoards';
-//   src: url('/fonts/Spaceboards.otf') format('otf');
-//   font-weight: normal;
-//   font-style: normal;
-// }

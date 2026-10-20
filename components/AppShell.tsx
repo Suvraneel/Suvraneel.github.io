@@ -25,7 +25,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <ThemeProvider defaultTheme="dark" attribute="class">
       <DashboardSceneProvider>
         <PageTransitionProvider>
-          <Layout drawerKey={pathname}>
+          <Layout>
             <AsciiArt />
             <PageSequenceScroll />
             <SplineLinkGuard />

@@ -6,29 +6,25 @@ import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
 import { MessageCircleMoreIcon } from "@components/animate-ui/icons/message-circle-more";
 import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
 import { TerminalIcon } from "@components/animate-ui/icons/terminal";
-import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react";
+import { EASE_FADE, prefersReducedMotion } from "@lib/pageTransition";
+import { AnimatePresence, motion, stagger, useIsPresent, type Variants } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import MenuToggle from "./DrawerToggler";
 import Socials from "./Socials";
+import { getTransition, isInFlight } from "./transition/transitionStore";
 
+// Opens like a released sheet (no bounce). Closes faster, on the fade ease, so
+// the exit a drawer link starts overlaps the opening of the page lift.
 const sheet: Variants = {
   open: {
     x: 0,
-    transition: {
-      type: "spring" as const,
-      stiffness: 120,
-      damping: 20,
-    },
+    transition: { type: "spring", visualDuration: 0.42, bounce: 0 },
   },
   closed: {
     x: "100%",
-    transition: {
-      type: "spring" as const,
-      stiffness: 140,
-      damping: 24,
-    },
+    transition: { type: "tween", duration: 0.24, ease: EASE_FADE },
   },
 };
 // Reduced motion: the sheet fades in place, like the backdrop; its links hold still.
@@ -36,6 +32,11 @@ const sheetReduced: Variants = {
   open: { opacity: 1, transition: { duration: 0.15 } },
   closed: { opacity: 0, transition: { duration: 0.15 } },
 };
+const backdrop: Variants = {
+  open: { opacity: 1, transition: { duration: 0.15 } },
+  closed: { opacity: 0, transition: { duration: 0.2, ease: EASE_FADE } },
+};
+// Links rise the site's reveal distance on open; on close they ride the sheet out.
 const variantsItem: Variants = {
   open: {
     y: 0,
@@ -45,26 +46,62 @@ const variantsItem: Variants = {
     },
   },
   closed: {
-    y: 50,
+    y: 16,
     opacity: 0,
-    transition: {
-      y: { stiffness: 1000 },
-    },
   },
 };
-const variantsNav = {
+const variantsNav: Variants = {
   open: {
-    transition: { staggerChildren: 0.07, delayChildren: 0.2 },
-  },
-  closed: {
-    transition: { staggerChildren: 0.05, staggerDirection: -1 },
+    transition: { delayChildren: stagger(0.04, { startDelay: 0.08 }) },
   },
 };
+
+// Read live, unlike motion's useReducedMotion (fixed at mount): the drawer
+// stays mounted across routes, so it must follow a setting changed mid-visit.
+const subscribeReducedMotion = (onChange: () => void) => {
+  const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+const useLiveReducedMotion = () =>
+  useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, () => false);
+
+/**
+ * The sheet stops being a modal as soon as its exit starts, so isDialogOpen()
+ * does not hold page navigation while it slides away.
+ */
+function DrawerSheet({ reduceMotion, children }: { reduceMotion: boolean; children: ReactNode }) {
+  const isPresent = useIsPresent();
+
+  return (
+    <motion.aside
+      role="dialog"
+      aria-modal={isPresent ? "true" : undefined}
+      aria-label="Navigation"
+      // Windows shorter than the sheet's ~570px of content (landscape phones, short
+      // desktop windows): it scrolls instead of cutting off its last links.
+      className="pointer-events-auto absolute inset-y-0 right-0 flex h-full w-[min(86vw,22rem)] flex-col [@media(max-height:640px)]:overflow-y-auto [@media(max-height:640px)]:overscroll-contain border-l border-white/10 bg-black/95 shadow-[-24px_0_48px_rgba(0,0,0,0.35)]"
+      variants={reduceMotion ? sheetReduced : sheet}
+      initial="closed"
+      animate="open"
+      exit="closed"
+    >
+      {children}
+    </motion.aside>
+  );
+}
 
 const Hamburger = () => {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useLiveReducedMotion();
+  // Closes in the commit that changes the route (a drawer link, browser
+  // history), so AnimatePresence plays the exit alongside the page transition.
+  const [shownPath, setShownPath] = useState(pathname);
+  if (shownPath !== pathname) {
+    setShownPath(pathname);
+    setIsOpen(false);
+  }
   const menu = [
     { name: "Home", href: "/", icon: LayoutDashboardIcon },
     { name: "About", href: "/about", icon: FingerprintIcon },
@@ -77,6 +114,13 @@ const Hamburger = () => {
   const navRef = useRef<HTMLElement>(null);
   const openDrawer = () => setIsOpen(true);
   const closeDrawer = () => setIsOpen(false);
+  // A link that starts a page transition leaves the sheet up until the route
+  // commits (above), so its exit starts with the lift, not before it.
+  const onLinkClick = (href: string) => {
+    const t = getTransition();
+    if (isInFlight(t) && t.to === href && t.commitAt === null) return;
+    closeDrawer();
+  };
 
   // Keyboard support while the drawer is open: Escape closes it and returns
   // focus to the toggle, and Tab cycles within the toggle + drawer.
@@ -127,10 +171,10 @@ const Hamburger = () => {
             type="button"
             aria-label="Close navigation drawer"
             className="fixed inset-0 z-[2000] cursor-default bg-black/50 backdrop-blur-[2px]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            variants={backdrop}
+            initial="closed"
+            animate="open"
+            exit="closed"
             onClick={closeDrawer}
           />
         )}
@@ -146,25 +190,12 @@ const Hamburger = () => {
         <MenuToggle toggle={isOpen ? closeDrawer : openDrawer} isOpen={isOpen} />
         <AnimatePresence initial={false}>
           {isOpen && (
-            <motion.aside
-              key="drawer-sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Navigation"
-              // Windows shorter than the sheet's ~570px of content (landscape phones, short
-              // desktop windows): it scrolls instead of cutting off its last links.
-              className="pointer-events-auto absolute inset-y-0 right-0 flex h-full w-[min(86vw,22rem)] flex-col [@media(max-height:640px)]:overflow-y-auto [@media(max-height:640px)]:overscroll-contain border-l border-white/10 bg-black/95 shadow-[-24px_0_48px_rgba(0,0,0,0.35)]"
-              variants={reduceMotion ? sheetReduced : sheet}
-              initial="closed"
-              animate="open"
-              exit="closed"
-            >
+            <DrawerSheet key="drawer-sheet" reduceMotion={reduceMotion}>
               <motion.ul
                 key="drawer-menu"
                 variants={variantsNav}
                 initial="closed"
                 animate="open"
-                exit="closed"
                 className="mt-20 flex flex-1 flex-col gap-2 px-5"
               >
                 {menu.map(({ name, href, icon: Icon }) => (
@@ -182,7 +213,7 @@ const Hamburger = () => {
                       // The current page carries the accent, as on the desktop rail.
                       aria-current={pathname === href ? "page" : undefined}
                       className={`flex w-full items-center gap-4 rounded-2xl border border-white/10 px-4 py-3 transition hover:border-white/15 hover:bg-white/[0.04] hover:text-accent focus-visible:border-white/15 focus-visible:bg-white/[0.04] focus-visible:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${pathname === href ? "text-accent" : "text-white"}`}
-                      onClick={closeDrawer}
+                      onClick={() => onLinkClick(href)}
                     >
                       <Icon aria-hidden="true" size={21} animateOnHover />
                       <span className="text-lg font-medium">{name}</span>
@@ -190,10 +221,10 @@ const Hamburger = () => {
                   </motion.li>
                 ))}
               </motion.ul>
-              <motion.div variants={reduceMotion ? undefined : variantsItem} initial="closed" animate="open" exit="closed" className="border-t border-white/10 px-5 py-5">
+              <motion.div variants={reduceMotion ? undefined : variantsItem} initial="closed" animate="open" className="border-t border-white/10 px-5 py-5">
                 <Socials />
               </motion.div>
-            </motion.aside>
+            </DrawerSheet>
           )}
         </AnimatePresence>
       </motion.nav>

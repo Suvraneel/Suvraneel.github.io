@@ -2,23 +2,48 @@
 
 import "../styles/Home.module.css";
 import Image from "next/image";
-import { motion } from "motion/react";
+import { motion, useSpring } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SPLINE_MIN_WIDTH, useDashboardScene } from "@components/DashboardScene";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
-import { gestureGate, isTransitionLocked } from "@components/transition/transitionStore";
+import {
+  gestureGate,
+  getTransition,
+  isInFlight,
+  isTransitionLocked,
+} from "@components/transition/transitionStore";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
 
+/** Wheel intent (px of deltaY) that turns the dashboard over to About. */
+const FLIP_INTENT = 80;
+/** A pause this long (ms) lapses the wheel intent. */
+const INTENT_WINDOW_MS = 180;
+/** How far wheel intent turns the dashboard toward its flip before it commits (radians, ~8deg). */
+const PRE_TILT_MAX = 0.14;
+
+/** A flip or unflip in flight drives the rig itself. */
+const flipOwnsRig = () => {
+  const t = getTransition();
+  return isInFlight(t) && (t.kind === "flip" || t.kind === "unflip");
+};
+
 const Home = () => {
   const { navigate } = usePageTransition();
-  const { isReady, sceneViewport, sceneFailed, preloaderActive } = useDashboardScene();
+  const { isReady, sceneViewport, sceneFailed, preloaderActive, getRig, setFlip } = useDashboardScene();
   const scrollIntent = useRef(0);
   const lastWheelAt = useRef(0);
   const preloaderActiveRef = useRef(preloaderActive);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  // Wheel intent turns the dashboard a little toward its flip, a spring that
+  // settles back if the wheel stops short. The flip that commits starts from
+  // wherever the tilt has the rig (startFlip reads its rotation).
+  const preTilt = useSpring(0, { stiffness: 260, damping: 28 });
+  const preTilting = useRef(false);
+  const preTiltIdle = useRef(0);
+  const canPreTiltRef = useRef(false);
   /** Home has been seen at phone width (then widened or rotated past it). */
   const [wasNarrow, setWasNarrow] = useState(
     () => typeof window !== "undefined" && window.innerWidth <= SPLINE_MIN_WIDTH
@@ -45,10 +70,37 @@ const Home = () => {
     [navigate]
   );
 
-  // Read through a ref, so the wheel listener is not re-added when the preloader ends.
+  // Read through refs, so the wheel listener is not re-added when the preloader ends.
   useEffect(() => {
     preloaderActiveRef.current = preloaderActive;
   }, [preloaderActive]);
+
+  // About's portrait (desktop only) is warmed once the scene is up, so a first flip
+  // to About never shows the photo arriving partway through.
+  useEffect(() => {
+    if (!isReady || !window.matchMedia("(min-width: 1024px)").matches) return;
+    new window.Image().src = "/images/Suvraneel_DP.jpeg";
+  }, [isReady]);
+
+  // Under reduced motion the flip is a fade, so the rig is never turned partway.
+  useEffect(() => {
+    canPreTiltRef.current = isReady && !prefersReducedMotion;
+  }, [isReady, prefersReducedMotion]);
+
+  useEffect(
+    () =>
+      preTilt.on("change", (rotation) => {
+        if (preTilting.current && !flipOwnsRig()) setFlip(rotation);
+      }),
+    [preTilt, setFlip]
+  );
+
+  /** Stops the tilt where it is and lets go of the rig, for a flip to carry on from there. */
+  const handOffTilt = useCallback(() => {
+    window.clearTimeout(preTiltIdle.current);
+    preTilting.current = false;
+    preTilt.jump(preTilt.get());
+  }, [preTilt]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -72,21 +124,36 @@ const Home = () => {
       event.preventDefault();
       const now = window.performance.now();
 
-      if (now - lastWheelAt.current > 180) {
+      if (now - lastWheelAt.current > INTENT_WINDOW_MS) {
         scrollIntent.current = 0;
       }
 
       lastWheelAt.current = now;
       scrollIntent.current += event.deltaY;
 
-      if (scrollIntent.current >= 80 && flipToAbout("sequence")) {
+      if (scrollIntent.current >= FLIP_INTENT && flipToAbout("sequence")) {
         scrollIntent.current = 0;
+        handOffTilt();
+        return;
       }
+
+      if (!canPreTiltRef.current) return;
+      if (!preTilting.current) {
+        // From the rig's own rotation (a flip that never committed may have reset it).
+        preTilt.jump(Number(getRig()?.rotation.x ?? 0));
+        preTilting.current = true;
+      }
+      preTilt.set(-PRE_TILT_MAX * Math.min(1, scrollIntent.current / FLIP_INTENT));
+      window.clearTimeout(preTiltIdle.current);
+      preTiltIdle.current = window.setTimeout(() => preTilt.set(0), INTENT_WINDOW_MS);
     };
 
     window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
-    return () => window.removeEventListener("wheel", handleWheel, true);
-  }, [flipToAbout]);
+    return () => {
+      window.removeEventListener("wheel", handleWheel, true);
+      window.clearTimeout(preTiltIdle.current);
+    };
+  }, [flipToAbout, getRig, handOffTilt, preTilt]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -101,12 +168,15 @@ const Home = () => {
 
       // The key is only taken by a flip that starts; one navigate() refuses
       // (open drawer, preloader up) leaves it to the page.
-      if (flipToAbout("key")) event.preventDefault();
+      if (flipToAbout("key")) {
+        event.preventDefault();
+        handOffTilt();
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [flipToAbout]);
+  }, [flipToAbout, handOffTilt]);
 
   return (
     <main
@@ -127,7 +197,7 @@ const Home = () => {
         >
           <Image
             src="/images/Suvraneel_DP.jpeg"
-            alt="Sketch portrait of Suvraneel Bhuin wearing headphones"
+            alt="Black-and-white portrait of Suvraneel Bhuin"
             fill
             priority
             sizes="180px"

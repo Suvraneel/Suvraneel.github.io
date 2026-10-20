@@ -12,8 +12,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ElementType } from "react";
 import { useSfx } from "@hooks/useSfx";
-import type { PageTransition } from "@lib/pageTransition";
-import { getTransition, isInFlight, onArrival, subscribeTransition } from "./transition/transitionStore";
+import { cssEase, type PageTransition } from "@lib/pageTransition";
+import {
+  getTransition,
+  isInFlight,
+  onArrival,
+  subscribeTransition,
+  useTransitionState,
+} from "./transition/transitionStore";
 import Socials from "./Socials";
 
 type RailItem = {
@@ -32,6 +38,15 @@ const railItems: RailItem[] = [
 ];
 
 const currentYear = new Date().getFullYear();
+
+/** Rail rows are a fixed grid (.rail-link min-height), so item i sits at i * RAIL_ROW_PX. */
+const RAIL_ROW_PX = 42;
+
+/** The indicator's transform on a route's item, or null for a route the rail does not list. */
+const railOffset = (path: string | null) => {
+  const index = railItems.findIndex((item) => item.href === path);
+  return index < 0 ? null : `translate3d(0px, ${index * RAIL_ROW_PX}px, 0px)`;
+};
 
 const pageScroller = (path: string) =>
   path === "/work" ? document.querySelector<HTMLElement>(`[data-page="/work"] main`) : null;
@@ -167,12 +182,12 @@ export default function Navbar() {
 
       <div className="rail-divider" aria-hidden="true" />
       <div className="rail-links">
+        <RailIndicator progress={progress} />
         {railItems.map((item) => (
           <RailLink
             key={item.name}
             item={item}
             active={pathname === item.href}
-            progress={progress}
             reduceMotion={reduceMotion}
             onSnap={playSnap}
             onStopSnap={stopSnap}
@@ -197,10 +212,54 @@ export default function Navbar() {
   );
 }
 
+/**
+ * The active item's glow and progress edge: one indicator for the whole rail.
+ * A lift carries it from the page being left to the arriving one on the lift's
+ * own timeline (same start, duration and ease), so it moves in step with the
+ * page and seeks, resumes and history fast-forwards land it with the page.
+ * Reduced motion fades pages in place: it holds on the page being left and
+ * jumps once the fade settles.
+ */
+function RailIndicator({ progress }: { progress: MotionValue<number> }) {
+  const pathname = usePathname();
+  const transition = useTransitionState();
+  const indicatorRef = useRef<HTMLSpanElement>(null);
+  const fading = isInFlight(transition) && transition.kind === "fade";
+  const offset = railOffset(fading ? transition.from : pathname);
+
+  useEffect(
+    () =>
+      onArrival((t, track) => {
+        const indicator = indicatorRef.current;
+        const from = railOffset(t.from);
+        const to = railOffset(t.to);
+        // Fades and browser history swipes have no lift to ride.
+        if (!indicator || !track || !from || !to) return;
+        // The style already holds the arriving item; the track is dropped on settle.
+        track.add(
+          indicator.animate([{ transform: from }, { transform: to }], {
+            duration: t.duration,
+            easing: cssEase(t.ease),
+            fill: "both",
+          })
+        );
+      }),
+    []
+  );
+
+  if (!offset) return null;
+  return (
+    <span ref={indicatorRef} className="rail-indicator" aria-hidden="true" style={{ transform: offset }}>
+      <span className="rail-progress">
+        <motion.span className="rail-progress-bar" style={{ scaleY: progress }} />
+      </span>
+    </span>
+  );
+}
+
 function RailLink({
   item,
   active,
-  progress,
   reduceMotion,
   onSnap,
   onStopSnap,
@@ -208,8 +267,6 @@ function RailLink({
 }: {
   item: RailItem;
   active: boolean;
-  /** Scroll progress of the live page; drawn as the active item's left edge. */
-  progress: MotionValue<number>;
   reduceMotion: boolean | null;
   onSnap: () => void;
   onStopSnap: () => void;
@@ -242,11 +299,6 @@ function RailLink({
       }}
       onClick={onConfirm}
     >
-      {active && (
-        <span className="rail-progress" aria-hidden="true">
-          <motion.span className="rail-progress-bar" style={{ scaleY: progress }} />
-        </span>
-      )}
       <span className="rail-icon transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105">
         <Icon aria-hidden="true" size={24} animate={isHovered && !reduceMotion} />
       </span>

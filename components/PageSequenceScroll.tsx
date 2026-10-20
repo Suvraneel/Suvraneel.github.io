@@ -20,6 +20,10 @@ const postNavigationCooldownMs = 999;
 const pullThreshold = 70;
 /** Pull distance from which the hint starts to show. */
 const pullHintFrom = 20;
+/** Share of the wheel's intent threshold from which the hint starts to show. */
+const wheelHintFrom = 0.15;
+/** The rail's collapsed width (.sidebar-container, globals.css); the content column starts past it. */
+const railWidth = 50;
 
 const pageLabels: Record<(typeof pageOrder)[number], string> = {
   "/": "Home",
@@ -103,6 +107,8 @@ const PageSequenceScroll = () => {
   const cooldownSpringShownFor = useRef<number | null>(null);
   const lastWheelAt = useRef(0);
   const isNavigating = useRef(false);
+  // The touch pull's hint, as the wheel shows it (set up with the hint below).
+  const wheelHint = useRef<((direction: 1 | -1, distance: number) => void) | null>(null);
 
   useEffect(() => {
     // Home and About own their dashboard flip interaction. Every subsequent
@@ -120,6 +126,24 @@ const PageSequenceScroll = () => {
     const pageIndex = pageOrder.indexOf(pathname as (typeof pageOrder)[number]);
     if (pageIndex === -1) return;
 
+    // The wheel's intent at an edge shows in the touch pull's pill, as a pull
+    // distance (its fill is intent / threshold), painted in a frame. A pause
+    // that lapses the intent takes the pill with it.
+    let hintFrame = 0;
+    let hintIdle = 0;
+    let hintShownFor: 1 | -1 | null = null;
+    const paintHint = (direction: 1 | -1, intent: number) => {
+      window.cancelAnimationFrame(hintFrame);
+      window.clearTimeout(hintIdle);
+      hintShownFor = intent > 0 ? direction : null;
+      const distance = (intent / intentThreshold) * pullThreshold;
+      hintFrame = window.requestAnimationFrame(() => wheelHint.current?.(direction, distance));
+      if (intent > 0) hintIdle = window.setTimeout(() => paintHint(direction, 0), intentWindowMs);
+    };
+    const hideHint = () => {
+      if (hintShownFor !== null) paintHint(hintShownFor, 0);
+    };
+
     const handleWheel = (event: WheelEvent) => {
       if (
         event.ctrlKey ||
@@ -134,6 +158,7 @@ const PageSequenceScroll = () => {
       // The tail of the gesture that brought the visitor here never counts.
       if (gestureGate.swallow(event)) {
         event.preventDefault();
+        hideHint();
         return;
       }
 
@@ -145,11 +170,13 @@ const PageSequenceScroll = () => {
 
       if (window.performance.now() < cooldownUntil() && !isAtBoundary) {
         event.preventDefault();
+        hideHint();
         return;
       }
 
       if (!nextPath || !isAtBoundary) {
         boundaryReachedAt.current = null;
+        hideHint();
         return;
       }
 
@@ -162,6 +189,7 @@ const PageSequenceScroll = () => {
         scrollIntent.current = 0;
         scrollIntentEvents.current = 0;
         scrollDirection.current = null;
+        hideHint();
 
         if (cooldownSpringShownFor.current !== getLastStartAt()) {
           cooldownSpringShownFor.current = getLastStartAt();
@@ -196,17 +224,26 @@ const PageSequenceScroll = () => {
         scrollIntent.current < intentThreshold ||
         scrollIntentEvents.current < minimumIntentEvents
       ) {
+        paintHint(direction, scrollIntent.current);
         return;
       }
 
       // Forward arrivals show the next page's top, backward ones its bottom.
       if (navigate(nextPath, { source: "sequence", input: "wheel" })) {
         isNavigating.current = true;
+        hideHint();
+      } else {
+        paintHint(direction, scrollIntent.current);
       }
     };
 
     window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
-    return () => window.removeEventListener("wheel", handleWheel, true);
+    return () => {
+      window.removeEventListener("wheel", handleWheel, true);
+      // A frame still pending would paint the next page's hint.
+      window.cancelAnimationFrame(hintFrame);
+      window.clearTimeout(hintIdle);
+    };
   }, [navigate, pathname]);
 
   // Touch devices: pulling past a scroll edge moves through the sequence. The
@@ -215,14 +252,15 @@ const PageSequenceScroll = () => {
   // edge after the finger lifts does not. While pulling, the page stretches
   // and a pill at the edge reads "Pull for <next>", the next page's name set
   // as its wordmark, with a progress fill, then "Release for <next>" once far
-  // enough.
+  // enough. The wheel above shows the same pill at an edge, the wordmark and
+  // the fill only.
   useEffect(() => {
     const pageIndex = pageOrder.indexOf(pathname as (typeof pageOrder)[number]);
     if (pageIndex === -1) return;
 
     const hint = document.createElement("div");
     hint.setAttribute("aria-hidden", "true");
-    hint.className = `pointer-events-none fixed left-1/2 z-[1500] flex items-center gap-2 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-white/10 px-4 py-2 text-white opacity-0 shadow-[0_12px_32px_rgba(0,0,0,0.45)] backdrop-blur-md transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] ${tasaOrbiter.className}`;
+    hint.className = `pointer-events-none fixed left-1/2 z-[1500] flex items-center gap-2 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-white/10 px-4 py-2 text-white opacity-0 shadow-[0_12px_32px_rgba(0,0,0,0.45)] backdrop-blur-md transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none ${tasaOrbiter.className}`;
     hint.style.transform = "translate(-50%, 0.5rem)";
     // A faint fill, left to right with the pull; full at the threshold.
     const hintFill = document.createElement("span");
@@ -284,11 +322,17 @@ const PageSequenceScroll = () => {
     const gutter = 16;
     const menuGap = 8;
 
-    /** The hint for a pull `distance` px past the edge (0 hides it). */
-    const showHint = (direction: 1 | -1 | null, distance: number) => {
+    /**
+     * The hint for a pull `distance` px past the edge (0 hides it). The wheel
+     * passes its intent in the same units; its pill drops the verb (it commits
+     * on its own, with nothing to release) and centres on the content column.
+     */
+    const showHint = (direction: 1 | -1 | null, distance: number, input: "touch" | "wheel" = "touch") => {
+      const wheel = input === "wheel";
       const nextPath = direction ? pageOrder[pageIndex + direction] : undefined;
-      const away = direction === -1 ? -1 : 1;
-      if (!nextPath || distance < pullHintFrom) {
+      // Under reduced motion the wheel's pill only fades, without the slide.
+      const away = wheel && prefersReducedMotion() ? 0 : direction === -1 ? -1 : 1;
+      if (!nextPath || distance < (wheel ? wheelHintFrom * pullThreshold : pullHintFrom)) {
         hint.style.opacity = "0";
         hint.style.transform = `translate(-50%, ${away * 0.5}rem) scale(${hintScale})`;
         return;
@@ -296,6 +340,7 @@ const PageSequenceScroll = () => {
 
       const forward = direction === 1;
       const ready = distance >= pullThreshold;
+      hintAction.style.display = wheel ? "none" : "";
       pullLabel.style.opacity = ready ? "0" : "1";
       releaseLabel.style.opacity = ready ? "1" : "0";
       hintTitle.textContent = pageLabels[nextPath];
@@ -307,8 +352,10 @@ const PageSequenceScroll = () => {
       const viewport = document.documentElement.clientWidth;
       const width = hint.offsetWidth;
       const menu = forward ? null : document.querySelector<HTMLElement>("button.hamburger")?.getBoundingClientRect();
-      let center = viewport / 2;
-      let room = viewport - gutter * 2;
+      // A rail shown (display: none hides it with its client rects) starts the column past it.
+      const rail = wheel && document.querySelector(".sidebar-container")?.getClientRects().length ? railWidth : 0;
+      let center = rail + (viewport - rail) / 2;
+      let room = viewport - rail - gutter * 2;
       if (menu && menu.width > 0 && menu.left - menuGap > viewport / 2) {
         const end = menu.left - menuGap;
         if (center + width / 2 > end) {
@@ -502,6 +549,7 @@ const PageSequenceScroll = () => {
       release();
     };
 
+    wheelHint.current = (direction, distance) => showHint(direction, distance, "wheel");
     window.addEventListener("touchstart", handleTouchStart, { passive: true });
     window.addEventListener("touchmove", handleTouchMove, { passive: true });
     window.addEventListener("touchend", handleTouchEnd, { passive: true });
@@ -512,6 +560,7 @@ const PageSequenceScroll = () => {
       window.removeEventListener("touchend", handleTouchEnd);
       window.removeEventListener("touchcancel", release);
       release();
+      wheelHint.current = null;
       hint.remove();
     };
   }, [navigate, pathname]);

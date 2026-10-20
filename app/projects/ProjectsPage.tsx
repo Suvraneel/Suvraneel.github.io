@@ -1,16 +1,38 @@
 "use client";
 
-import { AnimatePresence, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useSpring } from "motion/react";
-import { useLayoutEffect, useRef, useState, type FocusEvent, type PointerEvent, type RefObject } from "react";
-import ProjectModal from "@components/ProjectModal";
+import {
+  AnimatePresence,
+  motion,
+  useIsPresent,
+  useMotionValue,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useTransform,
+  type MotionValue,
+} from "motion/react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type PointerEvent,
+  type RefObject,
+} from "react";
+import LiftHeading from "@components/LiftHeading";
+import ProjectModal, { type ModalOrigin } from "@components/ProjectModal";
 import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
-import { arrivalView, whenPlaced } from "@components/transition/arrival";
+import { layerPathOf, layoutTop, whenPlaced } from "@components/transition/arrival";
 import { getTransition, isInFlight } from "@components/transition/transitionStore";
 import projectsData from "@data/projectsDat";
 import { spaceBoards, tasaOrbiter } from "@font";
-import { REVEAL_STAGGER_MS, useReveal } from "@hooks/useReveal";
+import { useLiftEntrance } from "@hooks/useLiftEntrance";
+import { useReveal } from "@hooks/useReveal";
 import { useSfx } from "@hooks/useSfx";
-import { EASE_LIFT, cssEase, prefersReducedMotion } from "@lib/pageTransition";
+import { prefersReducedMotion } from "@lib/pageTransition";
 
 type Project = (typeof projectsData)[number];
 
@@ -44,47 +66,14 @@ const cardLayout = [
   "md:col-span-5 lg:col-span-4",
 ];
 
-/** Cards stand this far down and this faint when a lift starts revealing them. */
-const ARRIVAL_FROM = { opacity: 0.4, y: 18 };
-
-/**
- * Reached by a lift, the cards the visitor arrives at settle with it: each
- * rises from 18px and 40% opacity (never invisible) on the lift's own
- * timeline and curve, 60ms apart, all landing as the lift settles, so seeks, resumes
- * and settle carry them too. Cells sit outside the cards, so the cards' own
- * hover, tap and tilt transforms stay theirs.
- */
-function useLiftEntrance(galleryRef: RefObject<HTMLElement | null>) {
-  useLayoutEffect(() => {
-    const gallery = galleryRef.current;
-    if (!gallery || prefersReducedMotion()) return;
-    return whenPlaced(gallery, (t, track) => {
-      if (!t || !track) return;
-      const view = arrivalView(null, t);
-      const cells = Array.from(gallery.querySelectorAll<HTMLElement>("[data-reveal]")).filter(
-        (cell) => view.side(cell) === 0
-      );
-      const length = Math.max(track.duration - (cells.length - 1) * REVEAL_STAGGER_MS, track.duration / 2);
-      cells.forEach((cell, index) => {
-        track.add(
-          cell.animate(
-            [
-              { opacity: ARRIVAL_FROM.opacity, transform: `translate3d(0px, ${ARRIVAL_FROM.y}px, 0px)` },
-              { opacity: 1, transform: "translate3d(0px, 0px, 0px)" },
-            ],
-            // The lift's own curve: EASE_THROW on touch and phone lifts, else EASE_LIFT.
-            { duration: length, delay: index * REVEAL_STAGGER_MS, easing: cssEase(t.ease ?? EASE_LIFT), fill: "both" }
-          )
-        );
-      });
-    });
-  }, [galleryRef]);
-}
-
 export default function ProjectsPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [previewTime, setPreviewTime] = useState(0);
+  const [openedFrom, setOpenedFrom] = useState<ModalOrigin | null>(null);
   const reduceMotion = useReducedMotion();
   const gallery = useRef<HTMLDivElement>(null);
+  // The window's scroll, shared by every tile's media drift.
+  const { scrollY } = useScroll();
   // A lift ties the arriving cards' entrance to itself (useLiftEntrance); a
   // direct load keeps the cards' short mount entrance.
   const [arrivingByTransition] = useState(() => {
@@ -97,8 +86,10 @@ export default function ProjectsPage() {
   const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.35 });
   const [playPop] = useSfx("pop", { volume: 0.45 });
 
-  const openProject = (project: Project) => {
+  const openProject = (project: Project, time: number, origin: ModalOrigin) => {
     setSelectedProject(project);
+    setPreviewTime(time);
+    setOpenedFrom(origin);
     playPop();
   };
 
@@ -106,9 +97,9 @@ export default function ProjectsPage() {
     <main className="nav-gap min-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[#07090d] text-white">
       <div className="mx-auto max-w-[1500px] px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-24 sm:pt-14 lg:px-14 lg:pt-16">
         <header className="max-w-3xl">
-          <h1 className={`animated-heading text-4xl leading-[0.95] tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
+          <LiftHeading className={`text-4xl leading-[0.95] tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
             Projects
-          </h1>
+          </LiftHeading>
           <p className={`mt-5 max-w-xl text-base leading-7 text-white/65 sm:text-lg ${tasaOrbiter.className}`}>
             A selection of web products, open-source tools, and experiments across engineering, community, and Web3.
           </p>
@@ -127,7 +118,8 @@ export default function ProjectsPage() {
                   project={project}
                   reduceMotion={Boolean(reduceMotion)}
                   mountEntrance={!arrivingByTransition}
-                  onOpen={() => openProject(project)}
+                  scrollY={scrollY}
+                  onOpen={(time, origin) => openProject(project, time, origin)}
                   onHoverStart={playSnap}
                   onHoverEnd={stopSnap}
                 />
@@ -142,6 +134,8 @@ export default function ProjectsPage() {
           <ProjectModal
             key={("id" in selectedProject && selectedProject.id) || selectedProject.name}
             project={selectedProject}
+            startAt={previewTime}
+            origin={openedFrom}
             handleClose={() => setSelectedProject(null)}
           />
         )}
@@ -217,10 +211,144 @@ function useCardTilt(reduceMotion: boolean) {
   return { rotateX, rotateY, perspective, sheenX, sheenY, sheenOpacity, onPointerMove, onPointerLeave };
 }
 
+// Media depth, on desktops with a fine pointer only: the media shifts against the
+// tilt and drifts inside its frame as the page scrolls, so it reads as sitting
+// behind the tile's glass. The frame, title, chips and brief panel never move.
+const DEPTH_QUERY =
+  "(min-width: 768px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)";
+// The room that needs, under the same query: 8px either side for the pointer shift,
+// and 6px plus the drift's reach above and below (.project-tile is a size container,
+// so 6cqh is 6% of the tile). Contained thumbnails need none: their edges are soft.
+const MEDIA_OVERSCAN =
+  "[@media(min-width:768px)_and_(hover:hover)_and_(pointer:fine)_and_(prefers-reduced-motion:no-preference)]:-inset-x-[8px] [@media(min-width:768px)_and_(hover:hover)_and_(pointer:fine)_and_(prefers-reduced-motion:no-preference)]:inset-y-[calc(-6px_-_min(6cqh,24px))]";
+/** At full tilt, against it. */
+const POINTER_SHIFT_PX = { x: 8, y: 6 };
+/** The drift's reach either side of centre: 6% of the tile's height, at most 24px. */
+const DRIFT_SHARE = 0.06;
+const DRIFT_MAX_PX = 24;
+/** A contained thumbnail's blurred backdrop sits further back and moves less. */
+const BACKDROP_RATE = { pointer: 0.4, drift: 0.5 };
+const WILL_CHANGE_IDLE_MS = 150;
+let depthQuery: MediaQueryList | null = null;
+const getDepthQuery = () => (depthQuery ??= window.matchMedia(DEPTH_QUERY));
+
+/**
+ * The tile's media layers: `front` moves the media, `back` a contained
+ * thumbnail's blurred backdrop. The pointer shift comes from the tilt's own
+ * springs; the drift runs from -reach as the tile enters at the bottom of the
+ * view to +reach as it leaves at the top, measured from layout offsets (no lift
+ * or depth transform touches them). A lift's arriving page drifts as it will
+ * stand once settled (a framed sheet at its arrival offset); an exiting page
+ * keeps its last frame while the window scrolls on underneath it. Transforms
+ * only, with will-change just while they move; touch, phones and reduced
+ * motion leave the media where it is.
+ */
+function useMediaDepth(
+  tileRef: RefObject<HTMLElement | null>,
+  tilt: { rotateX: MotionValue<number>; rotateY: MotionValue<number> },
+  scrollY: MotionValue<number>
+) {
+  const isPresent = useIsPresent();
+  const presentRef = useRef(isPresent);
+  const enabled = useRef(false);
+  const drift = useMotionValue(0);
+  const willChange = useMotionValue("auto");
+  const idleTimer = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    presentRef.current = isPresent;
+  }, [isPresent]);
+
+  const measureDrift = useCallback(() => {
+    const tile = tileRef.current;
+    if (!tile || !presentRef.current) return;
+    if (!enabled.current) {
+      drift.set(0);
+      return;
+    }
+    const t = getTransition();
+    const scroll = isInFlight(t) && t.to === layerPathOf(tile) ? (t.arrivalScrollY ?? window.scrollY) : window.scrollY;
+    const viewport = window.innerHeight;
+    const progress = (scroll + viewport - layoutTop(tile)) / (viewport + tile.offsetHeight);
+    const reach = Math.min(tile.clientHeight * DRIFT_SHARE, DRIFT_MAX_PX);
+    drift.set((Math.min(Math.max(progress, 0), 1) * 2 - 1) * reach);
+  }, [drift, tileRef]);
+
+  const pointerX = (rotateY: number) => (enabled.current ? (-rotateY / TILT_MAX_DEG) * POINTER_SHIFT_PX.x : 0);
+  const pointerY = (rotateX: number) => (enabled.current ? (rotateX / TILT_MAX_DEG) * POINTER_SHIFT_PX.y : 0);
+  const frontX = useTransform(tilt.rotateY, pointerX);
+  const frontY = useTransform([tilt.rotateX, drift], ([rotateX, offset]: number[]) => pointerY(rotateX) + offset);
+  const backX = useTransform(tilt.rotateY, (rotateY) => pointerX(rotateY) * BACKDROP_RATE.pointer);
+  const backY = useTransform(
+    [tilt.rotateX, drift],
+    ([rotateX, offset]: number[]) => pointerY(rotateX) * BACKDROP_RATE.pointer + offset * BACKDROP_RATE.drift
+  );
+
+  const releaseWhenIdle = useCallback(() => {
+    if (idleTimer.current !== null) window.clearTimeout(idleTimer.current);
+    idleTimer.current = window.setTimeout(() => {
+      idleTimer.current = null;
+      willChange.set("auto");
+    }, WILL_CHANGE_IDLE_MS);
+  }, [willChange]);
+  const markMoving = () => {
+    if (willChange.get() !== "transform") willChange.set("transform");
+    releaseWhenIdle();
+  };
+  useMotionValueEvent(frontX, "change", markMoving);
+  useMotionValueEvent(frontY, "change", markMoving);
+  // A remount (Strict Mode) mid-move still lets go of will-change.
+  useEffect(() => {
+    if (willChange.get() !== "auto") releaseWhenIdle();
+    return () => {
+      if (idleTimer.current !== null) window.clearTimeout(idleTimer.current);
+      idleTimer.current = null;
+    };
+  }, [releaseWhenIdle, willChange]);
+
+  useMotionValueEvent(scrollY, "change", measureDrift);
+
+  // Once the page stands where it will be seen, and again whenever the query flips.
+  // After the transforms above: they subscribe to `drift` in their own layout effects.
+  useLayoutEffect(() => {
+    const tile = tileRef.current;
+    if (!tile) return;
+    const query = getDepthQuery();
+    const sync = () => {
+      enabled.current = query.matches;
+      measureDrift();
+    };
+    query.addEventListener("change", sync);
+    // A resize that leaves scrollY alone (devtools, window snapping) still moves the tiles.
+    window.addEventListener("resize", measureDrift);
+    const stopWaiting = whenPlaced(tile, sync);
+    return () => {
+      stopWaiting();
+      query.removeEventListener("change", sync);
+      window.removeEventListener("resize", measureDrift);
+      // The transforms drop their pending update as they unsubscribe, so a remount
+      // (Strict Mode) must measure a change again.
+      drift.jump(0);
+    };
+  }, [drift, measureDrift, tileRef]);
+
+  return {
+    front: { x: frontX, y: frontY, willChange },
+    back: { x: backX, y: backY, willChange },
+  };
+}
+
+// Soft edges on the drawn thumbnail itself (its box is the contained image, not
+// the tile), so a letterboxed image never meets its blurred copy in a hard line,
+// even as it moves.
+const THUMBNAIL_EDGE_MASK =
+  "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent), linear-gradient(to right, transparent, #000 5%, #000 95%, transparent)";
+
 function ProjectTile({
   project,
   reduceMotion,
   mountEntrance,
+  scrollY,
   onOpen,
   onHoverStart,
   onHoverEnd,
@@ -229,12 +357,16 @@ function ProjectTile({
   reduceMotion: boolean;
   /** Direct load: the short entrance on mount. A lift brings the cards in itself. */
   mountEntrance: boolean;
-  onOpen: () => void;
+  scrollY: MotionValue<number>;
+  /** Gets where the hover preview had got to (0 if it never played) and the tile's centre. */
+  onOpen: (previewTime: number, origin: ModalOrigin) => void;
   onHoverStart: () => void;
   onHoverEnd: () => void;
 }) {
+  const tileRef = useRef<HTMLButtonElement>(null);
   const previewVideo = useRef<HTMLVideoElement>(null);
   const tilt = useCardTilt(reduceMotion);
+  const depth = useMediaDepth(tileRef, tilt, scrollY);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const hasDedicatedPreview = project.gif !== "video-to-be-added.webm";
   const youtubeId = getYouTubeId(project.video);
@@ -278,6 +410,7 @@ function ProjectTile({
 
   return (
     <motion.button
+      ref={tileRef}
       type="button"
       aria-haspopup="dialog"
       aria-label={`Open ${project.name}`}
@@ -288,7 +421,11 @@ function ProjectTile({
       whileHover={reduceMotion ? undefined : { y: -4 }}
       whileTap={{ scale: 0.985 }}
       style={{ rotateX: tilt.rotateX, rotateY: tilt.rotateY, transformPerspective: tilt.perspective }}
-      onClick={onOpen}
+      onClick={(event) => {
+        const box = event.currentTarget.getBoundingClientRect();
+        // An unplayed preview has no src, so its currentTime reads 0.
+        onOpen(previewVideo.current?.currentTime ?? 0, { x: box.left + box.width / 2, y: box.top + box.height / 2 });
+      }}
       onHoverStart={startPreview}
       onHoverEnd={stopPreview}
       onPointerMove={tilt.onPointerMove}
@@ -301,49 +438,61 @@ function ProjectTile({
           {/* Let the thumbnail's colours soften into the tile behind its crisp, uncropped copy. */}
           {/* Own compositing layer: WebKit otherwise re-renders the 40px blur in software on every
               repaint of the page, which cost ~100ms frames as a lift mounted /projects and as it settled. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-2xl will-change-transform"
-            src={thumbnail}
-            alt=""
-            aria-hidden="true"
-          />
+          {/* Depth layers (useMediaDepth): the backdrop sits furthest back, the crisp copy moves at the full rate. */}
+          <motion.div className="absolute inset-0" style={depth.back}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-2xl will-change-transform"
+              src={thumbnail}
+              alt=""
+              aria-hidden="true"
+            />
+          </motion.div>
           <div className="pointer-events-none absolute inset-0 bg-[#060606]/35" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            className="relative z-10 h-full w-full object-contain opacity-95 transition duration-500 ease-out group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
-            src={thumbnail}
-            alt=""
-            onError={() => setThumbnailFailed(true)}
-            style={{
-              maskImage: "radial-gradient(ellipse at center, #000 82%, transparent 100%)",
-              WebkitMaskImage: "radial-gradient(ellipse at center, #000 82%, transparent 100%)",
-            }}
-          />
+          <motion.div className="absolute inset-0 z-10" style={depth.front}>
+            {/* Sized and centred like object-contain, so the mask fades the drawn image's own edges. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="absolute inset-0 m-auto max-h-full max-w-full opacity-95 transition duration-500 ease-out group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
+              src={thumbnail}
+              alt=""
+              onError={() => setThumbnailFailed(true)}
+              style={{
+                WebkitMaskImage: THUMBNAIL_EDGE_MASK,
+                WebkitMaskComposite: "source-in",
+                maskImage: THUMBNAIL_EDGE_MASK,
+                maskComposite: "intersect",
+              }}
+            />
+          </motion.div>
         </div>
       ) : hasDedicatedPreview ? (
-        // No src until playPreview: preload is only a hint browsers may override.
-        // The poster is the clip's first frame (what the tile showed when the video
-        // preloaded), so the tile looks the same at rest, on phones and under reduced motion.
-        <video
-          ref={previewVideo}
-          aria-hidden="true"
-          poster={`/images/project-assets/${project.gif.replace(/\.webm$/, ".poster.webp")}`}
-          className="h-full w-full object-cover opacity-75 transition duration-500 ease-out group-hover:scale-[1.035] group-hover:opacity-100 motion-reduce:transition-none"
-          preload="none"
-          muted
-          loop
-          playsInline
-        />
+        <motion.div className={`absolute inset-0 ${MEDIA_OVERSCAN}`} style={depth.front}>
+          {/* No src until playPreview: preload is only a hint browsers may override.
+              The poster is the clip's first frame (what the tile showed when the video
+              preloaded), so the tile looks the same at rest, on phones and under reduced motion. */}
+          <video
+            ref={previewVideo}
+            aria-hidden="true"
+            poster={`/images/project-assets/${project.gif.replace(/\.webm$/, ".poster.webp")}`}
+            className="h-full w-full object-cover opacity-75 transition duration-500 ease-out group-hover:scale-[1.035] group-hover:opacity-100 motion-reduce:transition-none"
+            preload="none"
+            muted
+            loop
+            playsInline
+          />
+        </motion.div>
       ) : hasVideoThumbnail ? (
-        // YouTube provides a project-specific still until a real walkthrough is available.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          className="h-full w-full object-cover opacity-80 transition duration-500 ease-out group-hover:scale-[1.035] group-hover:opacity-100 motion-reduce:transition-none"
-          src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`}
-          alt=""
-          onError={() => setThumbnailFailed(true)}
-        />
+        <motion.div className={`absolute inset-0 ${MEDIA_OVERSCAN}`} style={depth.front}>
+          {/* YouTube provides a project-specific still until a real walkthrough is available. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="h-full w-full object-cover opacity-80 transition duration-500 ease-out group-hover:scale-[1.035] group-hover:opacity-100 motion-reduce:transition-none"
+            src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`}
+            alt=""
+            onError={() => setThumbnailFailed(true)}
+          />
+        </motion.div>
       ) : (
         <ProjectArchivePreview project={project} />
       )}

@@ -13,8 +13,11 @@ import {
   FADE_MS,
   FLIP_LEAD_MS,
   FLIP_MS,
+  LAG_SELECTOR,
   LANDING_MS,
   LIFT_MS,
+  PHOTO_LAG,
+  PHOTO_SETTLE_FROM,
   SCRIM_MAX,
   THROW_MS,
   UNDER_OFFSET,
@@ -111,6 +114,22 @@ const depthTargets = (layer: HTMLElement | null | undefined, path: PagePath) => 
   const selector = DEPTH_SELECTORS[path];
   if (!layer || !selector) return [];
   return Array.from(layer.querySelectorAll<HTMLElement>(selector));
+};
+
+/**
+ * A page's lag layers that are rendered at this width (About's portrait
+ * column is lg only), each with how far it may trail: PHOTO_LAG of the
+ * viewport, capped by its overscan past the frame that clips it.
+ */
+const lagTargets = (layer: HTMLElement | null | undefined, vh: number) => {
+  if (!layer) return [];
+  return Array.from(layer.querySelectorAll<HTMLElement>(LAG_SELECTOR)).flatMap((element) => {
+    if (element.offsetParent === null) return [];
+    const style = getComputedStyle(element);
+    const overscan = Math.min(-parseFloat(style.top), -parseFloat(style.bottom));
+    const lag = Math.min(PHOTO_LAG * vh, overscan);
+    return lag > 0 ? [{ element, lag }] : [];
+  });
 };
 
 type FlipDriver = {
@@ -625,11 +644,26 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       // The sheet: lifts one viewport away, or comes back down from it.
       play(sheet?.el, forward ? move(0, -vh) : move(-vh, 0), keepSheet);
 
-      // Depth inside the sheet: foreground content pulls ahead of it.
+      // Depth inside the sheet: foreground content pulls ahead of it, and
+      // decorative layers trail it inside their frames.
       if (!t.plain) {
         const lead = CONTENT_LEAD * vh;
         for (const element of depthTargets(sheet?.el, t.sheet)) {
           play(element, forward ? move(0, -lead) : move(-lead, 0), keepSheet);
+        }
+        for (const { element, lag } of lagTargets(sheet?.el, vh)) {
+          play(element, forward ? move(0, lag) : move(lag, 0), keepSheet);
+        }
+        // Underneath, they trail the page as it sinks, or settle into place
+        // as it rises (a forward arrival: Home to About).
+        for (const { element, lag } of lagTargets(under?.el, vh)) {
+          play(
+            element,
+            forward
+              ? [{ transform: PHOTO_SETTLE_FROM }, { transform: "translate3d(0px, 0px, 0px) scale(1)" }]
+              : move(0, -lag),
+            keepUnder
+          );
         }
       }
 
