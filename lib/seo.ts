@@ -9,16 +9,16 @@ export const siteDescription =
   "Portfolio of Suvraneel Bhuin, a software engineer building thoughtful digital products and enterprise systems.";
 
 /**
- * The branded share card, app/opengraph-image.tsx exported as a static PNG
- * (its "card.png" image id). Metadata merges shallowly, so a page's own
+ * The branded share card, app/opengraph-image.tsx exported as a static JPEG
+ * (its "card.jpg" image id). Metadata merges shallowly, so a page's own
  * openGraph and twitter objects drop the layout's image: each one lists it.
  */
 export const shareImage = {
-  url: "/opengraph-image/card.png",
+  url: "/opengraph-image/card.jpg",
   width: 1200,
   height: 630,
   alt: `${siteName}, ${siteTagline}`,
-  type: "image/png",
+  type: "image/jpeg",
 };
 
 type PageMetadata = {

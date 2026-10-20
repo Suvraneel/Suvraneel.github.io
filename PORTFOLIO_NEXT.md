@@ -155,8 +155,7 @@ Possible follow-up (needs your OK): Spline runtime 2.0.75 redraws the Home scene
 | L-1, F-7 | One page shell: same top padding, gutter and H1 size/tracking on tablet and desktop (phones are done). |
 | P-6 | Project tiles: DeStackOverflow/EthCommerce/Meteorologyly titles clip; hover panel repeats the name. |
 | C-3, C-4 | Apply the approved D1 full-stack positioning line across meta, Home, llms.txt and the product docs. |
-| C-1, C-2 | Name in every page title and OG title; a static OG image. |
-| K-9 | Branded 404 and error pages (a client crash currently wipes the whole shell). |
+| K-9 | Branded error page (a client crash currently wipes the whole shell); the 404 is done. |
 | H-8 | Phone Home hero: textured heading, CTA labels, alt text that matches the photo. |
 | P-2 | About copy: drop the "Profile" eyebrow, reword the second "I like…", add a `<main>` landmark. |
 | A-1 | Raise small low-alpha text to ≥ white/60 for contrast. |
@@ -171,7 +170,7 @@ Possible follow-up (needs your OK): Spline runtime 2.0.75 redraws the Home scene
 | K-7 | CI workflow (install, tsc, eslint, build) as a required check; Mergify currently merges without checks. |
 | K-8 | Commit Playwright e2e specs for the scroll/modal/drawer guards and the Spline link guard. |
 | K-10 | TypeScript `strict` (about 6 errors, in Particle.tsx and DrawerToggler.tsx). |
-| K-2 | 5 transitive advisories (braces, sharp, source-map-js, postcss-selector-parser, MCP SDK via shadcn); all build-time or dev-only. |
+| K-2 | Transitive advisories (braces, source-map-js, postcss-selector-parser, hono and the MCP SDK via shadcn); all build-time or dev-only. sharp is now a direct devDependency at 0.35.5 (fixed). |
 | F-1 | Font variables never reach `<html>` (`--font-TASAOrb` undefined); Tailwind `sans` is `serif`; rail labels ask for an unhashed font name. |
 | F-5 | ~180 lines of dead CSS in globals.css (swirl, jello, iframe-container, equalizer, `hr`), plus two unused CSS modules. |
 | F-6 | `--rail-w` variable and a named z-index scale instead of literals. |
