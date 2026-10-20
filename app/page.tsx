@@ -1,10 +1,10 @@
-import { createPageMetadata } from "@lib/seo";
+import { createPageMetadata, homeTitle } from "@lib/seo";
 import HomePage from "./HomePage";
 
 export const metadata = createPageMetadata({
-  title: "Software Engineer & Product Builder",
+  title: { absolute: homeTitle },
   description:
-    "Suvraneel Bhuin is a senior software engineer at Accenture building production services across APIs and data, with experience leading open-source programmes.",
+    "Suvraneel Bhuin is a software engineer at Accenture building production services across APIs and data, with experience leading open-source programmes.",
   path: "/",
 });
 

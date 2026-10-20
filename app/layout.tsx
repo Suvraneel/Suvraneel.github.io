@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import "../styles/globals.css";
 import AppShell from "@components/AppShell";
 import { GA_TRACKING_ID, gtagInit } from "@lib/gtag";
-import { siteDescription, siteName, siteUrl } from "@lib/seo";
+import { homeTitle, shareImage, siteDescription, siteName, siteUrl } from "@lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
   title: {
-    default: "Suvraneel Bhuin | Software Engineer & Product Builder",
+    default: homeTitle,
     template: "%s | Suvraneel Bhuin",
   },
   description: siteDescription,
@@ -16,14 +16,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_IN",
     siteName,
-    title: "Suvraneel Bhuin | Software Engineer & Product Builder",
+    title: homeTitle,
     description: siteDescription,
     url: "/",
+    images: [shareImage],
   },
   twitter: {
-    card: "summary",
-    title: "Suvraneel Bhuin | Software Engineer & Product Builder",
+    card: "summary_large_image",
+    title: homeTitle,
     description: siteDescription,
+    images: [shareImage],
   },
   robots: { index: true, follow: true },
   verification: {
@@ -52,7 +54,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       {
         "@type": "WebSite",
         "@id": `${siteUrl}#website`,
-        name: `${siteName} — Portfolio`,
+        name: `${siteName} Portfolio`,
         url: siteUrl.toString(),
         description: siteDescription,
         publisher: { "@id": `${siteUrl}#person` },

@@ -827,6 +827,13 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       const url = new URL(anchor.href, window.location.href);
       if (url.origin !== window.location.origin || url.search || url.hash) return;
       if (!isPagePath(url.pathname)) return;
+      // Off the sequence (the 404 page) there is no lift, and a client-side
+      // route change would leave the old layer's exit unreleased: load the page.
+      if (!isPagePath(pathnameRef.current)) {
+        event.preventDefault();
+        window.location.assign(url.href);
+        return;
+      }
       if (url.pathname === pathnameRef.current && !isTransitionLocked()) return;
 
       event.preventDefault();
