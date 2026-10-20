@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "../styles/globals.css";
 import AppShell from "@components/AppShell";
 import { GA_TRACKING_ID, gtagInit } from "@lib/gtag";
-import { homeTitle, shareImage, siteDescription, siteName, siteUrl } from "@lib/seo";
+import { homeTitle, shareImage, siteDescription, siteName, siteUrl, twitterHandle } from "@lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
@@ -23,6 +23,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
+    site: twitterHandle,
+    creator: twitterHandle,
     title: homeTitle,
     description: siteDescription,
     images: [shareImage],

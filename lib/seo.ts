@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 export const siteUrl = new URL("https://suvraneel.github.io");
 export const siteName = "Suvraneel Bhuin";
 export const siteTagline = "Software Engineer & Product Builder";
+/** X (Twitter) handle, credited as the site and the author on share cards. */
+export const twitterHandle = "@SuvraneelB";
 /** Home's title, and the layout's default for any route without its own. */
 export const homeTitle = `${siteName} | ${siteTagline}`;
 export const siteDescription =
@@ -47,6 +49,8 @@ export function createPageMetadata({ title, description, path }: PageMetadata): 
     },
     twitter: {
       card: "summary_large_image",
+      site: twitterHandle,
+      creator: twitterHandle,
       title: shareTitle,
       description,
       images: [shareImage],
