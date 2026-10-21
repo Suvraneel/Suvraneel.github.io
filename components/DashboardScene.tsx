@@ -4,6 +4,7 @@ import SplineObj from "@components/SplineObject";
 import StairsPreloader, { PRELOADER_FAILSAFE_MS, type PreloaderStatus } from "@components/StairsPreloader";
 import { isInFlight, useTransitionState } from "@components/transition/transitionStore";
 import { SHEET_SHADOW } from "@lib/pageTransition";
+import { hasHardwareRenderer } from "@lib/gpu";
 // WAAPI only: no motion value is left behind to write the transform back after it is cleared.
 import { animate } from "motion/mini";
 import { AnimatePresence } from "motion/react";
@@ -53,6 +54,8 @@ type DashboardSceneContextValue = {
   getRig: () => any;
   /** Sets the rig's flip rotation (radians) on the live app, if it has loaded. */
   setFlip: (rotation: number) => void;
+  /** HomePage reports whether its static hero is on screen. */
+  setHeroShown: (shown: boolean) => void;
 };
 
 const noop = () => undefined;
@@ -66,6 +69,7 @@ const DashboardSceneContext = createContext<DashboardSceneContextValue>({
   containerRef: { current: null },
   getRig: () => null,
   setFlip: noop,
+  setHeroShown: noop,
 });
 
 export const useDashboardScene = () => useContext(DashboardSceneContext);
@@ -81,6 +85,8 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   const [sceneLoadFailed, setSceneLoadFailed] = useState(false);
   const [isSplineViewport, setSplineViewport] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
+  // Home's static hero is on screen (HomePage's heroOnScreen, reported here).
+  const [heroShown, setHeroShown] = useState(false);
   // While a transition into or out of Home is in flight, the scene is Home's
   // sheet (it lifts away or comes down with Home), so it stays shown and mounted.
   const homeFlight = inFlight && (transition.from === "/" || transition.to === "/");
@@ -93,6 +99,10 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     transition.kind !== "instant" &&
     !(transition.kind === "fade" && transition.to === "/");
   const sceneShadow = sceneOnTop && transition.kind !== "fade";
+  // While Home shows its static hero instead of the scene, the hero rides the
+  // sheet over the scene's fallback: at the sheet's own z-index the container
+  // paints first and Home's transparent layer, which carries the hero, paints over it.
+  const sceneZ = heroShown ? 2 : 3;
   // Once the dashboard has loaded it stays mounted for the session (paused
   // while hidden), so it is never torn down and loaded again next to another
   // live Spline runtime: a dashboard created while one is alive renders
@@ -148,14 +158,27 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     if (!needsScene || !isSplineViewport) return;
 
     const controller = new AbortController();
-    // Warm the lazy Spline runtime chunk in parallel with the scene download.
-    void import("@splinetool/react-spline");
-    fetchWithProgress(DASHBOARD_SCENE, controller.signal, setDownloadProgress)
-      // Fragment satisfies Spline's extension check; fetch ignores it on blob URLs.
-      .then((blob) => setSceneUrl(`${URL.createObjectURL(blob)}#.splinecode`))
-      .catch(() => {
+    const load = async () => {
+      const hardware = await hasHardwareRenderer();
+      if (controller.signal.aborted) return;
+      // Without a GPU the scene would hold the main thread for seconds a frame
+      // (lib/gpu.ts): skip the download and open onto the static fallback.
+      if (!hardware) {
+        setSceneError(true);
+        setSceneLoadFailed(true);
+        return;
+      }
+      // Warm the lazy Spline runtime chunk in parallel with the scene download.
+      void import("@splinetool/react-spline");
+      try {
+        const blob = await fetchWithProgress(DASHBOARD_SCENE, controller.signal, setDownloadProgress);
+        // Fragment satisfies Spline's extension check; fetch ignores it on blob URLs.
+        setSceneUrl(`${URL.createObjectURL(blob)}#.splinecode`);
+      } catch {
         if (!controller.signal.aborted) setSceneUrl(DASHBOARD_SCENE);
-      });
+      }
+    };
+    void load();
 
     return () => controller.abort();
   }, [needsScene, isSplineViewport]);
@@ -299,6 +322,7 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
       containerRef,
       getRig,
       setFlip,
+      setHeroShown,
     }),
     [app, getRig, hasSceneError, isReady, isSplineViewport, preloaderActive, setFlip]
   );
@@ -316,7 +340,7 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
         style={
           sceneOnTop
             ? {
-                zIndex: 3,
+                zIndex: sceneZ,
                 pointerEvents: "none",
                 // The Spline canvas is transparent over the black body; as a
                 // sheet it carries that same black so it stays opaque.

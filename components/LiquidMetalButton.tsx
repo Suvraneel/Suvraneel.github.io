@@ -4,6 +4,7 @@ import Link from "next/link";
 import { type MouseEvent, ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { tasaOrbiter } from "@font";
 import { useMagnetic } from "@hooks/useMagnetic";
+import { hasHardwareWebGL2 } from "@lib/gpu";
 import { isPlainAnchor } from "@lib/linkKind";
 
 // Shader speeds: calm at rest, livelier on hover/focus, a short burst on click.
@@ -21,21 +22,6 @@ type ShaderMount = {
   dispose: () => void;
   setSpeed: (speed: number) => void;
 };
-
-// The shader needs WebGL2 (GLSL ES 3.00). Some setups have none: hardened Firefox
-// forks (webgl.disabled), blocklisted GPUs/drivers, webgl.enable-webgl2=false.
-// Probed once per page (the probe canvas is left to GC: forcing its loss makes
-// Firefox log "WebGL context was lost" on every load).
-let webgl2Support: boolean | null = null;
-function supportsWebGL2() {
-  if (webgl2Support !== null) return webgl2Support;
-  try {
-    webgl2Support = Boolean(document.createElement("canvas").getContext("webgl2"));
-  } catch {
-    webgl2Support = false;
-  }
-  return webgl2Support;
-}
 
 // Free a canvas's WebGL context now instead of at GC, so mounts/unmounts
 // (page lifts, modal open/close) never pile up live contexts.
@@ -160,9 +146,12 @@ export default function LiquidMetalButton({
         return;
       }
 
-      if (!supportsWebGL2()) {
-        // Skip the shader chunk entirely.
-        fallBack(new Error("WebGL2 is not available"));
+      // The shader needs WebGL2 (GLSL ES 3.00). Some setups have none: hardened
+      // Firefox forks (webgl.disabled), blocklisted GPUs/drivers,
+      // webgl.enable-webgl2=false. Software WebGL2 (no GPU) would run it but
+      // stall the main thread on every frame. Either way, skip the shader chunk.
+      if (!hasHardwareWebGL2()) {
+        fallBack(new Error("WebGL2 is unavailable or not GPU-accelerated"));
         return;
       }
 

@@ -3,7 +3,7 @@
 import "../styles/Home.module.css";
 import Image from "next/image";
 import { motion, useSpring } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { SPLINE_MIN_WIDTH, useDashboardScene } from "@components/DashboardScene";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
@@ -13,6 +13,7 @@ import {
   getTransition,
   isInFlight,
   isTransitionLocked,
+  useTransitionState,
 } from "@components/transition/transitionStore";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
@@ -24,6 +25,21 @@ const INTENT_WINDOW_MS = 180;
 /** How far wheel intent turns the dashboard toward its flip before it commits (radians, ~8deg). */
 const PRE_TILT_MAX = 0.14;
 
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+const subscribeReducedMotion = (onChange: () => void) => {
+  const query = window.matchMedia(REDUCED_MOTION_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+const readReducedMotion = () => window.matchMedia(REDUCED_MOTION_QUERY).matches;
+const readReducedMotionOnServer = () => false;
+
+/**
+ * Home has been seen at phone width this session (then widened or rotated past
+ * it). Kept outside the component so a Home remounted by a navigation still knows.
+ */
+let homeSeenNarrow = false;
+
 /** A flip or unflip in flight drives the rig itself. */
 const flipOwnsRig = () => {
   const t = getTransition();
@@ -32,11 +48,19 @@ const flipOwnsRig = () => {
 
 const Home = () => {
   const { navigate } = usePageTransition();
-  const { isReady, sceneViewport, sceneFailed, preloaderActive, getRig, setFlip } = useDashboardScene();
+  const { isReady, sceneViewport, sceneFailed, preloaderActive, getRig, setFlip, setHeroShown } = useDashboardScene();
+  const transition = useTransitionState();
   const scrollIntent = useRef(0);
   const lastWheelAt = useRef(0);
   const preloaderActiveRef = useRef(preloaderActive);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  // False on the server and while hydrating (matching the server HTML), the live
+  // setting after: a Home remounted by a navigation reads it on its first render,
+  // so under reduced motion its hero skips the entrance.
+  const prefersReducedMotion = useSyncExternalStore(
+    subscribeReducedMotion,
+    readReducedMotion,
+    readReducedMotionOnServer
+  );
   // Wheel intent turns the dashboard a little toward its flip, a spring that
   // settles back if the wheel stops short. The flip that commits starts from
   // wherever the tilt has the rig (startFlip reads its rotation).
@@ -44,15 +68,32 @@ const Home = () => {
   const preTilting = useRef(false);
   const preTiltIdle = useRef(0);
   const canPreTiltRef = useRef(false);
-  /** Home has been seen at phone width (then widened or rotated past it). */
+  /** Home has been seen at phone width (homeSeenNarrow). */
   const [wasNarrow, setWasNarrow] = useState(
-    () => typeof window !== "undefined" && window.innerWidth <= SPLINE_MIN_WIDTH
+    () => homeSeenNarrow || (typeof window !== "undefined" && window.innerWidth <= SPLINE_MIN_WIDTH)
   );
   // Wide screens show the 3D dashboard instead of this hero. A phone widened
   // past SPLINE_MIN_WIDTH, or a scene that failed, keeps the hero on screen
   // until the scene is ready, so Home is never empty. Arriving from another
   // page while the scene loads keeps the dashboard's own backdrop, as before.
-  const heroOnScreen = sceneViewport && !isReady && !preloaderActive && (wasNarrow || sceneFailed);
+  const heroLive = sceneViewport && !isReady && !preloaderActive && (wasNarrow || sceneFailed);
+  // Held through a flight into or out of Home: the scene turning ready mid-flight
+  // would otherwise swap the hero out while the sheet is still moving. It swaps
+  // once the page has settled, as it does at rest.
+  const homeFlight = isInFlight(transition) && (transition.from === "/" || transition.to === "/");
+  const [heldHero, setHeldHero] = useState(heroLive);
+  if (!homeFlight && heldHero !== heroLive) setHeldHero(heroLive);
+  const heroOnScreen = homeFlight ? heldHero : heroLive;
+
+  // The scene's layer stacks under the hero while it is on screen (DashboardScene).
+  useLayoutEffect(() => {
+    setHeroShown(heroOnScreen);
+  }, [heroOnScreen, setHeroShown]);
+  useLayoutEffect(() => () => setHeroShown(false), [setHeroShown]);
+
+  useEffect(() => {
+    if (wasNarrow) homeSeenNarrow = true;
+  }, [wasNarrow]);
 
   useEffect(() => {
     const narrow = window.matchMedia(`(max-width: ${SPLINE_MIN_WIDTH}px)`);
@@ -101,15 +142,6 @@ const Home = () => {
     preTilting.current = false;
     preTilt.jump(preTilt.get());
   }, [preTilt]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches);
-
-    updatePreference();
-    mediaQuery.addEventListener("change", updatePreference);
-    return () => mediaQuery.removeEventListener("change", updatePreference);
-  }, []);
 
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
