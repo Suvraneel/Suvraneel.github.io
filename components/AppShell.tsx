@@ -15,8 +15,9 @@ import * as gtag from "@lib/gtag";
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  // One page view per committed route, the first load included. By now the
-  // route's <title> is in place; at the history push it is still the old page's.
+  // One page view per committed route, the first load included. At the history
+  // push the <title> is still the old page's; by now it is normally the new one
+  // (pageview waits a few frames if it hasn't landed yet).
   useEffect(() => {
     gtag.pageview();
   }, [pathname]);

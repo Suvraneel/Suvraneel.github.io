@@ -116,12 +116,13 @@ const Home = () => {
     preloaderActiveRef.current = preloaderActive;
   }, [preloaderActive]);
 
-  // About's portrait (desktop only) is warmed once the scene is up, so a first flip
-  // to About never shows the photo arriving partway through.
+  // About's portrait (desktop only) is warmed once the scene is up, or has given
+  // way to the static hero, so a first flip to About never shows the photo
+  // arriving partway through.
   useEffect(() => {
-    if (!isReady || !window.matchMedia("(min-width: 1024px)").matches) return;
+    if (!(isReady || sceneFailed) || !window.matchMedia("(min-width: 1024px)").matches) return;
     new window.Image().src = "/images/Suvraneel_DP.jpeg";
-  }, [isReady]);
+  }, [isReady, sceneFailed]);
 
   // Under reduced motion the flip is a fade, so the rig is never turned partway.
   useEffect(() => {
@@ -227,11 +228,15 @@ const Home = () => {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="relative aspect-square w-40 max-w-full overflow-hidden rounded-2xl"
         >
+          {/* The phone LCP: a copy cut for its 180px box (w-40 at the 18px root; 540px
+              covers 3x screens, and the export has no image optimizer), fetched ahead
+              of the scripts. */}
           <Image
-            src="/images/Suvraneel_DP.jpeg"
+            src="/images/Suvraneel_DP-540.webp"
             alt="Black-and-white portrait of Suvraneel Bhuin"
             fill
-            priority
+            loading="eager"
+            fetchPriority="high"
             sizes="180px"
             className="object-cover grayscale"
           />

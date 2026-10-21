@@ -8,7 +8,15 @@ export const dynamic = "force-static";
 // Each route lists the sources that change what the page shows, so lastmod
 // reflects real content edits (search engines only trust an accurate lastmod).
 const routes = [
-  { path: "/", sources: ["app/page.tsx", "app/HomePage.tsx", "public/spline/sceneDACCORD_NEW.splinecode"] },
+  {
+    path: "/",
+    sources: [
+      "app/page.tsx",
+      "app/HomePage.tsx",
+      "public/spline/sceneDACCORD_NEW.splinecode",
+      "public/images/Suvraneel_DP-540.webp",
+    ],
+  },
   { path: "/about", sources: ["app/about", "public/images/Suvraneel_DP.jpeg"] },
   { path: "/work", sources: ["app/work", "data/workData.ts", "components/ChronoCard.tsx"] },
   { path: "/projects", sources: ["app/projects", "data/projectsDat.ts", "components/ProjectModal.tsx"] },

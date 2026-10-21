@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "../styles/globals.css";
 import AppShell from "@components/AppShell";
 import { GA_TRACKING_ID, gtagInit } from "@lib/gtag";
@@ -80,7 +81,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {GA_TRACKING_ID && (
           <>
             <script dangerouslySetInnerHTML={{ __html: gtagInit(GA_TRACKING_ID) }} />
-            <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`} />
+            {/* gtag.js (~175 KB) loads once the page is idle, off the critical path;
+                the queue above holds the first page view until it arrives. */}
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
+              strategy="lazyOnload"
+            />
           </>
         )}
         <AppShell>{children}</AppShell>
