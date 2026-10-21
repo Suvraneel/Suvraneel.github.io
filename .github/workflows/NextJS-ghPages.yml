@@ -48,6 +48,10 @@ jobs:
       - name: Build static export
         # next.config.js sets output: "export", so the site is written to ./out
         run: bun run build
+        env:
+          # GA4 measurement ID, inlined at build. Repo Settings -> Secrets and
+          # variables -> Actions -> Variables. Unset: the site ships without GA.
+          NEXT_PUBLIC_GA_ID: ${{ vars.NEXT_PUBLIC_GA_ID }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

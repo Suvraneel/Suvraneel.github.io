@@ -2,20 +2,107 @@
 
 import "../styles/Home.module.css";
 import Image from "next/image";
-import { motion } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, useSpring } from "motion/react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { SPLINE_MIN_WIDTH, useDashboardScene } from "@components/DashboardScene";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
-import { gestureGate, isTransitionLocked } from "@components/transition/transitionStore";
-import { isSyntheticScrollStep } from "@lib/splineScroll";
+import {
+  gestureGate,
+  getTransition,
+  isInFlight,
+  isTransitionLocked,
+  useTransitionState,
+} from "@components/transition/transitionStore";
 import { spaceBoards, tasaOrbiter } from "@font";
+import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
+
+/** Wheel intent (px of deltaY) that turns the dashboard over to About. */
+const FLIP_INTENT = 80;
+/** A pause this long (ms) lapses the wheel intent. */
+const INTENT_WINDOW_MS = 180;
+/** How far wheel intent turns the dashboard toward its flip before it commits (radians, ~8deg). */
+const PRE_TILT_MAX = 0.14;
+
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+const subscribeReducedMotion = (onChange: () => void) => {
+  const query = window.matchMedia(REDUCED_MOTION_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+const readReducedMotion = () => window.matchMedia(REDUCED_MOTION_QUERY).matches;
+const readReducedMotionOnServer = () => false;
+
+/**
+ * Home has been seen at phone width this session (then widened or rotated past
+ * it). Kept outside the component so a Home remounted by a navigation still knows.
+ */
+let homeSeenNarrow = false;
+
+/** A flip or unflip in flight drives the rig itself. */
+const flipOwnsRig = () => {
+  const t = getTransition();
+  return isInFlight(t) && (t.kind === "flip" || t.kind === "unflip");
+};
 
 const Home = () => {
   const { navigate } = usePageTransition();
+  const { isReady, sceneViewport, sceneFailed, preloaderActive, getRig, setFlip, setHeroShown } = useDashboardScene();
+  const transition = useTransitionState();
   const scrollIntent = useRef(0);
   const lastWheelAt = useRef(0);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const preloaderActiveRef = useRef(preloaderActive);
+  // False on the server and while hydrating (matching the server HTML), the live
+  // setting after: a Home remounted by a navigation reads it on its first render,
+  // so under reduced motion its hero skips the entrance.
+  const prefersReducedMotion = useSyncExternalStore(
+    subscribeReducedMotion,
+    readReducedMotion,
+    readReducedMotionOnServer
+  );
+  // Wheel intent turns the dashboard a little toward its flip, a spring that
+  // settles back if the wheel stops short. The flip that commits starts from
+  // wherever the tilt has the rig (startFlip reads its rotation).
+  const preTilt = useSpring(0, { stiffness: 260, damping: 28 });
+  const preTilting = useRef(false);
+  const preTiltIdle = useRef(0);
+  const canPreTiltRef = useRef(false);
+  /** Home has been seen at phone width (homeSeenNarrow). */
+  const [wasNarrow, setWasNarrow] = useState(
+    () => homeSeenNarrow || (typeof window !== "undefined" && window.innerWidth <= SPLINE_MIN_WIDTH)
+  );
+  // Wide screens show the 3D dashboard instead of this hero. A phone widened
+  // past SPLINE_MIN_WIDTH, or a scene that failed, keeps the hero on screen
+  // until the scene is ready, so Home is never empty. Arriving from another
+  // page while the scene loads keeps the dashboard's own backdrop, as before.
+  const heroLive = sceneViewport && !isReady && !preloaderActive && (wasNarrow || sceneFailed);
+  // Held through a flight into or out of Home: the scene turning ready mid-flight
+  // would otherwise swap the hero out while the sheet is still moving. It swaps
+  // once the page has settled, as it does at rest.
+  const homeFlight = isInFlight(transition) && (transition.from === "/" || transition.to === "/");
+  const [heldHero, setHeldHero] = useState(heroLive);
+  if (!homeFlight && heldHero !== heroLive) setHeldHero(heroLive);
+  const heroOnScreen = homeFlight ? heldHero : heroLive;
+
+  // The scene's layer stacks under the hero while it is on screen (DashboardScene).
+  useLayoutEffect(() => {
+    setHeroShown(heroOnScreen);
+  }, [heroOnScreen, setHeroShown]);
+  useLayoutEffect(() => () => setHeroShown(false), [setHeroShown]);
+
+  useEffect(() => {
+    if (wasNarrow) homeSeenNarrow = true;
+  }, [wasNarrow]);
+
+  useEffect(() => {
+    const narrow = window.matchMedia(`(max-width: ${SPLINE_MIN_WIDTH}px)`);
+    const onChange = () => {
+      if (narrow.matches) setWasNarrow(true);
+    };
+    narrow.addEventListener("change", onChange);
+    return () => narrow.removeEventListener("change", onChange);
+  }, []);
 
   // The page transition owns the dashboard flip: About pushes up while the
   // rig turns, so the two read as one motion.
@@ -24,39 +111,81 @@ const Home = () => {
     [navigate]
   );
 
+  // Read through refs, so the wheel listener is not re-added when the preloader ends.
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches);
+    preloaderActiveRef.current = preloaderActive;
+  }, [preloaderActive]);
 
-    updatePreference();
-    mediaQuery.addEventListener("change", updatePreference);
-    return () => mediaQuery.removeEventListener("change", updatePreference);
-  }, []);
+  // About's portrait (desktop only) is warmed once the scene is up, so a first flip
+  // to About never shows the photo arriving partway through.
+  useEffect(() => {
+    if (!isReady || !window.matchMedia("(min-width: 1024px)").matches) return;
+    new window.Image().src = "/images/Suvraneel_DP.jpeg";
+  }, [isReady]);
+
+  // Under reduced motion the flip is a fade, so the rig is never turned partway.
+  useEffect(() => {
+    canPreTiltRef.current = isReady && !prefersReducedMotion;
+  }, [isReady, prefersReducedMotion]);
+
+  useEffect(
+    () =>
+      preTilt.on("change", (rotation) => {
+        if (preTilting.current && !flipOwnsRig()) setFlip(rotation);
+      }),
+    [preTilt, setFlip]
+  );
+
+  /** Stops the tilt where it is and lets go of the rig, for a flip to carry on from there. */
+  const handOffTilt = useCallback(() => {
+    window.clearTimeout(preTiltIdle.current);
+    preTilting.current = false;
+    preTilt.jump(preTilt.get());
+  }, [preTilt]);
 
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
-      if (isSyntheticScrollStep(event) || event.ctrlKey || event.deltaY <= 0 || isTransitionLocked()) return;
+      if (event.ctrlKey || event.deltaY <= 0 || isTransitionLocked()) return;
+      // The tail of the gesture that brought the visitor here never counts
+      // (the provider's wheel gate holds it).
+      if (gestureGate.swallow(event)) return;
+      // While navigate() would refuse the flip (open drawer or dialog, preloader
+      // up), the wheel is left to the page.
+      if (preloaderActiveRef.current || isDialogOpen() || isDrawerOpen() || !gestureGate.canStart()) return;
 
       event.preventDefault();
-      // The tail of the gesture that brought the visitor here never counts.
-      if (gestureGate.swallow(event)) return;
       const now = window.performance.now();
 
-      if (now - lastWheelAt.current > 180) {
+      if (now - lastWheelAt.current > INTENT_WINDOW_MS) {
         scrollIntent.current = 0;
       }
 
       lastWheelAt.current = now;
       scrollIntent.current += event.deltaY;
 
-      if (scrollIntent.current >= 80 && flipToAbout("sequence")) {
+      if (scrollIntent.current >= FLIP_INTENT && flipToAbout("sequence")) {
         scrollIntent.current = 0;
+        handOffTilt();
+        return;
       }
+
+      if (!canPreTiltRef.current) return;
+      if (!preTilting.current) {
+        // From the rig's own rotation (a flip that never committed may have reset it).
+        preTilt.jump(Number(getRig()?.rotation.x ?? 0));
+        preTilting.current = true;
+      }
+      preTilt.set(-PRE_TILT_MAX * Math.min(1, scrollIntent.current / FLIP_INTENT));
+      window.clearTimeout(preTiltIdle.current);
+      preTiltIdle.current = window.setTimeout(() => preTilt.set(0), INTENT_WINDOW_MS);
     };
 
     window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
-    return () => window.removeEventListener("wheel", handleWheel, true);
-  }, [flipToAbout]);
+    return () => {
+      window.removeEventListener("wheel", handleWheel, true);
+      window.clearTimeout(preTiltIdle.current);
+    };
+  }, [flipToAbout, getRig, handOffTilt, preTilt]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -69,20 +198,28 @@ const Home = () => {
       if (isTyping || isControl || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       if (!["ArrowDown", "PageDown", " "].includes(event.key)) return;
 
-      event.preventDefault();
-      flipToAbout("key");
+      // The key is only taken by a flip that starts; one navigate() refuses
+      // (open drawer, preloader up) leaves it to the page.
+      if (flipToAbout("key")) {
+        event.preventDefault();
+        handOffTilt();
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [flipToAbout]);
+  }, [flipToAbout, handOffTilt]);
 
   return (
-    <main className="min-h-[100dvh] max-[550px]:relative max-[550px]:z-10">
+    <main
+      className={`min-h-[100dvh] max-[550px]:relative max-[550px]:z-10 ${heroOnScreen ? "relative z-10" : ""}`}
+    >
       {/* Phones never load the 3D dashboard, so this hero is their landing view. */}
       <section
         aria-label="Portfolio introduction"
-        className="flex min-h-[100dvh] flex-col justify-start px-5 pb-10 pt-8 text-white min-[551px]:sr-only"
+        className={`flex min-h-[100dvh] flex-col justify-start px-5 pb-10 pt-8 text-white ${
+          heroOnScreen ? "nav-gap" : "min-[551px]:sr-only"
+        }`}
       >
         <motion.div
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
@@ -92,7 +229,7 @@ const Home = () => {
         >
           <Image
             src="/images/Suvraneel_DP.jpeg"
-            alt="Sketch portrait of Suvraneel Bhuin wearing headphones"
+            alt="Black-and-white portrait of Suvraneel Bhuin"
             fill
             priority
             sizes="180px"

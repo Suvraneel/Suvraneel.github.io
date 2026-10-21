@@ -1,7 +1,6 @@
 "use client";
 
 import { ThemeProvider } from "next-themes";
-import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import AsciiArt from "@components/AsciiArt";
@@ -15,34 +14,19 @@ import * as gtag from "@lib/gtag";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const hasAnalytics = Boolean(gtag.GA_TRACKING_ID);
 
+  // One page view per committed route, the first load included. By now the
+  // route's <title> is in place; at the history push it is still the old page's.
   useEffect(() => {
-    gtag.pageview(pathname);
+    gtag.pageview();
   }, [pathname]);
 
   return (
     <ThemeProvider defaultTheme="dark" attribute="class">
       <DashboardSceneProvider>
         <PageTransitionProvider>
-          <Layout drawerKey={pathname}>
+          <Layout>
             <AsciiArt />
-            {hasAnalytics && (
-              <>
-                <Script id="google-analytics-init" strategy="afterInteractive">
-                  {`window.dataLayer = window.dataLayer || [];
-function gtag(){window.dataLayer.push(arguments);}
-window.gtag = window.gtag || gtag;
-gtag('js', new Date());
-gtag('config', '${gtag.GA_TRACKING_ID}', { page_path: window.location.pathname });`}
-                </Script>
-                <Script
-                  id="google-analytics"
-                  strategy="afterInteractive"
-                  src={`https://www.googletagmanager.com/gtag/js?id=${gtag.GA_TRACKING_ID}`}
-                />
-              </>
-            )}
             <PageSequenceScroll />
             <SplineLinkGuard />
             <PageStage>{children}</PageStage>

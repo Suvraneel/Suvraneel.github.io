@@ -44,29 +44,6 @@ body {
   background: black;
 }
 
-/* Styles for the swirling orb animation */
-@keyframes swirlAnimation {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes swirlAnimation {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-swirl {
-  animation: swirlAnimation 5s linear infinite;
-}
-
 a {
   text-decoration: none;
   cursor: pointer;
@@ -85,7 +62,7 @@ a:hover {
   box-shadow: 0 0 20px 1px rgba(0, 0, 0, 0.5);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
-  transition: width 0.6s;
+  transition: width 0.6s cubic-bezier(0.32, 0.72, 0, 1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -96,17 +73,30 @@ a:hover {
 .hamburger {
   display: none;
 }
-@media only screen and (max-width: 768px) {
-  /* For mobile phones: */
+/* Phones, and windows too short for the rail's links (landscape phones, short
+   desktop windows): the drawer instead. Keep in step with .nav-gap below and
+   WorkPage's plant offset. */
+@media only screen and (max-width: 768px), only screen and (max-height: 520px) {
   .sidebar-container {
     display: none;
   }
   .hamburger {
     display: flex;
   }
+  /* The page behind the open drawer holds still. overflow (not a fixed body)
+     keeps window.scrollY, which a drawer link's page transition reads on click. */
+  html:has([data-drawer-open]) {
+    overflow: hidden;
+  }
 }
 
-.sidebar-container:hover {
+/* Keyboard focus in the rail opens it as hover does, so every label and the
+   socials are reachable. :focus-within holds through a Tab between two rail
+   items (a per-item :focus-visible drops for a moment and hides the socials
+   before they can take focus); the :not() skips focus a mouse click leaves
+   behind, which would hold the rail open after the pointer leaves. */
+.sidebar-container:hover,
+.sidebar-container:focus-within:not(:has(:focus:not(:focus-visible))) {
   width: 140px;
 }
 
@@ -141,7 +131,8 @@ a:hover {
 .rail-music:focus-visible,
 .rail-link:focus-visible {
   outline: 2px solid rgb(var(--accent));
-  outline-offset: 2px;
+  /* Inset: the rail's overflow clips anything drawn past its edges. */
+  outline-offset: -2px;
 }
 
 .rail-icon,
@@ -170,8 +161,7 @@ a:hover {
 }
 
 .sidebar-container:hover .rail-label,
-.rail-link:focus-visible .rail-label,
-.rail-music:focus-visible .rail-label {
+.sidebar-container:focus-within:not(:has(:focus:not(:focus-visible))) .rail-label {
   opacity: 1;
   transform: translateX(0);
 }
@@ -182,6 +172,7 @@ a:hover {
 }
 
 .rail-links {
+  position: relative;
   display: grid;
   gap: 0;
 }
@@ -201,17 +192,28 @@ a:hover {
   filter: drop-shadow(0 0 6px rgb(var(--accent) / 0.35));
 }
 
-.rail-link-active::before {
+/* One indicator under the links carries the active item's glow and accent
+   edge; Navbar sets its transform (one 42px row per item) and moves it with a
+   page lift. Its parts settle in once, when it first appears. */
+.rail-indicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 42px;
+  pointer-events: none;
+}
+
+.rail-indicator::before {
   position: absolute;
   inset: 5px 0;
-  z-index: -1;
   border-radius: 2px;
   background: radial-gradient(circle at 22px 50%, rgb(var(--accent) / 0.12), rgb(var(--accent) / 0.035) 42%, transparent 76%);
   content: "";
   animation: rail-active-settle 520ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
-/* The active item's left accent edge doubles as the page's scroll progress:
+/* The indicator's left accent edge doubles as the page's scroll progress:
    the bar's scaleY (from the top) follows it; full on pages that do not scroll. */
 .rail-progress {
   position: absolute;
@@ -260,7 +262,8 @@ a:hover {
   gap: 12px;
 }
 
-.sidebar-container:hover .rail-socials {
+.sidebar-container:hover .rail-socials,
+.sidebar-container:focus-within:not(:has(:focus:not(:focus-visible))) .rail-socials {
   display: flex;
   animation: rail-socials-in 220ms cubic-bezier(0.22, 1, 0.36, 1) 70ms both;
 }
@@ -307,7 +310,8 @@ a:hover {
   .sidebar-container,
   .rail-label,
   .rail-socials,
-  .rail-progress {
+  .rail-progress,
+  .rail-indicator::before {
     transition: none;
     animation: none !important;
   }
@@ -378,6 +382,12 @@ a:focus-visible > .link-draw::after {
   [data-timeline-live] .timeline-dot-lit {
     transition: none;
   }
+}
+
+/* Work timeline spine fill (TimelineSpine): quiet along its length, brightening
+   over its last 7rem into the head, wherever the fill has reached. */
+.timeline-spine-fill {
+  background: linear-gradient(to bottom, rgb(var(--accent) / 0.22) calc(100% - 7rem), rgb(var(--accent) / 0.85));
 }
 
 /* Touch: the page edge belongs to the pull-to-continue gesture
@@ -462,15 +472,83 @@ a:focus-visible > .link-draw::after {
   filter: invert(100%) hue-rotate(128deg) brightness(1.15);
 }
 
-/* Animated Heading */
-.animated-heading {
-  background: url("/images/seed-46867.png") repeat;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: move 50s linear infinite;
+/* First-visit Home preloader (components/StairsPreloader.tsx). The name is a
+   stroked ghost (visible text from the first paint); a textured copy fills it
+   from the bottom by --p, using counter-translated transforms, not a clip. */
+.preloader {
+  /* Server HTML paints it before any JS; if JS never arrives it gets out of the way. */
+  animation: preloader-failsafe 0.4s ease-out 8s forwards;
 }
-@keyframes move {
+.preloader[data-live] {
+  animation: none;
+}
+@keyframes preloader-failsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+.preloader-name {
+  font-size: clamp(4rem, 9vw, 12rem);
+}
+.preloader-ghost,
+.preloader-texture {
+  padding: 0.08em 0 0.22em;
+}
+.preloader-ghost {
+  color: transparent;
+  -webkit-text-stroke: 1px rgb(255 255 255 / 0.2);
+}
+.preloader-fill {
+  transform: translateY(calc((1 - var(--p)) * 100%));
+}
+.preloader-texture {
+  transform: translateY(calc((var(--p) - 1) * 100%));
+  color: rgb(var(--accent));
+}
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .preloader-texture {
+    /* The heading texture (a 27 KB WebP, shared with .animated-heading) at the same scale. */
+    background: rgb(var(--accent)) url("/images/seed-46867.webp") 0% 30% repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+.preloader-drift {
+  animation: heading-texture-drift 12s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .preloader-drift {
+    animation: none;
+  }
+}
+
+/* Digits 0-9 drawn for Space Boards (its demo has none); original outlines,
+   used only as Space Boards' fallback (styles/fonts.ts). */
+@font-face {
+  font-family: "Space Boards Digits";
+  src: url("/fonts/space-boards-digits.woff2") format("woff2");
+  font-display: swap;
+  unicode-range: U+0030-0039;
+}
+
+/* Animated Heading: the texture shows through the text. Plain accent text where
+   text clipping is unsupported; the accent under the (opaque) texture shows
+   only if the image fails to load. */
+.animated-heading {
+  color: rgb(var(--accent));
+}
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .animated-heading {
+    background: rgb(var(--accent)) url("/images/seed-46867.webp") 0% 30% repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: heading-texture-drift 50s linear infinite;
+  }
+}
+@keyframes heading-texture-drift {
   0% {
     background-position: 0% 30%;
   }
@@ -478,9 +556,11 @@ a:focus-visible > .link-draw::after {
     background-position: 100% 70%;
   }
 }
-
-hr {
-  height: 5px;
+/* Reduced motion: the texture holds its first frame. */
+@media (prefers-reduced-motion: reduce) {
+  .animated-heading {
+    animation: none;
+  }
 }
 
 /* Projects */
@@ -488,172 +568,11 @@ hr {
   margin-left: 50px;
   width: calc(100% - 50px) !important;
 }
-@media only screen and (max-width: 768px) {
-  /* For mobile phones: */
+/* No rail here: same breakpoints as the rail/hamburger swap. */
+@media only screen and (max-width: 768px), only screen and (max-height: 520px) {
   .nav-gap {
     margin-left: 0px;
     width: 100% !important;
-  }
-}
-
-/* Work */
-.jello-horizontal:hover {
-  -webkit-animation: jello-horizontal 0.9s both;
-  animation: jello-horizontal 0.9s both;
-}
-/* ----------------------------------------------
- * Generated by Animista on 2022-9-15 23:13:23
- * Licensed under FreeBSD License.
- * See http://animista.net/license for more info. 
- * w: http://animista.net, t: @cssanimista
- * ---------------------------------------------- */
-
-/**
- * ----------------------------------------
- * animation jello-horizontal
- * ----------------------------------------
- */
-@-webkit-keyframes jello-horizontal {
-  0% {
-    -webkit-transform: scale3d(1, 1, 1);
-    transform: scale3d(1, 1, 1);
-  }
-  30% {
-    -webkit-transform: scale3d(1.25, 0.75, 1);
-    transform: scale3d(1.25, 0.75, 1);
-  }
-  40% {
-    -webkit-transform: scale3d(0.75, 1.25, 1);
-    transform: scale3d(0.75, 1.25, 1);
-  }
-  50% {
-    -webkit-transform: scale3d(1.15, 0.85, 1);
-    transform: scale3d(1.15, 0.85, 1);
-  }
-  65% {
-    -webkit-transform: scale3d(0.95, 1.05, 1);
-    transform: scale3d(0.95, 1.05, 1);
-  }
-  75% {
-    -webkit-transform: scale3d(1.05, 0.95, 1);
-    transform: scale3d(1.05, 0.95, 1);
-  }
-  100% {
-    -webkit-transform: scale3d(1, 1, 1);
-    transform: scale3d(1, 1, 1);
-  }
-}
-@keyframes jello-horizontal {
-  0% {
-    -webkit-transform: scale3d(1, 1, 1);
-    transform: scale3d(1, 1, 1);
-  }
-  30% {
-    -webkit-transform: scale3d(1.25, 0.75, 1);
-    transform: scale3d(1.25, 0.75, 1);
-  }
-  40% {
-    -webkit-transform: scale3d(0.75, 1.25, 1);
-    transform: scale3d(0.75, 1.25, 1);
-  }
-  50% {
-    -webkit-transform: scale3d(1.15, 0.85, 1);
-    transform: scale3d(1.15, 0.85, 1);
-  }
-  65% {
-    -webkit-transform: scale3d(0.95, 1.05, 1);
-    transform: scale3d(0.95, 1.05, 1);
-  }
-  75% {
-    -webkit-transform: scale3d(1.05, 0.95, 1);
-    transform: scale3d(1.05, 0.95, 1);
-  }
-  100% {
-    -webkit-transform: scale3d(1, 1, 1);
-    transform: scale3d(1, 1, 1);
-  }
-}
-
-/* Responsive Iframes */
-.iframe-container {
-  position: relative;
-  padding-bottom: 56.25%; /* 16:9 */
-  padding-top: 25px;
-  height: 0;
-}
-.iframe-container iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-/* Equaliser - Navbar */
-#bar1 {
-  animation: bar1 1.2s infinite linear;
-}
-
-#bar2 {
-  animation: bar2 0.8s infinite linear;
-}
-
-#bar3 {
-  animation: bar3 1s infinite linear;
-}
-
-#bar4 {
-  animation: bar4 0.7s infinite linear;
-}
-
-@keyframes bar1 {
-  0% {
-    height: 2px;
-  }
-  50% {
-    height: 7px;
-  }
-  100% {
-    height: 2px;
-  }
-}
-
-@keyframes bar2 {
-  0% {
-    height: 5px;
-  }
-  40% {
-    height: 1px;
-  }
-  80% {
-    height: 7px;
-  }
-  100% {
-    height: 5px;
-  }
-}
-
-@keyframes bar3 {
-  0% {
-    height: 7px;
-  }
-  50% {
-    height: 0;
-  }
-  100% {
-    height: 7px;
-  }
-}
-
-@keyframes bar4 {
-  0% {
-    height: 2px;
-  }
-  50% {
-    height: 7px;
-  }
-  100% {
-    height: 2px;
   }
 }
 

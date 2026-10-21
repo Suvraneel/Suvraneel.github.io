@@ -142,8 +142,8 @@ Verified: tsc, eslint and `next build` (static export to `out/`, incl. robots/si
 
 ## WS-C Copy and SEO
 
-- [ ] **C-1 P1 Name in titles.** The Home `<title>` omits the name; og:title/twitter:title are bare words. `createPageMetadata`: Home `{absolute: "Suvraneel Bhuin | …"}`, others `${title} | Suvraneel Bhuin` for OG/Twitter.
-- [ ] **C-2 P2 OG image.** None emitted. Add `app/opengraph-image.tsx` (static, ImageResponse: name + role in the brand style) and `summary_large_image`; wire into `createPageMetadata` (page openGraph objects replace the layout's).
+- [x] **C-1 P1 Name in titles.** The Home `<title>` omits the name; og:title/twitter:title are bare words. `createPageMetadata`: Home `{absolute: "Suvraneel Bhuin | …"}`, others `${title} | Suvraneel Bhuin` for OG/Twitter.
+- [x] **C-2 P2 OG image.** Done: static JPEG card at `/opengraph-image/card.jpg` (Satori over a baked desktop-Home backdrop, re-encoded with sharp to stay under WhatsApp's ~300 KB). Was: none emitted. Add `app/opengraph-image.tsx` (static, ImageResponse: name + role in the brand style) and `summary_large_image`; wire into `createPageMetadata` (page openGraph objects replace the layout's).
 - [-] **C-3 [D1] Positioning sweep.** siteDescription, layout title, Home h2/body, page descriptions, llms.txt, JSON-LD.
 - [-] **C-4 [D1] "senior software engineer" wording** in the Home meta description vs the official title.
 - [-] **C-5 [D6] Titles/figures** consistency (GSSoC figures, GEOGO name, résumé PDF re-export).

@@ -119,9 +119,9 @@ export const PLAIN_LIFT_QUERY = "(max-width: 550px), (pointer: coarse)";
  */
 export const DEPTH_SELECTORS: Record<PagePath, string | null> = {
   "/": null,
-  // Text column and the particle portrait; the black root and the aside's
-  // border/gradient stay with the sheet.
-  "/about": "section > div, aside > div:last-child",
+  // Text column only; the black root and the portrait's frame stay with the
+  // sheet (the photo inside it trails instead: LAG_SELECTOR).
+  "/about": "section > div",
   // Text column inside the <main> scroller; the sticky plant aside stays.
   "/work": "main > div > div:last-child",
   // <main> paints the background on these pages; its inner wrapper is content.
@@ -129,6 +129,17 @@ export const DEPTH_SELECTORS: Record<PagePath, string | null> = {
   "/skills": "main > div:first-child",
   "/contact": "main > div:first-child",
 };
+
+/**
+ * Decorative layers (About's portrait) that trail the page holding them, a
+ * third plane behind its content. Each sits overscanned inside a frame that
+ * clips it, and travels PHOTO_LAG of the viewport less than its page, never
+ * more than its overscan, so no edge of it can show.
+ */
+export const LAG_SELECTOR = "[data-depth='photo']";
+export const PHOTO_LAG = 0.06;
+/** A page arriving underneath (forward) settles its lag layers from here into place. */
+export const PHOTO_SETTLE_FROM = "translate3d(0px, 3%, 0px) scale(1.04)";
 
 export const cssEase = (ease: readonly number[]) => `cubic-bezier(${ease.join(",")})`;
 

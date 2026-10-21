@@ -9,7 +9,7 @@ export const dynamic = "force-static";
 // reflects real content edits (search engines only trust an accurate lastmod).
 const routes = [
   { path: "/", sources: ["app/page.tsx", "app/HomePage.tsx", "public/spline/sceneDACCORD_NEW.splinecode"] },
-  { path: "/about", sources: ["app/about", "components/Particle.tsx"] },
+  { path: "/about", sources: ["app/about", "public/images/Suvraneel_DP.jpeg"] },
   { path: "/work", sources: ["app/work", "data/workData.ts", "components/ChronoCard.tsx"] },
   { path: "/projects", sources: ["app/projects", "data/projectsDat.ts", "components/ProjectModal.tsx"] },
   { path: "/skills", sources: ["app/skills"] },

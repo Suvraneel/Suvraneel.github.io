@@ -13,8 +13,11 @@ import {
   FADE_MS,
   FLIP_LEAD_MS,
   FLIP_MS,
+  LAG_SELECTOR,
   LANDING_MS,
   LIFT_MS,
+  PHOTO_LAG,
+  PHOTO_SETTLE_FROM,
   SCRIM_MAX,
   THROW_MS,
   UNDER_OFFSET,
@@ -46,7 +49,6 @@ import {
   type ReactNode,
 } from "react";
 import { adoptHistoryEntry, rememberScroll, savedScrollFor } from "./historyScroll";
-import { isSyntheticScrollStep } from "@lib/splineScroll";
 import { TransitionTimeline } from "./timeline";
 import {
   gestureGate,
@@ -112,6 +114,22 @@ const depthTargets = (layer: HTMLElement | null | undefined, path: PagePath) => 
   const selector = DEPTH_SELECTORS[path];
   if (!layer || !selector) return [];
   return Array.from(layer.querySelectorAll<HTMLElement>(selector));
+};
+
+/**
+ * A page's lag layers that are rendered at this width (About's portrait
+ * column is lg only), each with how far it may trail: PHOTO_LAG of the
+ * viewport, capped by its overscan past the frame that clips it.
+ */
+const lagTargets = (layer: HTMLElement | null | undefined, vh: number) => {
+  if (!layer) return [];
+  return Array.from(layer.querySelectorAll<HTMLElement>(LAG_SELECTOR)).flatMap((element) => {
+    if (element.offsetParent === null) return [];
+    const style = getComputedStyle(element);
+    const overscan = Math.min(-parseFloat(style.top), -parseFloat(style.bottom));
+    const lag = Math.min(PHOTO_LAG * vh, overscan);
+    return lag > 0 ? [{ element, lag }] : [];
+  });
 };
 
 type FlipDriver = {
@@ -626,11 +644,26 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       // The sheet: lifts one viewport away, or comes back down from it.
       play(sheet?.el, forward ? move(0, -vh) : move(-vh, 0), keepSheet);
 
-      // Depth inside the sheet: foreground content pulls ahead of it.
+      // Depth inside the sheet: foreground content pulls ahead of it, and
+      // decorative layers trail it inside their frames.
       if (!t.plain) {
         const lead = CONTENT_LEAD * vh;
         for (const element of depthTargets(sheet?.el, t.sheet)) {
           play(element, forward ? move(0, -lead) : move(-lead, 0), keepSheet);
+        }
+        for (const { element, lag } of lagTargets(sheet?.el, vh)) {
+          play(element, forward ? move(0, lag) : move(lag, 0), keepSheet);
+        }
+        // Underneath, they trail the page as it sinks, or settle into place
+        // as it rises (a forward arrival: Home to About).
+        for (const { element, lag } of lagTargets(under?.el, vh)) {
+          play(
+            element,
+            forward
+              ? [{ transform: PHOTO_SETTLE_FROM }, { transform: "translate3d(0px, 0px, 0px) scale(1)" }]
+              : move(0, -lag),
+            keepUnder
+          );
         }
       }
 
@@ -794,6 +827,13 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       const url = new URL(anchor.href, window.location.href);
       if (url.origin !== window.location.origin || url.search || url.hash) return;
       if (!isPagePath(url.pathname)) return;
+      // Off the sequence (the 404 page) there is no lift, and a client-side
+      // route change would leave the old layer's exit unreleased: load the page.
+      if (!isPagePath(pathnameRef.current)) {
+        event.preventDefault();
+        window.location.assign(url.href);
+        return;
+      }
       if (url.pathname === pathnameRef.current && !isTransitionLocked()) return;
 
       event.preventDefault();
@@ -809,12 +849,11 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
   // too, so the gate knows whether input is still the same gesture at
   // settle). In flight, and while the gesture that brought the visitor here
   // is still being swallowed, the event neither scrolls nor reaches anything
-  // past the window's capture phase: the Spline plant counts raw wheel events
-  // on a window bubble listener whatever their defaultPrevented. Pinch-zoom
+  // past the window's capture phase: Spline scenes take raw wheel events on a
+  // window listener whatever their defaultPrevented. Pinch-zoom
   // (ctrlKey) keeps its default and, once settled, is never gated.
   useEffect(() => {
     const onWheel = (event: WheelEvent) => {
-      if (isSyntheticScrollStep(event)) return;
       const swallowed = gestureGate.swallow(event);
       const locked = isTransitionLocked();
       // An open modal scrolls its own content, as it always has.

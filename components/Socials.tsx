@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { useRef, useState, type ElementType } from "react";
+import { useSfx } from "@hooks/useSfx";
 import { GithubIcon, type GithubIconHandle } from "./animate-ui/icons/github";
 import { LinkedinIcon, type LinkedinIconHandle } from "./animate-ui/icons/linkedin";
 import { TwitterIcon, type TwitterIconHandle } from "./animate-ui/icons/twitter";
@@ -16,27 +17,20 @@ type AnimatedSocialLinkProps = {
 function AnimatedSocialLink({ name, href, brandColor, icon: Icon }: AnimatedSocialLinkProps) {
   const [isHovered, setIsHovered] = useState(false);
   const iconRef = useRef<AnimatedIconHandle>(null);
-  const snapAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  const playEffect = (source: string) => {
-    const audio = new Audio(source);
-    audio.volume = 0.25;
-    void audio.play().catch(() => undefined);
-    return audio;
-  };
+  const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
+  const [playConfirm] = useSfx("confirm", { volume: 0.25 });
 
   // Sound is a pointer-hover flourish; keyboard focus stays silent.
   const startInteraction = (withSound = true) => {
     setIsHovered(true);
-    snapAudioRef.current?.pause();
-    snapAudioRef.current = withSound ? playEffect("/sounds/snap.wav") : null;
+    stopSnap();
+    if (withSound) playSnap();
     iconRef.current?.startAnimation();
   };
 
   const endInteraction = () => {
     setIsHovered(false);
-    snapAudioRef.current?.pause();
-    snapAudioRef.current = null;
+    stopSnap();
     iconRef.current?.stopAnimation();
   };
 
@@ -46,11 +40,14 @@ function AnimatedSocialLink({ name, href, brandColor, icon: Icon }: AnimatedSoci
       target="_blank"
       rel="noreferrer"
       aria-label={name}
+      // A click leaves no focus behind: back from the new tab, a scroll key would
+      // turn it into keyboard focus and hold the rail open.
+      onMouseDown={(event) => event.preventDefault()}
       onMouseEnter={() => startInteraction()}
       onMouseLeave={endInteraction}
       onFocus={() => startInteraction(false)}
       onBlur={endInteraction}
-      onClick={() => playEffect("/sounds/confirm.wav")}
+      onClick={playConfirm}
       className="rounded-md transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
       style={{ color: isHovered ? brandColor : "white" }}
     >

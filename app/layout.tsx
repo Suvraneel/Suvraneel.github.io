@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
 import AppShell from "@components/AppShell";
-import { siteDescription, siteName, siteUrl } from "@lib/seo";
+import { GA_TRACKING_ID, gtagInit } from "@lib/gtag";
+import { homeTitle, shareImage, siteDescription, siteName, siteUrl, twitterHandle } from "@lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
   title: {
-    default: "Suvraneel Bhuin | Software Engineer & Product Builder",
+    default: homeTitle,
     template: "%s | Suvraneel Bhuin",
   },
   description: siteDescription,
@@ -15,14 +16,18 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_IN",
     siteName,
-    title: "Suvraneel Bhuin | Software Engineer & Product Builder",
+    title: homeTitle,
     description: siteDescription,
     url: "/",
+    images: [shareImage],
   },
   twitter: {
-    card: "summary",
-    title: "Suvraneel Bhuin | Software Engineer & Product Builder",
+    card: "summary_large_image",
+    site: twitterHandle,
+    creator: twitterHandle,
+    title: homeTitle,
     description: siteDescription,
+    images: [shareImage],
   },
   robots: { index: true, follow: true },
   verification: {
@@ -51,7 +56,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       {
         "@type": "WebSite",
         "@id": `${siteUrl}#website`,
-        name: `${siteName} — Portfolio`,
+        name: `${siteName} Portfolio`,
         url: siteUrl.toString(),
         description: siteDescription,
         publisher: { "@id": `${siteUrl}#person` },
@@ -61,11 +66,23 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Without JavaScript the Home preloader's cover would never lift: never show it. */}
+        <noscript>
+          <style>{`.preloader{display:none}`}</style>
+        </noscript>
+      </head>
       <body>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
+        {GA_TRACKING_ID && (
+          <>
+            <script dangerouslySetInnerHTML={{ __html: gtagInit(GA_TRACKING_ID) }} />
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`} />
+          </>
+        )}
         <AppShell>{children}</AppShell>
       </body>
     </html>

@@ -1,22 +1,57 @@
+import type { Application } from "@splinetool/runtime";
+
 // ---------------------------------------------------------------------------
 // Spline "Scroll" events with trigger "load" (e.g. Work's plant) don't read a
 // scroll position: the runtime counts window wheel events, one step per event
-// (sign only), clamped to the event's step count. To start such a scene part
-// way through (a backward arrival at the page bottom), we replay steps as
-// synthetic wheel events. They are tagged so our own wheel handlers ignore them.
+// (sign only), and seeks the event's transitions to steps / total. A trackpad
+// flick sends dozens of events, so such a scene runs ahead of its page, and
+// keys, the scrollbar and arrivals don't move it at all. `scrubSplineScroll`
+// detaches those events from the wheel and seeks their transitions to a
+// progress we give it, so the scene follows its page's real scroll.
+//
+// This reaches into the runtime's event manager, which is not public API.
+// Checked against @splinetool/runtime 2.0.75 (pinned): on any other shape it
+// returns null and the scene keeps its own wheel stepping.
 // ---------------------------------------------------------------------------
 
-const synthetic = new WeakSet<Event>();
+type SeekableTransition = {
+  object: { currentTransitionEvent?: unknown };
+  init: () => void;
+  seek: (progress: number) => void;
+};
 
-/** True for wheel events replayed by `stepSplineScroll`, never for user input. */
-export const isSyntheticScrollStep = (event: Event) => synthetic.has(event);
+type WheelScrollEvent = {
+  data: { steps: number };
+  scrollCounter: number;
+  actions: { Transition: SeekableTransition[] };
+};
 
-/** Advances (positive) or rewinds (negative) every in-view wheel-driven Spline scene by `steps`. */
-export const stepSplineScroll = (steps: number) => {
-  const deltaY = steps > 0 ? 1 : -1;
-  for (let i = 0; i < Math.abs(steps); i += 1) {
-    const event = new WheelEvent("wheel", { deltaY, cancelable: true });
-    synthetic.add(event);
-    window.dispatchEvent(event);
-  }
+const isScrubbable = (event: WheelScrollEvent) =>
+  event?.data?.steps > 0 &&
+  Array.isArray(event.actions?.Transition) &&
+  event.actions.Transition.every((transition) => typeof transition.seek === "function" && typeof transition.init === "function");
+
+/** Detaches a loaded scene's wheel-driven Scroll events and returns a seek to a progress (0 to 1), or null. */
+export const scrubSplineScroll = (spline: Application): ((progress: number) => void) | null => {
+  const wheelEvents: unknown = spline.eventManager?.handlers?.Scroll?.wheelEventsPerObject;
+  if (!(wheelEvents instanceof Map) || wheelEvents.size === 0) return null;
+  const events = [...wheelEvents.values()].flat() as WheelScrollEvent[];
+  if (!events.every(isScrubbable)) return null;
+  wheelEvents.clear();
+
+  return (progress) => {
+    const at = Math.min(Math.max(progress, 0), 1);
+    for (const event of events) {
+      // As the runtime's own step does: bind every transition to the event driving it, then seek.
+      for (const transition of event.actions.Transition) {
+        if (transition.object.currentTransitionEvent !== event) {
+          transition.object.currentTransitionEvent = event;
+          transition.init();
+        }
+      }
+      event.scrollCounter = at * event.data.steps;
+      event.actions.Transition.forEach((transition) => transition.seek(at));
+    }
+    spline.requestRender();
+  };
 };

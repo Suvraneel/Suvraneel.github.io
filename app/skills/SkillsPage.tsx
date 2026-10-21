@@ -1,9 +1,10 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useRef, useState } from "react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion, type Variants } from "motion/react";
+import { useRef, useState, type Ref } from "react";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { useReveal } from "@hooks/useReveal";
+import LiftHeading from "@components/LiftHeading";
 
 const capabilityAreas = [
   {
@@ -54,8 +55,45 @@ const practices = [
   ["03", "Ship, observe, improve", "Ship for production, learn from real usage, and iterate to keep systems reliable as they grow."],
 ];
 
+type CapabilityArea = (typeof capabilityAreas)[number];
+
+const EASE_OUT = [0.22, 1, 0.36, 1] as const;
+// Overdamped, so the disc lands on the next numeral without bouncing past it.
+const DISC_SPRING = { type: "spring", stiffness: 520, damping: 42, mass: 0.6 } as const;
+
+// The incoming panel mounts at once beside the outgoing one (popLayout), so the
+// column is never empty: the old copy fades in 120ms while the new one cascades
+// in four steps 35ms apart, the last settling by 445ms.
+const panelMotion: Variants = {
+  hidden: {},
+  shown: { opacity: 1, transition: { duration: 0.12, staggerChildren: 0.035 } },
+  gone: { opacity: 0, transition: { duration: 0.12, ease: EASE_OUT } },
+};
+const panelStep: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  shown: { opacity: 1, y: 0, transition: { duration: 0.34, ease: EASE_OUT } },
+};
+// Reduced motion keeps the steps still: the same settled frame as panelStep, so
+// the server HTML (rendered before the preference is known) hydrates unchanged.
+const panelStill: Variants = {
+  hidden: { opacity: 1, y: 0 },
+  shown: { opacity: 1, y: 0 },
+};
+// Reduced motion: a plain 120ms crossfade, no offset, no cascade.
+const panelFade: Variants = {
+  hidden: { opacity: 0 },
+  shown: { opacity: 1, transition: { duration: 0.12, ease: "linear" } },
+  gone: { opacity: 0, transition: { duration: 0.12, ease: "linear" } },
+};
+
 export default function SkillsPage() {
   const [activeId, setActiveId] = useState(capabilityAreas[0].id);
+  // Empty until the first switch, so it never reads out on load.
+  const [announcement, setAnnouncement] = useState("");
+  // Every switch mounts a fresh panel. A re-selected area must not revive its own
+  // still-exiting copy: the first panel's copy skips animations (initial={false})
+  // and would stay at its exit opacity.
+  const [switches, setSwitches] = useState(0);
   const reduceMotion = useReducedMotion();
   const activeArea = capabilityAreas.find((area) => area.id === activeId) ?? capabilityAreas[0];
   const practiceSteps = useRef<HTMLOListElement>(null);
@@ -64,11 +102,11 @@ export default function SkillsPage() {
 
   return (
     <main className="nav-gap min-h-[100dvh] overflow-x-hidden bg-black text-white">
-      <div className="mx-auto max-w-[1440px] px-5 pb-24 pt-20 sm:px-10 sm:pb-28 sm:pt-24 lg:px-14 xl:px-20">
+      <div className="mx-auto max-w-[1440px] px-5 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-24 lg:px-14 xl:px-20">
         <header className="max-w-4xl">
-          <h1 className={`animated-heading text-4xl font-bold leading-none tracking-[-0.04em] sm:text-6xl ${spaceBoards.className}`}>
+          <LiftHeading className={`text-4xl font-bold leading-none tracking-[-0.04em] sm:text-6xl ${spaceBoards.className}`}>
             Skills
-          </h1>
+          </LiftHeading>
           <p className={`mt-6 max-w-2xl text-lg leading-8 text-white/70 sm:text-xl ${tasaOrbiter.className}`}>
             Skills matter only when they help a team ship, operate, and improve a real system.
           </p>
@@ -96,13 +134,33 @@ export default function SkillsPage() {
                       type="button"
                       aria-pressed={active}
                       aria-controls="capability-detail"
-                      onClick={() => setActiveId(area.id)}
+                      onClick={() => {
+                        if (active) return;
+                        setActiveId(area.id);
+                        setAnnouncement(area.label);
+                        setSwitches((count) => count + 1);
+                      }}
                       className={`group flex min-h-[4.75rem] w-full items-center gap-2 border-b border-white/10 py-3 text-left transition-[color,border-color,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:gap-4 ${active ? "text-white" : "text-white/50 hover:text-white/85"}`}
                     >
-                      <span
-                        className={`relative z-10 grid size-8 shrink-0 place-items-center rounded-full border font-mono text-xs tabular-nums transition-[color,border-color,background-color] duration-300 lg:size-9 ${active ? "border-accent bg-accent text-[#05080c]" : "border-white/25 bg-black text-white/55 group-hover:border-white/50"}`}
-                      >
-                        {area.index}
+                      {/* No stacking context per row, so the travelling disc passes over
+                          every ring on the spine and under every numeral, in either direction. */}
+                      <span className="relative grid size-8 shrink-0 place-items-center font-mono text-xs tabular-nums lg:size-9">
+                        {/* The 2x2 grid keeps the colour crossfade; on the spine (lg) the disc carries the fill. */}
+                        <span
+                          aria-hidden="true"
+                          className={`absolute inset-0 rounded-full border transition-[border-color,background-color] duration-300 ${active ? "border-accent bg-accent lg:border-white/25 lg:bg-black" : "border-white/25 bg-black group-hover:border-white/50"}`}
+                        />
+                        {active && (
+                          <motion.span
+                            aria-hidden="true"
+                            layoutId="skills-active"
+                            transition={reduceMotion ? { duration: 0 } : DISC_SPRING}
+                            className="absolute inset-0 z-[1] hidden rounded-full bg-accent lg:block"
+                          />
+                        )}
+                        <span className={`relative z-[2] transition-colors duration-300 ${active ? "text-[#05080c]" : "text-white/55"}`}>
+                          {area.index}
+                        </span>
                       </span>
                       <span className="min-w-0 text-sm font-medium lg:text-lg">{area.label}</span>
                       <span
@@ -117,54 +175,13 @@ export default function SkillsPage() {
             </div>
           </aside>
 
-          <div className="min-w-0 lg:border-l lg:border-white/15 lg:pl-12">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.article
-                id="capability-detail"
-                key={activeArea.id}
-                aria-labelledby="capability-detail-title"
-                aria-live="polite"
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
-                transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-                className="min-h-[27rem] border-t border-white/15 pt-8 sm:pt-10 lg:border-t-0 lg:pt-0"
-              >
-                <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.14em]">
-                  <span className="tabular-nums text-accent">{activeArea.index}</span>
-                  <span aria-hidden="true" className="h-px w-8 bg-white/25" />
-                  <span className="text-white/45">{activeArea.label}</span>
-                </div>
-                <h2
-                  id="capability-detail-title"
-                  className={`mt-7 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-4xl lg:text-5xl ${tasaOrbiter.className}`}
-                >
-                  {activeArea.title}
-                </h2>
-                <p className={`mt-6 max-w-2xl text-base leading-7 text-white/70 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
-                  {activeArea.description}
-                </p>
-
-                <div className="mt-9 border-t border-white/10 pt-5">
-                    <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-white/45">
-                    Technologies
-                  </h3>
-                  <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-2" aria-label={`${activeArea.label} technologies`}>
-                    {activeArea.technologies.map((technology, index) => (
-                      <li key={technology} className="flex items-center gap-3 font-mono text-sm text-white/75">
-                        <span>{technology}</span>
-                        {index < activeArea.technologies.length - 1 && (
-                          <span aria-hidden="true" className="h-1 w-1 rounded-full bg-white/25" />
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <p className={`mt-7 max-w-2xl text-sm leading-6 text-white/55 sm:text-base ${tasaOrbiter.className}`}>
-                  {activeArea.proof}
-                </p>
-              </motion.article>
+          {/* Positioned: popLayout lifts the outgoing panel out to absolute, at its spot in here. */}
+          <div className="relative min-w-0 lg:border-l lg:border-white/15 lg:pl-12">
+            {/* Mounted from the start: the article below remounts on every switch, and a
+                live region that arrives with its text is skipped by screen readers. */}
+            <p className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</p>
+            <AnimatePresence mode="popLayout" initial={false}>
+              <CapabilityPanel key={`${activeArea.id}-${switches}`} area={activeArea} reduceMotion={Boolean(reduceMotion)} />
             </AnimatePresence>
           </div>
         </section>
@@ -198,5 +215,69 @@ export default function SkillsPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function CapabilityPanel({
+  area,
+  reduceMotion,
+  ref,
+}: Readonly<{ area: CapabilityArea; reduceMotion: boolean; ref?: Ref<HTMLElement> }>) {
+  // The outgoing panel lingers through its fade over the new one: only the
+  // present one keeps the ids, the accessibility tree and the pointer.
+  const present = useIsPresent();
+  const step = reduceMotion ? panelStill : panelStep;
+
+  return (
+    <motion.article
+      ref={ref}
+      id={present ? "capability-detail" : undefined}
+      aria-labelledby={present ? "capability-detail-title" : undefined}
+      aria-hidden={present ? undefined : true}
+      variants={reduceMotion ? panelFade : panelMotion}
+      initial="hidden"
+      animate="shown"
+      exit="gone"
+      className={`min-h-[27rem] border-t border-white/15 pt-8 sm:pt-10 lg:border-t-0 lg:pt-0 ${present ? "" : "pointer-events-none"}`}
+    >
+      <motion.div variants={step} className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.14em]">
+        <span className="tabular-nums text-accent">{area.index}</span>
+        <span aria-hidden="true" className="h-px w-8 bg-white/25" />
+        <span className="text-white/45">{area.label}</span>
+      </motion.div>
+      <motion.h2
+        variants={step}
+        id={present ? "capability-detail-title" : undefined}
+        className={`mt-7 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-4xl lg:text-5xl ${tasaOrbiter.className}`}
+      >
+        {area.title}
+      </motion.h2>
+      <motion.p variants={step} className={`mt-6 max-w-2xl text-base leading-7 text-white/70 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
+        {area.description}
+      </motion.p>
+
+      {/* Technologies and proof enter as one step, keeping the cascade to four. */}
+      <motion.div variants={step}>
+        <div className="mt-9 border-t border-white/10 pt-5">
+          <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-white/45">
+            Technologies
+          </h3>
+          <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-2" aria-label={`${area.label} technologies`}>
+            {area.technologies.map((technology, index) => (
+              <li key={technology} className="flex items-center gap-3 font-mono text-sm text-white/75">
+                <span>{technology}</span>
+                {index < area.technologies.length - 1 && (
+                  <span aria-hidden="true" className="h-1 w-1 rounded-full bg-white/25" />
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className={`mt-7 max-w-2xl text-sm leading-6 text-white/55 sm:text-base ${tasaOrbiter.className}`}>
+          {area.proof}
+        </p>
+      </motion.div>
+    </motion.article>
   );
 }

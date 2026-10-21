@@ -7,14 +7,16 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { hasHardwareRenderer } from "@lib/gpu";
 
 // Keep each scene out of the initial route bundle. React.lazy is the Spline
 // package's supported client-side loading path for App Router components.
 const Spline = lazy(() => import("@splinetool/react-spline"));
 
 // Spline's WebGPU runtime recovers from transient "destroyed texture used in a submit"
-// errors (e.g. ShadowDepthTexture rebuilds), but three.js still logs them. Mute only those.
-const BENIGN_GPU_ERROR = /destroyed texture .* used in a submit/i;
+// errors (e.g. ShadowDepthTexture rebuilds), but three.js still logs them. Mute only those,
+// in Chrome's (Dawn) wording and Firefox's (wgpu: "Texture with '…' label has been destroyed").
+const BENIGN_GPU_ERROR = /destroyed texture .* used in a submit|texture with '[^']*' label has been destroyed/i;
 const muteBenignWebGPUErrors = () => {
   if (typeof window === "undefined" || !("GPUAdapter" in window)) return;
   const proto = (window as any).GPUAdapter.prototype;
@@ -94,9 +96,11 @@ const SplineObj = (props: {
   waitForSoleRuntime?: boolean;
 }) => {
   const [isDesktop, setDesktop] = useState(false);
+  // Without a GPU a scene can't run (lib/gpu.ts): it keeps its placeholder.
+  const [hasGPU, setHasGPU] = useState(false);
   const otherRuntimes = useSyncExternalStore(subscribeRuntimes, getLiveRuntimes, getServerRuntimes);
   const [started, setStarted] = useState(!props.waitForSoleRuntime);
-  const mounted = isDesktop && started;
+  const mounted = isDesktop && hasGPU && started;
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- latch: once started, never waits again
@@ -118,6 +122,18 @@ const SplineObj = (props: {
     window.addEventListener('resize', updateMedia);
     return () => window.removeEventListener('resize', updateMedia);
   }, []);
+
+  // Phones never mount a scene, so they never probe.
+  useEffect(() => {
+    if (!isDesktop) return;
+    let live = true;
+    void hasHardwareRenderer().then((result) => {
+      if (live) setHasGPU(result);
+    });
+    return () => {
+      live = false;
+    };
+  }, [isDesktop]);
 
   return (
     <SceneErrorBoundary onError={props.onError}>

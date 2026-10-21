@@ -12,17 +12,17 @@
     "@emailjs/browser": "^3.12.1",
     "@paper-design/shaders": "^0.0.81",
     "@splinetool/react-spline": "^4.1.0",
-    "@splinetool/runtime": "^2.0.55",
+    "@splinetool/runtime": "2.0.75",
     "@types/react-dom": "^19.3.0",
     "cn": "^0.3.0",
     "gsap": "^3.15.0",
+    "howler": "^2.2.4",
     "motion": "^13.4.0",
     "next": "~16.3.8",
     "next-themes": "^0.4.6",
     "react": "^19.2.3",
     "react-calendly": "^4.4.0",
-    "react-dom": "^19.2.3",
-    "use-sound": "^4.0.4"
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
@@ -32,6 +32,7 @@
     "eslint-config-next": "~16.3.8",
     "postcss": "^8.5.28",
     "shadcn": "^4.21.0",
+    "sharp": "^0.35.5",
     "tailwindcss": "^3.4.19",
     "typescript": "^6.0.3"
   },

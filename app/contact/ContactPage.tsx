@@ -1,10 +1,11 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
-import { FormEvent, SyntheticEvent, useEffect, useRef, useState } from "react";
-import useSound from "use-sound";
+import { FormEvent, Suspense, SyntheticEvent, lazy, useCallback, useEffect, useRef, useState } from "react";
+import { preconnect, prefetchDNS } from "react-dom";
+import { useSfx } from "@hooks/useSfx";
 import { spaceBoards, tasaOrbiter } from "@font";
+import LiftHeading from "@components/LiftHeading";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { AnimateIcon } from "@components/animate-ui/icons/icon";
@@ -14,13 +15,42 @@ import { CopyIcon } from "@components/animate-ui/icons/copy";
 import { SendIcon } from "@components/animate-ui/icons/send";
 import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
 
-const CalendlyModal = dynamic(() => import("@components/CalendlyModal"), { ssr: false });
+// One loader for the click and the warm-up: next/dynamic would wrap its import() in a separate chunk.
+const loadScheduler = () => import("@components/CalendlyModal");
+const CalendlyModal = lazy(loadScheduler);
+
+let schedulerWarmed = false;
+/** Hover or focus on "Book a conversation" starts the scheduler's chunk and Calendly connections before the click. */
+function warmScheduler() {
+  if (schedulerWarmed) return;
+  schedulerWarmed = true;
+  // The same loader lazy() uses, so the click reuses this download. A failed load is retried on click.
+  loadScheduler().catch(() => {});
+  for (const origin of ["https://calendly.com", "https://assets.calendly.com"]) {
+    preconnect(origin);
+    prefetchDNS(origin);
+  }
+}
 
 type SubmissionState = "idle" | "sending" | "success" | "error";
 type FieldName = "user_name" | "user_email" | "message";
 type FieldErrors = Partial<Record<FieldName, string>>;
 
 const FIELD_ORDER: FieldName[] = ["user_name", "user_email", "message"];
+// Hidden bait field: people never see it, form bots fill every input. Its name
+// matches no autofill field (unlike "company" or "website"), so no browser or
+// password manager fills it for a real visitor and drops their message.
+const HONEYPOT = "_gotcha";
+const SEND_TIMEOUT_MS = 15000;
+
+/** Rejects once `ms` passes, so a request that never settles still ends in the error state. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: number | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = window.setTimeout(() => reject(new Error("Send timed out")), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timer));
+}
 
 /** Our own messages instead of the browser's validation bubble. */
 function validateForm(formElement: HTMLFormElement): FieldErrors {
@@ -40,19 +70,38 @@ const EMAIL = "bsuvraneel@gmail.com";
 export default function ContactPage() {
   const form = useRef<HTMLFormElement>(null);
   const [showScheduler, setShowScheduler] = useState(false);
+  // Stable, so a re-render while the scheduler is open does not re-run its open effect (and refocus it).
+  const closeScheduler = useCallback(() => setShowScheduler(false), []);
   const [submissionState, setSubmissionState] = useState<SubmissionState>("idle");
-  const [playSnap, { stop: stopSnap }] = useSound("/sounds/snap.wav", { volume: 0.25 });
-  const [playConfirm] = useSound("/sounds/confirm.wav", { volume: 0.25 });
+  const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
+  const [playConfirm] = useSfx("confirm", { volume: 0.25 });
   const [emailCopied, setEmailCopied] = useState(false);
   const [sendHovered, setSendHovered] = useState(false);
   const [bookHovered, setBookHovered] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [attempted, setAttempted] = useState(false);
   const copiedTimer = useRef<number | null>(null);
+  const schedulerOpener = useRef<HTMLElement | null>(null);
+  const sentHeading = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => () => {
     if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
   }, []);
+
+  // The modal dialog leaves focus on <body> when it unmounts, so hand it back to
+  // the button that opened it. Runs after the modal's own cleanup has closed it.
+  useEffect(() => {
+    if (showScheduler || !schedulerOpener.current) return;
+    schedulerOpener.current.focus();
+    schedulerOpener.current = null;
+  }, [showScheduler]);
+
+  // A send removes the form, and the focused Send button with it, which drops
+  // focus to <body>: hand it to the confirmation, unless it was moved elsewhere meanwhile.
+  useEffect(() => {
+    if (submissionState !== "success") return;
+    if (document.activeElement === null || document.activeElement === document.body) sentHeading.current?.focus();
+  }, [submissionState]);
 
   const copyEmail = async () => {
     try {
@@ -70,24 +119,30 @@ export default function ContactPage() {
 
   const sendEmail = async (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!form.current || submissionState === "sending") return;
+    const formElement = form.current;
+    if (!formElement || submissionState === "sending") return;
 
-    const found = validateForm(form.current);
+    const found = validateForm(formElement);
     setAttempted(true);
     setErrors(found);
     const firstInvalid = FIELD_ORDER.find((name) => found[name]);
     if (firstInvalid) {
-      (form.current.elements.namedItem(firstInvalid) as HTMLElement | null)?.focus();
+      (formElement.elements.namedItem(firstInvalid) as HTMLElement | null)?.focus();
       return;
     }
 
     setSubmissionState("sending");
 
     try {
-      // Keep the EmailJS client out of the initial Contact route bundle.
-      const emailjs = (await import("@emailjs/browser")).default;
-      await emailjs.sendForm("service_7t4fz0c", "template_dzdjrce", form.current, "LD8juHpdDTXSbZCSv");
-      form.current.reset();
+      // A filled honeypot means a bot: skip the send but let it see the usual success.
+      if (!new FormData(formElement).get(HONEYPOT)) {
+        // Keep the EmailJS client out of the initial Contact route bundle.
+        const delivery = import("@emailjs/browser").then(({ default: emailjs }) =>
+          emailjs.sendForm("service_7t4fz0c", "template_dzdjrce", formElement, "LD8juHpdDTXSbZCSv"),
+        );
+        await withTimeout(delivery, SEND_TIMEOUT_MS);
+      }
+      formElement.reset();
       setAttempted(false);
       setSubmissionState("success");
       playConfirm();
@@ -98,15 +153,15 @@ export default function ContactPage() {
 
   return (
     <main className="nav-gap min-h-[100dvh] overflow-x-hidden bg-black text-white">
-      <div className="mx-auto max-w-[1440px] px-5 pb-24 pt-28 sm:px-10 sm:pb-28 sm:pt-24 lg:px-14 lg:pb-12 lg:pt-[max(4rem,calc((100dvh-30rem)/2))] xl:px-20">
+      <div className="mx-auto max-w-[1440px] px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-24 lg:px-14 lg:pb-12 lg:pt-[max(4rem,calc((100dvh-30rem)/2))] xl:px-20">
         {/* Editorial split: intro and direct options on the left, the form from the top on the right, so Send stays above the fold.
             Desktop top padding centres the ~30rem composition from the viewport height alone, so the growing textarea never shifts it. */}
         <div className="grid gap-12 lg:grid-cols-[minmax(17rem,0.95fr)_minmax(0,1.05fr)] lg:gap-0 min-[1440px]:grid-cols-[minmax(17rem,0.72fr)_minmax(0,1.28fr)]">
           <div className="min-w-0 lg:pr-8 min-[1440px]:pr-12">
             <header className="max-w-4xl">
-              <h1 className={`animated-heading w-max text-4xl font-bold leading-none tracking-[-0.04em] sm:text-6xl lg:text-5xl min-[1440px]:text-6xl ${spaceBoards.className}`}>
+              <LiftHeading className={`w-max text-4xl font-bold leading-none tracking-[-0.04em] sm:text-6xl lg:text-5xl min-[1440px]:text-6xl ${spaceBoards.className}`}>
                 Contact
-              </h1>
+              </LiftHeading>
               <p className={`mt-6 max-w-3xl text-lg leading-8 text-white/70 sm:text-xl ${tasaOrbiter.className}`}>
                 Let&apos;s make something useful. I&apos;m open to thoughtful product work, dependable engineering problems, and collaborations with people who care about the details.
               </p>
@@ -155,8 +210,11 @@ export default function ContactPage() {
               </Link>
               </AnimateIcon>
 
+              {/* Box-less wrapper: PillButton forwards no pointer or focus handlers. */}
+              <div className="contents" onPointerEnter={warmScheduler} onFocus={warmScheduler}>
               <PillButton
-                onClick={() => {
+                onClick={(event) => {
+                  schedulerOpener.current = event.currentTarget;
                   setShowScheduler(true);
                   playConfirm();
                 }}
@@ -174,6 +232,7 @@ export default function ContactPage() {
                 <span>Book a conversation</span>
                 <span className="text-xs font-normal text-white/55">via Calendly</span>
               </PillButton>
+              </div>
             </section>
           </div>
 
@@ -184,12 +243,15 @@ export default function ContactPage() {
               </h2>
             </div>
 
+            {/* Mounted from the start: screen readers skip a live region that arrives with its text. */}
+            <span className="sr-only" role="status">{submissionState === "success" ? "Message sent. I'll get back to you soon." : ""}</span>
+
             {submissionState === "success" ? (
-              <div className={`mt-7 flex flex-col items-start gap-5 lg:flex-1 lg:justify-center ${tasaOrbiter.className}`} role="status">
+              <div className={`mt-7 flex flex-col items-start gap-5 lg:flex-1 lg:justify-center ${tasaOrbiter.className}`}>
                 <span className="grid size-12 place-items-center rounded-full border border-accent/40 text-accent">
                   <SendIcon aria-hidden="true" size={20} animate />
                 </span>
-                <p className="text-xl font-semibold tracking-[-0.02em] text-white sm:text-2xl">Message sent.</p>
+                <p ref={sentHeading} tabIndex={-1} className="text-xl font-semibold tracking-[-0.02em] text-white outline-none sm:text-2xl">Message sent.</p>
                 <p className="text-base leading-7 text-white/70">I&apos;ll get back to you soon.</p>
                 <button
                   type="button"
@@ -211,10 +273,10 @@ export default function ContactPage() {
               aria-label="Send a message"
             >
               <div className="grid gap-5 sm:grid-cols-2 sm:gap-8">
-                <Field label="Your name" name="user_name" autoComplete="name" error={errors.user_name} />
-                <Field label="Email address" name="user_email" type="email" autoComplete="email" error={errors.user_email} />
+                <Field label="Your name" name="user_name" autoComplete="name" maxLength={100} error={errors.user_name} />
+                <Field label="Email address" name="user_email" type="email" autoComplete="email" maxLength={254} error={errors.user_email} />
               </div>
-              <Field label="What are you working on?" name="message" textarea className="lg:flex lg:flex-1 lg:flex-col" error={errors.message} />
+              <Field label="What are you working on?" name="message" textarea maxLength={5000} className="lg:flex lg:flex-1 lg:flex-col" error={errors.message} />
 
               <div className="flex flex-col gap-4 pt-1 sm:flex-row sm:items-center sm:justify-between">
                 <LiquidMetalButton
@@ -240,13 +302,25 @@ export default function ContactPage() {
               </div>
 
               {submissionState === "error" && <p className={`border-l border-[#d58d8d] pl-3 text-sm leading-6 text-[#f0b6b6] ${tasaOrbiter.className}`} role="alert">Your message could not be sent. Please email me directly instead.</p>}
+
+              {/* Last child so the space-y gaps above stay as they were. Off-screen rather than display:none, which bots skip. */}
+              <div className="sr-only" aria-hidden="true">
+                <label>
+                  {"Leave this empty "}
+                  <input name={HONEYPOT} type="text" tabIndex={-1} autoComplete="off" />
+                </label>
+              </div>
             </form>
             )}
           </section>
         </div>
       </div>
 
-      {showScheduler && <CalendlyModal onClose={() => setShowScheduler(false)} />}
+      {showScheduler && (
+        <Suspense fallback={null}>
+          <CalendlyModal onClose={closeScheduler} />
+        </Suspense>
+      )}
     </main>
   );
 }
@@ -257,6 +331,7 @@ function Field({
   type = "text",
   autoComplete,
   textarea = false,
+  maxLength,
   className: wrapperClassName = "",
   error,
 }: Readonly<{
@@ -265,11 +340,13 @@ function Field({
   type?: string;
   autoComplete?: string;
   textarea?: boolean;
+  maxLength?: number;
   className?: string;
   error?: string;
 }>) {
   // Underline fields: focus thickens the rule to 2px accent instead of drawing a box.
-  const className = "mt-1 w-full rounded-none border-0 border-b border-white/25 bg-transparent px-0 py-2 text-base text-white outline-none transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] placeholder:text-white/50 hover:border-white/50 focus:border-accent focus:shadow-[0_1px_0_0_rgb(var(--accent))]";
+  // Resting rule at white/40, the lightest step with 3:1 on black (white/35 is 2.998:1).
+  const className = "mt-1 w-full rounded-none border-0 border-b border-white/40 bg-transparent px-0 py-2 text-base text-white outline-none transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] placeholder:text-white/50 hover:border-white/50 focus:border-accent focus:shadow-[0_1px_0_0_rgb(var(--accent))]";
 
   // Grow with the message instead of exposing the browser's resize grip.
   const autoGrow = (event: FormEvent<HTMLTextAreaElement>) => {
@@ -289,15 +366,15 @@ function Field({
     <label className={`block text-sm font-medium text-white/75 ${wrapperClassName}`}>
       {label}
       {textarea ? (
-        <textarea name={name} required rows={3} onInput={autoGrow} {...a11y} className={`${fieldClassName} max-h-[40vh] resize-none lg:flex-1`} placeholder="A few lines about the problem, scope, or idea…" />
+        <textarea name={name} required rows={3} maxLength={maxLength} onInput={autoGrow} {...a11y} className={`${fieldClassName} max-h-[40vh] resize-none lg:flex-1`} placeholder="A few lines about the problem, scope, or idea…" />
       ) : (
-        <input name={name} type={type} required autoComplete={autoComplete} {...a11y} className={fieldClassName} />
+        <input name={name} type={type} required autoComplete={autoComplete} maxLength={maxLength} {...a11y} className={fieldClassName} />
       )}
-      {invalid && (
-        <span id={errorId} className="mt-2 block text-xs font-normal text-[#f0b6b6]">
-          {error}
-        </span>
-      )}
+      {/* Always mounted at one line's fixed height, so an error fills it without moving anything below.
+          A rare wrapped second line (long email error near 1024px) spills into the gap under the field. */}
+      <span id={errorId} className="block h-[1.25rem] pt-1 text-xs font-normal text-[#f0b6b6]">
+        {error}
+      </span>
     </label>
   );
 }

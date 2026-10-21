@@ -27,9 +27,9 @@ const projectsData = [
     id: "gssoc-website",
     name: "GirlScript SoC 2022 Official Website",
     details:
-      "A production grade web based application developed using Next.js & TailwindCSS Frameworks intended for the 8000+ contributors participating in the annually organized opensource program.|Was indispensable in showcasing the impact & commitment of the program across student communities during the sponsor pitches & conforms to their guidelines.|Was developed using Agile methodologies & CI/CD pipeline, prototyped in Figma, built with NextJS, TailwindCSS, ChakraUI & a plethora of npm libraries, hosted in Vercel, includes a dynamically updating paginated leaderboard & on-chain certificate verification.",
-    github: "http://github.com/girlscript/gssoc-website-new",
-    url: "https://gssoc.girlscript.tech",
+      "The official website for GirlScript Summer of Code 2022, a national open-source programme; 6,000+ contributors applied and registered through it.|Featured a live, paginated contributor leaderboard and on-chain certificate verification.|Prototyped in Figma, then built with Next.js, Tailwind CSS and Chakra UI, and shipped to Vercel through a CI/CD pipeline.|Used in sponsor pitches to show the programme's reach across student communities.|Originally hosted at [gssoc.girlscript.org](https://gssoc.girlscript.org) for GSSoC 2022; the live link is a preserved snapshot of that release.",
+    github: "https://github.com/Suvraneel/gssoc-website-new",
+    url: "https://gssoc-2022.vercel.app/",
     gif: "gssoc-website.webm",
     video: "https://www.youtube.com/embed/EKGJ-pzSEns",
     tech_stk: [
@@ -41,6 +41,36 @@ const projectsData = [
       "Solidity",
       "Axios",
       "Express",
+    ],
+  },
+  {
+    id: "stake-overflow",
+    name: "StakeOverflow",
+    details:
+      "Decentralized version of the most popular public forum for developers: Stack Overflow|Gives freedom to all users to post their questions, doubts & error logs.| Veteran developers in that tech stack can then post their answers.|Throughout this whole process, Privacy is maintained + Crypto donations and the Karma system helps incentivize the forum & encourage more people to resolve/answer the doubts.",
+    github: "https://github.com/Open-Sorcerer/StakeOverflow",
+    url: "https://stake-overflow.vercel.app/",
+    thumbnail: "/images/project-assets/stakeoverflow-thumbnail.webp",
+    gif: "destackoverflow.webm",
+    video: "https://www.youtube.com/embed/unKt1LBCh7I",
+    tech_stk: ["IPFS", "React", "AntDesign", "Solidity"],
+  },
+  {
+    id: "nft-haven",
+    name: "NFT Haven",
+    details:
+      "A multi-chain DeFi Dashboard which allows minting & tracking of assets across multiple ecosystems (Ethereum, Binance Smart Chain, Polygon).|Allows users to mint their own NFTs or gift NFTs to their loved ones on the Polygon network via a very friendly user interface.|Soulbound Token NFT Minter - Any digital asset important to you (eg, Certificates, Important Documents) can be attached to wallet forever|Any media you hold - a Video, an Image, an Audio track can be converted to an NFT.|The gas fees for minting are minimal thanks to the Polygon Network. Currently the minter is on Polygon testnet, so the NFT collection of an wallet is also viewable on testnets.opensea.io.",
+    github: "https://github.com/Suvraneel/Instant-Soulbound-NFT-Minter",
+    url: "https://nft-haven.vercel.app/",
+    gif: "nft-haven.webm",
+    video: "https://www.youtube.com/embed/YeQI5xZn-_g",
+    tech_stk: [
+      "React.js",
+      "Node.js",
+      "Web3.js",
+      "Solidity",
+      "Moralis",
+      "Chainlink",
     ],
   },
   {
@@ -64,35 +94,6 @@ const projectsData = [
       "ThirdWeb",
       "HardHat",
       "Wagmi",
-    ],
-  },
-  {
-    id: "de-stack-overflow",
-    name: "DeStackOverflow",
-    details:
-      "Decentralized version of the most popular public forum for developers: Stack Overflow|Gives freedom to all users to post their questions, doubts & error logs.| Veteran developers in that tech stack can then post their answers.|Throughout this whole process, Privacy is maintained + Crypto donations and the Karma system helps incentivize the forum & encourage more people to resolve/answer the doubts.",
-    github: "https://github.com/Open-Sorcerer/DeStackOverflow",
-    url: "https://destackoverflow.on.fleek.co/",
-    gif: "destackoverflow.webm",
-    video: "https://www.youtube.com/embed/unKt1LBCh7I",
-    tech_stk: ["IPFS", "React", "AntDesign", "Solidity"],
-  },
-  {
-    id: "nft-haven",
-    name: "NFT Haven",
-    details:
-      "A multi-chain DeFi Dashboard which allows minting & tracking of assets across multiple ecosystems (Ethereum, Binance Smart Chain, Polygon).|Allows users to mint their own NFTs or gift NFTs to their loved ones on the Polygon network via a very friendly user interface.|Soulbound Token NFT Minter - Any digital asset important to you (eg, Certificates, Important Documents) can be attached to wallet forever|Any media you hold - a Video, an Image, an Audio track can be converted to an NFT.|The gas fees for minting are minimal thanks to the Polygon Network. Currently the minter is on Polygon testnet, so the NFT collection of an wallet is also viewable on testnets.opensea.io.",
-    github: "https://github.com/Suvraneel/Instant-Soulbound-NFT-Minter",
-    url: "https://nft-haven.vercel.app/",
-    gif: "nft-haven.webm",
-    video: "https://www.youtube.com/embed/YeQI5xZn-_g",
-    tech_stk: [
-      "React.js",
-      "Node.js",
-      "Web3.js",
-      "Solidity",
-      "Moralis",
-      "Chainlink",
     ],
   },
   {
@@ -167,9 +168,10 @@ const projectsData = [
     id: "cowin-clone",
     name: "CoWIN Clone",
     details:
-      "A fully functional clone of cowin.gov.in, built using the MERN Stack|Backend consists of an API built using Node, Express & prototyped using Postman API testing tool and the frontend consumes that API & lets the users book the vaccination slots based on availability & location of slots mass-fed by administration (ie, vaccination centers).|CoWIN API - provides API endpoints for all the components involved in a COVID-19 vaccination service|Registration of new beneficiaries, book appointments, expiry notification|Administration - CRUD vaccination centres & available slots in batches|Vaccination Centres - complete Appointments & update Doses",
+      "A fully functional clone of [cowin.gov.in](https://www.cowin.gov.in/), built using the MERN Stack|Backend consists of an API built using Node, Express & prototyped using Postman API testing tool and the frontend consumes that API & lets the users book the vaccination slots based on availability & location of slots mass-fed by administration (ie, vaccination centers).|CoWIN API - provides API endpoints for all the components involved in a COVID-19 vaccination service|Registration of new beneficiaries, book appointments, expiry notification|Administration - CRUD vaccination centres & available slots in batches|Vaccination Centres - complete Appointments & update Doses",
     github: "https://github.com/Suvraneel/cowin-clone-ui",
     url: "https://cowin-clone-ui.vercel.app/",
+    thumbnail: "/images/project-assets/cowin-thumbnail.webp",
     gif: "cowin.webm",
     video: "https://www.youtube.com/embed/EKGJ-pzSEns",
     tech_stk: [
@@ -201,6 +203,7 @@ const projectsData = [
       "Minimalist Weather Forecasting Web Application Dashboard that fetches & visualizes data using a collection of APIs.|Fetches detailed current weather data or 7 day forecast using OpenWeatherMap API, GoogleMapEmbed API, and visualizations using Chart.js|Manifests all weather data by Geolocation, Top Searched Cities or City Search",
     github: "https://github.com/Suvraneel/Meteorologyly",
     url: "https://suvraneel.github.io/Meteorologyly/",
+    thumbnail: "/images/project-assets/meteorologyly.png",
     gif: "meteorologyly.webm",
     video: "https://www.youtube.com/embed/EKGJ-pzSEns",
     tech_stk: ["HTML5", "CSS3", "Javascript", "BootStrap", "Chart.js", "APIs"],

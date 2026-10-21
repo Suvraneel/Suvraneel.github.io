@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion, type Transition } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { spaceBoards, tasaOrbiter } from "@font";
 import LiquidMetalButton from "@components/LiquidMetalButton";
@@ -9,7 +9,46 @@ import PillButton from "@components/PillButton";
 import { AnimateIcon } from "@components/animate-ui/icons/icon";
 import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
 import { XIcon } from "@components/animate-ui/icons/x";
+import { EASE_FADE } from "@lib/pageTransition";
 import { stateLogger } from "../stateLogger";
+
+/** The opened tile's centre, in viewport px. */
+export type ModalOrigin = { x: number; y: number };
+
+// The panel grows from the tile and shrinks back toward it; the backdrop fades
+// under it and, on close, clears 70ms after the panel has gone, so the page
+// comes back sharp just as the panel lands.
+const PANEL_S = 0.42;
+const BACKDROP_S = 0.32;
+const PANEL_MOTION: Transition = { duration: PANEL_S, ease: [0.16, 1, 0.3, 1] };
+const BACKDROP_MOTION: Transition = { duration: BACKDROP_S, ease: EASE_FADE };
+const BACKDROP_EXIT_MOTION: Transition = { ...BACKDROP_MOTION, delay: PANEL_S + 0.07 - BACKDROP_S };
+// Reduced motion: both layers crossfade, nothing scales.
+const REDUCED_MOTION: Transition = { duration: 0.15, ease: "easeOut" };
+
+/** A case note's text, with markdown-style `[label](https://…)` links as real links. */
+const NOTE_LINK = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+function noteContent(note: string) {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  for (const match of note.matchAll(NOTE_LINK)) {
+    parts.push(note.slice(last, match.index));
+    parts.push(
+      <a
+        key={match.index}
+        href={match[2]}
+        target="_blank"
+        rel="noreferrer"
+        className="text-white/85 underline decoration-white/30 underline-offset-[3px] transition-colors duration-200 hover:text-accent hover:decoration-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        {match[1]}
+      </a>
+    );
+    last = match.index + match[0].length;
+  }
+  parts.push(note.slice(last));
+  return parts;
+}
 
 type Project = {
   name: string;
@@ -21,8 +60,21 @@ type Project = {
   tech_stk: string[];
 };
 
-export default function ProjectModal({ handleClose, project }: Readonly<{ handleClose: () => void; project: Project }>) {
+export default function ProjectModal({
+  handleClose,
+  project,
+  startAt = 0,
+  origin = null,
+}: Readonly<{
+  handleClose: () => void;
+  project: Project;
+  /** Where the tile's hover preview of the same clip had got to, in seconds. */
+  startAt?: number;
+  /** The tile that opened the dialog: the panel scales from (and back toward) it. */
+  origin?: ModalOrigin | null;
+}>) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const panel = useRef<HTMLElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const [visitHovered, setVisitHovered] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -47,6 +99,8 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
     const currentDialog = dialog.current;
     if (!currentDialog) return;
 
+    // The tile that opened the dialog, to hand focus back to on close.
+    const trigger = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     const scrollPosition = window.scrollY;
     const root = document.documentElement;
     const body = document.body;
@@ -94,26 +148,53 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
       currentDialog.removeEventListener("close", onClose);
       if (currentDialog.open) currentDialog.close();
       releasePage();
+      // By now the dialog has left the DOM after its exit animation, so the
+      // browser's own focus restore never ran. Only when focus was dropped:
+      // a page transition that closed the dialog keeps its own focus.
+      const focusDropped = document.activeElement === null || document.activeElement === document.body;
+      if (trigger?.isConnected && focusDropped) trigger.focus({ preventScroll: true });
     };
   }, []);
 
+  // Point the panel's scale at the tile, in its own untransformed box (the
+  // dialog has no transform). Measured after showModal() above, whose UA
+  // max-height re-centres the panel; a click or key press flushes both before
+  // the first paint, and the panel starts transparent either way.
+  useEffect(() => {
+    const currentDialog = dialog.current;
+    const section = panel.current;
+    if (!origin || !currentDialog || !section || reduceMotion) return;
+    const frame = currentDialog.getBoundingClientRect();
+    const left = frame.left + currentDialog.clientLeft + section.offsetLeft;
+    const top = frame.top + currentDialog.clientTop + section.offsetTop;
+    section.style.transformOrigin = `${origin.x - left}px ${origin.y - top}px`;
+  }, [origin, reduceMotion]);
+
   return (
-    <motion.dialog
+    // No opacity on the dialog itself: it would cut the backdrop's blur off
+    // from the page behind it (a backdrop root) for the whole fade.
+    <dialog
       ref={dialog}
       aria-modal="true"
       aria-labelledby="project-dialog-title"
-      className="fixed inset-0 z-[5000] m-0 flex h-dvh w-full max-w-none items-center justify-center overflow-hidden border-0 bg-transparent p-2 backdrop:bg-[#030609]/85 backdrop:backdrop-blur-xl sm:p-5"
-      initial={reduceMotion ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[5000] m-0 flex h-dvh w-full max-w-none items-center justify-center overflow-hidden border-0 bg-transparent p-2 backdrop:bg-transparent sm:p-5"
       onCancel={(event) => {
         event.preventDefault();
         handleClose();
       }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) handleClose();
-      }}
     >
+      {/* The dimmed, blurred page. The native ::backdrop can't fade, so it stays
+          transparent (still blocking the page) and this layer fades instead:
+          opacity only, never the blur radius. A click on it closes the dialog. */}
+      <motion.div
+        aria-hidden="true"
+        className="fixed inset-0 bg-[#030609]/85 backdrop-blur-xl"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0, transition: reduceMotion ? REDUCED_MOTION : BACKDROP_EXIT_MOTION }}
+        transition={reduceMotion ? REDUCED_MOTION : BACKDROP_MOTION}
+        onClick={handleClose}
+      />
       {/*
         Two layouts from one tree. Wide (>=1200px): a grid with the preview,
         stack and actions in the left column and the title + notes scrolling
@@ -121,12 +202,19 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
         Narrower: one scrolling column with a sticky close bar on top and the
         actions in a sticky bar at the bottom (no nested scroll box).
       */}
+      {/* Wide layout: the preview column is as wide as its 16:9 video can be at this
+          height (the modal's height less 18.72rem of chrome, plus 5.61rem of side padding),
+          capped at the old 1.5fr:0.78fr share, so short screens give the notes the room. */}
       <motion.section
-        className="relative flex h-full w-full max-w-[1480px] flex-col overflow-y-auto overscroll-contain rounded-[1.5rem] border border-white/10 bg-[#0b0f15] shadow-[0_32px_100px_rgba(0,0,0,0.55)] sm:h-[min(92dvh,920px)] min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,1.5fr)_minmax(24rem,0.78fr)] min-[1200px]:grid-rows-[auto_minmax(0,1fr)_auto_auto] min-[1200px]:overflow-hidden"
-        initial={reduceMotion ? false : { opacity: 0, y: 20, scale: 0.985 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.985 }}
-        transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+        ref={panel}
+        className="relative flex h-full w-full max-w-[1480px] flex-col overflow-y-auto overscroll-contain rounded-[1.5rem] border border-white/10 bg-[#0b0f15] shadow-[0_32px_100px_rgba(0,0,0,0.55)] sm:h-[min(92dvh,920px)] min-[1200px]:grid min-[1200px]:grid-cols-[min(65.8%,calc((min(92dvh,920px)_-_18.72rem)*16/9_+_5.61rem))_minmax(24rem,1fr)] min-[1200px]:grid-rows-[auto_minmax(0,1fr)_auto_auto] min-[1200px]:overflow-hidden"
+        // A whole `transform` (not `scale`) so the grow runs on the compositor
+        // with the opacity, through the panel's first-mount long task. It stays
+        // at scale(1) once open: from `none`, motion would tween from scale(0).
+        initial={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "scale(0.94)" }}
+        animate={reduceMotion ? { opacity: 1 } : { opacity: 1, transform: "scale(1)" }}
+        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "scale(0.96)" }}
+        transition={reduceMotion ? REDUCED_MOTION : PANEL_MOTION}
       >
         {/* Left column backdrop (wide layout only). */}
         <div
@@ -165,10 +253,15 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
               {hasProjectDemo ? (
                 <LiteYouTube src={project.video} title={`${project.name} demo`} />
               ) : (
+                // Reduced motion: the demo stays paused on its first frame.
+                // Otherwise it carries on from the hover preview instead of restarting.
                 <video
                   className="h-full w-full object-cover"
                   src={`/images/project-assets/${project.gif}`}
-                  autoPlay
+                  onLoadedMetadata={(event) => {
+                    if (startAt > 0 && !reduceMotion) event.currentTarget.currentTime = startAt;
+                  }}
+                  autoPlay={!reduceMotion}
                   muted
                   loop
                   playsInline
@@ -197,7 +290,7 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
               {notes.map((detail, index) => (
                 <li key={detail} className="grid grid-cols-[2rem_1fr] gap-3">
                   <span className="pt-0.5 font-mono text-[0.65rem] text-accent/70">{String(index + 1).padStart(2, "0")}</span>
-                  <p className={`text-sm leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>{detail}</p>
+                  <p className={`text-sm leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>{noteContent(detail)}</p>
                 </li>
               ))}
             </ol>
@@ -226,6 +319,6 @@ export default function ProjectModal({ handleClose, project }: Readonly<{ handle
           </footer>
         )}
       </motion.section>
-    </motion.dialog>
+    </dialog>
   );
 }
