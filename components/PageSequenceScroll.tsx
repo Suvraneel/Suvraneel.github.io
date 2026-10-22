@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
 import {
   gestureGate,
+  getLastSettleAt,
   getLastStartAt,
   isTransitionLocked,
 } from "@components/transition/transitionStore";
@@ -12,14 +13,21 @@ import { COMMIT_WATCHDOG_MS, isDialogOpen, pageOrder, prefersReducedMotion } fro
 const intentThreshold = 520;
 const intentWindowMs = 500;
 const minimumIntentEvents = 3;
-// Measured from the moment the previous page transition started, as before
-// the lift: a lift outlasts it, so after one settles only the gesture gate
-// decides what is momentum and a continuous scroll carries straight on.
+// Measured from the moment the previous page transition started: a lift
+// outlasts it, so after one settles only the gesture gate decides what is
+// momentum and a continuous scroll carries straight on. A shorter transition
+// (a reduced-motion fade, a touch throw) ends it as it settles.
 const postNavigationCooldownMs = 999;
 /** How far past a scroll edge a touch pull must travel to move to the next page. */
 const pullThreshold = 70;
 /** Pull distance from which the hint starts to show. */
 const pullHintFrom = 20;
+/** How far the page may scroll back under a finger easing off a pull before the pull is over. */
+const pullSlack = 12;
+/** Finger travel after which a touch can be read as vertical (a pull) or sideways (ignored). */
+const axisLockAfter = 10;
+/** How much more sideways than vertical a touch must be to count as a swipe (about 63° off vertical). */
+const sidewaysRatio = 2;
 /** Share of the wheel's intent threshold from which the hint starts to show. */
 const wheelHintFrom = 0.15;
 /** The rail's collapsed width (.sidebar-container, globals.css); the content column starts past it. */
@@ -83,6 +91,8 @@ const springTarget = (scrollContainer: Element, pathname: string) =>
     : scrollContainer;
 
 const playEdgeSpring = (target: Element | null, movingForward: boolean) => {
+  // Under reduced motion the edge pill alone acknowledges the edge.
+  if (prefersReducedMotion()) return;
   target?.animate(
     [
       { transform: "translateY(0)" },
@@ -93,7 +103,13 @@ const playEdgeSpring = (target: Element | null, movingForward: boolean) => {
   );
 };
 
-const cooldownUntil = () => getLastStartAt() + postNavigationCooldownMs;
+const cooldownUntil = () => {
+  const startedAt = getLastStartAt();
+  const settledAt = getLastSettleAt();
+  return settledAt >= startedAt
+    ? Math.min(startedAt + postNavigationCooldownMs, settledAt)
+    : startedAt + postNavigationCooldownMs;
+};
 
 const PageSequenceScroll = () => {
   const router = useRouter();
@@ -246,6 +262,46 @@ const PageSequenceScroll = () => {
     };
   }, [navigate, pathname]);
 
+  // Keys move through the sequence from a page's edge, as Home and About take
+  // them: down at the bottom, up at the top. A key held to reach the edge
+  // stops there; it takes a fresh press to go on.
+  useEffect(() => {
+    if (pathname === "/" || pathname === "/about") return;
+    const pageIndex = pageOrder.indexOf(pathname as (typeof pageOrder)[number]);
+    if (pageIndex === -1) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat || isTransitionLocked() || isNavigating.current || isDialogOpen()) return;
+      const target = event.target as HTMLElement | null;
+      const isTyping = target?.matches("input, textarea, select, [contenteditable='true']");
+      // Space and arrows belong to a focused control (e.g. Space activates a button).
+      const isControl = target?.matches("a[href], button, summary, [role='button'], [role='link']");
+      if (isTyping || isControl || event.altKey || event.ctrlKey || event.metaKey) return;
+
+      const space = event.key === " ";
+      if (event.shiftKey && !space) return;
+      const direction: 1 | -1 | null =
+        ["ArrowDown", "PageDown"].includes(event.key) || (space && !event.shiftKey)
+          ? 1
+          : ["ArrowUp", "PageUp"].includes(event.key) || (space && event.shiftKey)
+            ? -1
+            : null;
+      const nextPath = direction ? pageOrder[pageIndex + direction] : undefined;
+      if (!direction || !nextPath) return;
+      // The page's own scroller (Work's <main>), else the document.
+      const scroller = findScrollContainer(document.querySelector(`[data-page="${pathname}"] main`));
+      if (!isAtEdge(scroller, direction)) return;
+
+      if (navigate(nextPath, { source: "key", arrival: direction > 0 ? "top" : "bottom" })) {
+        event.preventDefault();
+        isNavigating.current = true;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate, pathname]);
+
   // Touch devices: pulling past a scroll edge moves through the sequence. The
   // pull is measured from the moment the page reaches its edge, so a swipe
   // that starts mid-page and keeps going counts; a fling that only reaches the
@@ -288,11 +344,20 @@ const PageSequenceScroll = () => {
 
     type Pull = {
       scroller: Element;
+      /** Where the finger came down, to tell a vertical pull from a sideways swipe. */
+      startX: number;
+      startY: number;
+      /** Clearly sideways (never a pull) or vertical, decided once the finger has travelled axisLockAfter px; null while in between. */
+      axis: "y" | "x" | null;
       /** Finger Y when the page reached its edge in the pull's direction (null until then). */
       edgeY: number | null;
       direction: 1 | -1 | null;
       /** The scroller's offset when the edge was reached; a pull whose page then scrolls was never at it. */
       edgeScrollTop: number;
+      /** The edge was inferred from a stall, not measured: any scroll at all means it was never there. */
+      edgeFromStall: boolean;
+      /** A stretch still springing back when this touch began, picked up where it was. */
+      carry: number;
       lastY: number;
       lastScrollTop: number;
       /** Finger travel in one direction over which the scroller has not moved at all. */
@@ -303,10 +368,12 @@ const PageSequenceScroll = () => {
     };
     let pull: Pull | null = null;
     let frame = 0;
+    // The latest spring-back, so a finger that grabs the page again takes it from where it is.
+    let relaxing: { target: HTMLElement; animation: Animation } | null = null;
 
-    // Window-scrolled pages stretch their <main>; About has none, so its
-    // content root inside the freeze wrapper (never the wrapper itself, which
-    // the lift uses to hold the page at its scroll offset).
+    // Window-scrolled pages stretch their <main>, else the content root inside
+    // the freeze wrapper (never the wrapper itself, which the lift uses to hold
+    // the page at its scroll offset).
     const pullTarget = (scroller: Element | undefined) =>
       !scroller
         ? null
@@ -395,10 +462,22 @@ const PageSequenceScroll = () => {
       const current = target?.style.transform;
       if (!target || !current) return;
       target.style.transform = "";
-      target.animate([{ transform: current }, { transform: "translate3d(0, 0, 0)" }], {
+      const animation = target.animate([{ transform: current }, { transform: "translate3d(0, 0, 0)" }], {
         duration: 320,
         easing: "cubic-bezier(0.32, 0.72, 0, 1)",
       });
+      relaxing = { target, animation };
+    };
+
+    /** Stops a running spring-back where it is, held inline; returns that offset (0 if none). */
+    const catchRelax = () => {
+      const caught = relaxing;
+      relaxing = null;
+      if (!caught || caught.animation.playState !== "running" || !caught.target.isConnected) return 0;
+      const offset = new DOMMatrix(getComputedStyle(caught.target).transform).m42;
+      caught.animation.cancel();
+      caught.target.style.transform = offset ? `translate3d(0, ${offset}px, 0)` : "";
+      return offset;
     };
 
     const release = () => {
@@ -449,11 +528,17 @@ const PageSequenceScroll = () => {
       if (event.touches.length !== 1 || isDialogOpen() || isTransitionLocked()) return;
       const touch = event.touches[0];
       const scroller = findScrollContainer(event.target);
+      const carry = pullTarget(scroller) === relaxing?.target ? catchRelax() : 0;
       pull = {
         scroller,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        axis: null,
         edgeY: null,
         direction: null,
         edgeScrollTop: 0,
+        edgeFromStall: false,
+        carry,
         lastY: touch.clientY,
         lastScrollTop: scroller.scrollTop,
         stallTravel: 0,
@@ -465,7 +550,22 @@ const PageSequenceScroll = () => {
 
     const handleTouchMove = (event: TouchEvent) => {
       if (!pull || event.touches.length !== 1) return;
-      const y = event.touches[0].clientY;
+      const { clientX: x, clientY: y } = event.touches[0];
+
+      // A sideways swipe is not a pull, wherever it drifts vertically. A thumb's
+      // arc can lean sideways at first, so only a clearly sideways start counts;
+      // anything in between stays undecided while the touch goes on.
+      if (pull.axis === null && Math.hypot(x - pull.startX, y - pull.startY) >= axisLockAfter) {
+        const dx = Math.abs(x - pull.startX);
+        const dy = Math.abs(y - pull.startY);
+        if (dx > dy * sidewaysRatio) pull.axis = "x";
+        else if (dy >= dx) pull.axis = "y";
+      }
+      if (pull.axis === "x") {
+        release();
+        return;
+      }
+
       const step = pull.lastY - y; // > 0: finger moving up (scrolling forward)
       pull.lastY = y;
       if (step === 0) return;
@@ -477,18 +577,38 @@ const PageSequenceScroll = () => {
 
       // The page scrolling after all ends the pull: it was never at the edge
       // (a stall that was only the browser's touch slop), or the finger turned
-      // back far enough to scroll it away from the edge.
-      if (pull.edgeY !== null && Math.abs(scrollTop - pull.edgeScrollTop) > 2) {
+      // back far enough to scroll it away from the edge. A measured edge allows
+      // the few px a finger easing off (or trembling) scrolls the page back.
+      const slack = pull.edgeFromStall ? 2 : pullSlack;
+      if (pull.edgeY !== null && Math.abs(scrollTop - pull.edgeScrollTop) > slack) {
         dropEdge(pull);
         return;
       }
 
       // The pull starts where the page meets its edge in the direction of travel.
       if (pull.edgeY === null) {
-        if (!isAtEdge(scroller, moving) && !isStalledAtEdge(pull, moving, scrollTop)) return;
+        const atEdge = isAtEdge(scroller, moving);
+        if (!atEdge && !isStalledAtEdge(pull, moving, scrollTop)) {
+          // Not pulling after all: a stretch picked up at touchstart springs back.
+          if (pull.carry) {
+            pull.carry = 0;
+            relax(pullTarget(scroller));
+          }
+          return;
+        }
         pull.edgeY = y;
         pull.direction = moving;
         pull.edgeScrollTop = scrollTop;
+        pull.edgeFromStall = !atEdge;
+        // A stretch caught mid spring-back carries on from where it was, if this
+        // pull goes the same way (offsets are opposite to the pull's direction).
+        const band = pageOrder[pageIndex + moving] ? 0.35 : 0.12;
+        if (pull.carry && Math.sign(pull.carry) === -moving && Math.abs(pull.carry) < 120) {
+          pull.edgeY = y + moving * (Math.abs(pull.carry) / band);
+        } else if (pull.carry) {
+          relax(pullTarget(scroller));
+        }
+        pull.carry = 0;
       }
       const direction = pull.direction ?? moving;
 

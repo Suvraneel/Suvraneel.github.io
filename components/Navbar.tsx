@@ -19,6 +19,7 @@ import {
   onArrival,
   subscribeTransition,
   useTransitionState,
+  wasClickDropped,
 } from "./transition/transitionStore";
 import Socials from "./Socials";
 
@@ -297,7 +298,10 @@ function RailLink({
       onBlur={() => {
         setIsHovered(false);
       }}
-      onClick={onConfirm}
+      // A click the transition turns away (one is in flight) gets no confirm sound.
+      onClick={(event) => {
+        if (!wasClickDropped(event.nativeEvent)) onConfirm();
+      }}
     >
       <span className="rail-icon transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105">
         <Icon aria-hidden="true" size={24} animate={isHovered && !reduceMotion} />

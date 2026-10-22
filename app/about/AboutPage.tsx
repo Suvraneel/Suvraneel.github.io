@@ -118,7 +118,7 @@ const About = () => {
   }, [navigate]);
 
   return (
-      <div className="relative min-h-[100dvh] overflow-hidden bg-black text-white">
+      <main className="relative min-h-[100dvh] overflow-hidden bg-black text-white">
         <div className="relative z-10 grid min-h-[100dvh] grid-cols-1 lg:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.82fr)]">
           {/* Phones: the bottom padding keeps the CTAs clear of the "Pull for" pill.
               Tablets: the text starts past the 50px nav rail (shown from 769px wide and
@@ -193,7 +193,7 @@ const About = () => {
             </div>
           </aside>
         </div>
-      </div>
+      </main>
   );
 };
 

@@ -15,7 +15,7 @@ import { isUnrendered, layoutTop, whenPlaced } from "@components/transition/arri
 import { getTransition } from "@components/transition/transitionStore";
 import { REVEAL_EASE, useReveal } from "@hooks/useReveal";
 import { prefersReducedMotion } from "@lib/pageTransition";
-import { scrubSplineScroll } from "@lib/splineScroll";
+import { renderOnDemand, scrubSplineScroll } from "@lib/splineScroll";
 
 /** The plant trails the page by a short settle, so a mouse wheel's steps read as one motion. */
 const PLANT_SPRING = { stiffness: 300, damping: 50 };
@@ -262,6 +262,8 @@ const Work = () => {
       revealPlant(sceneRef.current, glowRef.current);
       const seek = scrubSplineScroll(spline);
       if (!main || !seek) return;
+      // The plant only moves with the scroll it follows: at rest it stops drawing.
+      renderOnDemand(spline);
 
       // In flight, the edge the lift lands at decides: a backward link lands at Work's top.
       const t = getTransition();

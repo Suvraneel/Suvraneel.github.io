@@ -52,6 +52,42 @@ export const scrubSplineScroll = (spline: Application): ((progress: number) => v
       event.scrollCounter = at * event.data.steps;
       event.actions.Transition.forEach((transition) => transition.seek(at));
     }
-    spline.requestRender();
+    requestSceneFrame(spline);
   };
+};
+
+// ---------------------------------------------------------------------------
+// The runtime's "auto" render mode draws every frame while a scene is shown:
+// controls.update() keeps its "nothing moved" verdict to itself, so a still
+// scene re-renders at the display's rate, each frame with a new TAA jitter
+// (its edges shimmer). Reported, frames stop once the image settles and come
+// back when something asks for one (requestSceneFrame, the scene's own
+// hovers). Same runtime internals and pinned version as above; on any other
+// shape it does nothing.
+// ---------------------------------------------------------------------------
+
+type RenderInternals = {
+  _controls?: object;
+  _requestRenderAutoMode?: () => void;
+};
+
+/** Makes a loaded scene draw only when something changes; false if the runtime has another shape. */
+export const renderOnDemand = (spline: Application) => {
+  const app = spline as Application & RenderInternals;
+  const controls = app._controls as { update?: (dt: number) => unknown } | undefined;
+  const update = controls && Object.getPrototypeOf(controls).update;
+  if (!controls || typeof update !== "function" || typeof app._requestRenderAutoMode !== "function") return false;
+  controls.update = function (this: { skipRender?: boolean }, dt: number) {
+    update.call(this, dt);
+    return this.skipRender;
+  };
+  requestSceneFrame(spline);
+  return true;
+};
+
+/** Draws a fresh frame in "auto" render mode (the public requestRender() is for "manual" only). */
+export const requestSceneFrame = (spline: Application | null | undefined) => {
+  const app = spline as (Application & RenderInternals) | null | undefined;
+  if (typeof app?._requestRenderAutoMode === "function") app._requestRenderAutoMode();
+  else app?.requestRender();
 };

@@ -16,10 +16,16 @@ type HowlerModule = { Howl: new (options: { src: string[]; volume: number }) => 
 // Each Howl starts at the volume its sound usually plays at: a play that waits
 // for the audio context to resume only gets its own volume a moment after it starts.
 const BASE_VOLUME: Record<Sfx, number> = { snap: 0.25, pop: 0.45, confirm: 0.25 };
+/** "snap" is the hover sound: it answers a hovering pointer, never a tap's compatibility mouseenter. */
+const HOVER_SFX: Record<Sfx, boolean> = { snap: true, pop: false, confirm: false };
+/** Wait after the first pointer before loading, so the load stays out of that interaction's frames. */
+const LOAD_AFTER_POINTER_MS = 1000;
 
 let howls: Record<Sfx, Howl> | null = null;
 let loading: Promise<Record<Sfx, Howl> | null> | null = null;
 let waitingForPointer = false;
+/** The latest pointer's type: a tap fires pointer events with "touch" before its mouse events. */
+let lastPointerType = "mouse";
 
 /** howler and one Howl per sound, created once and shared by every component. */
 function loadSfx() {
@@ -40,18 +46,43 @@ function loadSfx() {
   return loading;
 }
 
-/** Sounds load on the visitor's first pointer move or press, not with the page. */
+/**
+ * Sounds load after the visitor's first pointer move or press, not with the
+ * page, and not inside that press's response either: compiling howler and
+ * creating the audio context is a long task on a phone, which would stall the
+ * very animation the tap started. A sound asked for sooner loads on demand.
+ */
 function loadOnFirstPointer() {
   if (loading || waitingForPointer) return;
   waitingForPointer = true;
   const start = () => {
     window.removeEventListener("pointermove", start, true);
     window.removeEventListener("pointerdown", start, true);
-    void loadSfx();
+    window.setTimeout(() => {
+      if ("requestIdleCallback" in window) window.requestIdleCallback(() => void loadSfx(), { timeout: 1000 });
+      else void loadSfx();
+    }, LOAD_AFTER_POINTER_MS);
   };
   window.addEventListener("pointermove", start, { capture: true, passive: true });
   window.addEventListener("pointerdown", start, { capture: true, passive: true });
 }
+
+function trackPointerType() {
+  const note = (event: PointerEvent) => {
+    lastPointerType = event.pointerType;
+  };
+  window.addEventListener("pointerover", note, { capture: true, passive: true });
+  window.addEventListener("pointerdown", note, { capture: true, passive: true });
+}
+if (typeof window !== "undefined") trackPointerType();
+
+/**
+ * Before the visitor's first press or key, the browser keeps audio suspended,
+ * and howler queues every play until it resumes: the queue would then sound
+ * all at once on that first click. Such plays are dropped instead.
+ */
+const canSoundYet = () =>
+  typeof navigator === "undefined" || !navigator.userActivation || navigator.userActivation.hasBeenActive;
 
 /**
  * A UI sound effect as `[play, { stop }]`, like use-sound, but every component
@@ -65,6 +96,7 @@ export function useSfx(name: Sfx, { volume }: { volume: number }) {
   useEffect(() => loadOnFirstPointer(), []);
 
   const play = useCallback(() => {
+    if (!canSoundYet() || (HOVER_SFX[name] && lastPointerType === "touch")) return;
     const at = generation.current;
     const start = (sfx: Record<Sfx, Howl>) => {
       const id = sfx[name].play();

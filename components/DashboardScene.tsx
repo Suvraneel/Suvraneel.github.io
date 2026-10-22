@@ -5,6 +5,7 @@ import StairsPreloader, { PRELOADER_FAILSAFE_MS, type PreloaderStatus } from "@c
 import { isInFlight, useTransitionState } from "@components/transition/transitionStore";
 import { SHEET_SHADOW } from "@lib/pageTransition";
 import { hasHardwareRenderer } from "@lib/gpu";
+import { renderOnDemand, requestSceneFrame } from "@lib/splineScroll";
 // WAAPI only: no motion value is left behind to write the transform back after it is cleared.
 import { animate } from "motion/mini";
 import { AnimatePresence } from "motion/react";
@@ -504,14 +505,8 @@ function holdSceneStill(app: any) {
   start.pauseVideos();
   // Otherwise the runtime draws every frame while the scene has videos.
   start.hasVideoAction = false;
-  // controls.update() keeps its "nothing moved" verdict to itself, so the
-  // "auto" render mode draws every frame anyway, each with a new TAA jitter
-  // (a still scene shimmers). Reported, frames stop once the image settles.
-  controls.update = function (this: { skipRender?: boolean }, dt: number) {
-    update.call(this, dt);
-    return this.skipRender;
-  };
-  requestSceneFrame(app);
+  // Frames stop once the image settles (lib/splineScroll.ts).
+  renderOnDemand(app);
 }
 
 /** Undoes holdSceneStill's patches; true if the idle loop was held (it needs a restart). */
@@ -529,10 +524,6 @@ function releaseSceneStill(app: any) {
   return true;
 }
 
-/** Draws a fresh frame in "auto" render mode (the public requestRender() is for "manual" only). */
-function requestSceneFrame(app: any) {
-  app?._requestRenderAutoMode?.();
-}
 
 function DashboardFallback() {
   return (

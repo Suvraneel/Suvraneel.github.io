@@ -57,6 +57,7 @@ import {
   isInFlight,
   isTransitionLocked,
   layerRegistry,
+  markClickDropped,
   markSettled,
   markStarted,
   notifyArrival,
@@ -837,8 +838,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       if (url.pathname === pathnameRef.current && !isTransitionLocked()) return;
 
       event.preventDefault();
-      if (isTransitionLocked()) return;
-      navigate(url.pathname, { source: "link" });
+      if (isTransitionLocked() || !navigate(url.pathname, { source: "link" })) markClickDropped(event);
     };
 
     window.addEventListener("click", onClick, true);

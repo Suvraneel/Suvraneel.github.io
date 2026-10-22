@@ -98,6 +98,15 @@ export const markStarted = (at: number) => {
   lastStartAt = at;
 };
 
+// Link clicks the provider turned away (a transition in flight). Its capture
+// listener on window runs before React's handlers, so a link's own onClick
+// can tell and stay silent instead of confirming a navigation that won't happen.
+const droppedClicks = new WeakSet<Event>();
+export const markClickDropped = (event: Event) => {
+  droppedClicks.add(event);
+};
+export const wasClickDropped = (event: Event) => droppedClicks.has(event);
+
 // ---------------------------------------------------------------------------
 // Layer registry: each PageLayer registers its DOM nodes and (while exiting)
 // its AnimatePresence release callback, so one coordinator can start every
