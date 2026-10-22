@@ -2,6 +2,8 @@ pull_request_rules:
   - name: Automatic merge on push by owner
     conditions:
       - "author=Suvraneel"
+      # The CI workflow's job (.github/workflows/ci.yml): type-check, lint, build.
+      - "check-success=ci"
     actions:
       merge:
         method: merge
