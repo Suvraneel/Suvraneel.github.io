@@ -37,12 +37,18 @@ export const isDrawerOpen = () =>
 
 // ---------------------------------------------------------------------------
 // Motion tokens. One ease and one duration for every layer of a lift, so the
-// sheet, its content and the page underneath stay in lockstep: heavy and
-// symmetric for desktop lifts, a shorter decelerating throw for lifts a finger
-// starts (touch pulls, and every phone-layout lift).
+// sheet, its content and the page underneath stay in lockstep: a weighted
+// lift for desktop, a shorter decelerating throw for lifts a finger starts
+// (touch pulls, and every phone-layout lift).
 // ---------------------------------------------------------------------------
 
-export const EASE_LIFT = [0.76, 0, 0.24, 1] as const;
+/**
+ * Eases in briefly, then decelerates: visible motion within ~150 ms of the
+ * click or key (10% of the travel by 200 ms) and a long settle, either way.
+ * A heavy symmetric in-out ([0.76, 0, 0.24, 1]) left the sheet all but still
+ * for the first 300 ms, so input read as lag.
+ */
+export const EASE_LIFT = [0.4, 0, 0.2, 1] as const;
 export const LIFT_MS = 1100;
 /** Touch and phone lifts leave at speed, like a released sheet, and decelerate into place. */
 export const EASE_THROW = [0.22, 1, 0.36, 1] as const;
@@ -63,7 +69,8 @@ export const SHEET_SHADOW = "0 40px 80px rgba(0, 0, 0, 0.55)";
 export const SHEET_EDGE = "0 1px 0 rgba(255, 255, 255, 0.08)";
 
 export const FLIP_MS = 1000;
-export const EASE_FLIP = [0.65, 0, 0.35, 1] as const;
+/** The lift's curve, so the dashboard starts turning as promptly as the sheet lifts. */
+export const EASE_FLIP = EASE_LIFT;
 // The 3D flip leads; Home starts lifting away while the dashboard is mid-turn.
 export const FLIP_LEAD_MS = 200;
 
