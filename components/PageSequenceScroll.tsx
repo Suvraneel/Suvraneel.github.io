@@ -3,6 +3,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
 import {
+  edgeTail,
   gestureGate,
   getLastSettleAt,
   getLastStartAt,
@@ -192,6 +193,7 @@ const PageSequenceScroll = () => {
 
       if (!nextPath || !isAtBoundary) {
         boundaryReachedAt.current = null;
+        edgeTail.disarm();
         hideHint();
         return;
       }
@@ -222,6 +224,13 @@ const PageSequenceScroll = () => {
         scrollIntentEvents.current = 0;
         scrollDirection.current = null;
         playEdgeSpring(springTarget(scrollContainer, pathname), movingForward);
+        edgeTail.arm(event);
+      }
+
+      // The momentum of a fling that ran into the edge is not a push past it.
+      if (edgeTail.holds(event)) {
+        hideHint();
+        return;
       }
 
       const direction = movingForward ? 1 : -1;
@@ -256,6 +265,7 @@ const PageSequenceScroll = () => {
     window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
     return () => {
       window.removeEventListener("wheel", handleWheel, true);
+      edgeTail.disarm();
       // A frame still pending would paint the next page's hint.
       window.cancelAnimationFrame(hintFrame);
       window.clearTimeout(hintIdle);

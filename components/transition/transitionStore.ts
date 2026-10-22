@@ -155,8 +155,12 @@ const disarm = () => {
 };
 
 /** A tail event this much stronger than the tail's level starts a new gesture. */
-const isRise = (magnitude: number) =>
-  tailLevel !== null && magnitude > tailLevel * TAIL_RISE_FACTOR + TAIL_RISE_SLACK_PX;
+const isRise = (magnitude: number, level: number | null = tailLevel) =>
+  level !== null && magnitude > level * TAIL_RISE_FACTOR + TAIL_RISE_SLACK_PX;
+
+/** When the event was generated, not when a busy main thread got round to it. */
+const stampOf = (event: WheelEvent, fallback: number) =>
+  Number.isFinite(event.timeStamp) && event.timeStamp > 0 ? event.timeStamp : fallback;
 
 const median = (values: number[]) => {
   const sorted = [...values].sort((a, b) => a - b);
@@ -212,7 +216,7 @@ export const gestureGate = {
 
     // Rates use the time each event was generated, not when a busy main
     // thread got round to it, so a delayed burst does not read as a speed-up.
-    const stamp = Number.isFinite(event.timeStamp) && event.timeStamp > 0 ? event.timeStamp : at;
+    const stamp = stampOf(event, at);
     if (!sameGesture) {
       samples = [];
       gestureStartAt = stamp;
@@ -253,5 +257,52 @@ export const gestureGate = {
     // Still inside a gated tail: a fresh gesture has already disarmed the gate
     // through swallow(), so whatever is asking now belongs to the old one.
     return false;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Edge tail: a gesture that runs into a page's scroll edge while still
+// scrolling (a trackpad fling reaching the bottom) goes on sending its
+// momentum after the page has stopped. That tail is not a push past the edge,
+// so it never counts towards moving to the next page: the same tests as the
+// gate above tell it from live input (sustained, or clearly rising), and a
+// new gesture ends it at once. A gesture that begins at the edge is a push.
+// ---------------------------------------------------------------------------
+
+/** Start of the gesture whose tail is held (null when none is). */
+let edgeTailGesture: number | null = null;
+let edgeTailArmedAt = 0;
+/** Smallest |deltaY| of the held tail so far. */
+let edgeTailLevel: number | null = null;
+
+export const edgeTail = {
+  /** The page has met its edge; `event` (already recorded by gestureGate.swallow) is the first one there. */
+  arm(event: WheelEvent) {
+    const at = now();
+    if (gestureStartAt >= stampOf(event, at)) return;
+    edgeTailGesture = gestureStartAt;
+    edgeTailArmedAt = at;
+    edgeTailLevel = null;
+  },
+  /** True while `event` (already recorded by gestureGate.swallow) is the tail of the gesture that ran into the edge. */
+  holds(event: WheelEvent): boolean {
+    if (edgeTailGesture === null) return false;
+    const at = now();
+    const magnitude = Math.abs(event.deltaY);
+    if (
+      gestureStartAt !== edgeTailGesture ||
+      at - edgeTailArmedAt > MOMENTUM_MAX_MS ||
+      isSustained(stampOf(event, at)) ||
+      isRise(magnitude, edgeTailLevel)
+    ) {
+      edgeTail.disarm();
+      return false;
+    }
+    edgeTailLevel = edgeTailLevel === null ? magnitude : Math.min(edgeTailLevel, magnitude);
+    return true;
+  },
+  disarm() {
+    edgeTailGesture = null;
+    edgeTailLevel = null;
   },
 };
