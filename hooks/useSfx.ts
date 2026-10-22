@@ -31,7 +31,8 @@ let lastPointerType = "mouse";
 function loadSfx() {
   loading ??= import("howler")
     .then((mod: HowlerModule & { default?: HowlerModule }) => {
-      const Howl = mod.Howl ?? mod.default.Howl;
+      const Howl = mod.Howl ?? mod.default?.Howl;
+      if (!Howl) throw new Error("howler has no Howl export");
       // AAC is a tenth of the size; the WAV plays where AAC can't.
       const howl = (name: Sfx) =>
         new Howl({ src: [`/sounds/${name}.m4a`, `/sounds/${name}.wav`], volume: BASE_VOLUME[name] });

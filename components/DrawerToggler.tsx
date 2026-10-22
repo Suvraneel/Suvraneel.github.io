@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
+import type { ComponentProps } from "react";
 
-const Path = props => (
+const Path = (props: ComponentProps<typeof motion.path>) => (
   <motion.path
     fill="#fff"
     strokeWidth="3"
