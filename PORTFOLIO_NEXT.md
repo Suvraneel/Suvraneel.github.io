@@ -94,7 +94,7 @@ Every item in `PORTFOLIO_FIX_SPEC.md` was re-checked against the code on 2026-10
 
 ### 3.0 Ship first
 
-- **`main` is 4 commits behind `develop`.** The live site has none of the recent work, and GA isn't on it (0 `gtag` matches on suvraneel.github.io). Merge `develop` → `main`, then check GA → Realtime. [K-6]
+- Shipped: the recent work is live on `main`, GA included [K-6]. `develop` is behind `main`; fast-forward it (`git switch develop && git merge --ff-only main`) to go back to the PR flow, which CI now gates [K-7].
 
 ### 3.1 Bugs — fixed 2026-10-15 (uncommitted)
 
@@ -167,21 +167,30 @@ Possible follow-up (needs your OK): Spline runtime 2.0.75 redraws the Home scene
 
 | ID | What's left |
 | --- | --- |
-| K-7 | CI workflow (install, tsc, eslint, build) as a required check; Mergify currently merges without checks. |
 | K-8 | Commit Playwright e2e specs for the scroll/modal/drawer guards and the Spline link guard. |
-| K-10 | TypeScript `strict` (about 6 errors, in Particle.tsx and DrawerToggler.tsx). |
-| K-2 | Transitive advisories (braces, source-map-js, postcss-selector-parser, hono and the MCP SDK via shadcn); all build-time or dev-only. sharp is now a direct devDependency at 0.35.5 (fixed). |
+| K-2 | Left after next 16.4.2 and the source-map-js override: the shadcn CLI's MCP SDK chain (MCP SDK, hono, ip-address; dev-only, gone if the CLI is run with `bunx shadcn@latest` instead of kept as a devDependency), braces (no fix released) and tailwind's postcss-selector-parser 6 (build-time). |
 | F-1 | Font variables never reach `<html>` (`--font-TASAOrb` undefined); Tailwind `sans` is `serif`; rail labels ask for an unhashed font name. |
 | F-5 | ~180 lines of dead CSS in globals.css (swirl, jello, iframe-container, equalizer, `hr`), plus two unused CSS modules. |
 | F-6 | `--rail-w` variable and a named z-index scale instead of literals. |
-| Z-1 | Delete `components/HamsterLoader/`; decide on `stateLogger`. |
+| Z-1 | Remove `stateLogger`: ProjectModal logs mount/unmount to the console in production. (HamsterLoader is deleted.) |
 | P-7 | Project data typos (U+2011 hyphens, "fromm", "an wallet", e.g./i.e., full stops). |
-| C-7 | 404 inherits Home's canonical; em dash in the JSON-LD name. |
 | — | Stray empty directory named `*` at the repo root (untracked). |
 
 Not listed: done or closed items (N-1, N-3, N-4, N-7, N-9, H-1, H-2, H-3, H-6, H-7, L-4, P-3, Q-5, Q-7, X-1–X-3, Z-2, Z-3, C-6), and the portrait items (P-1, Q-3), which section 2 replaces.
 
 ---
+
+### 3.6 Apple design audit (2026-10-22): still open
+
+Fixed so far: dropped-click confirm sound, wheel cooldown, sound loading/queueing/touch, plant render-on-demand, About `<main>`, touch-pull hysteresis/axis/re-grab, edge keys, reduced-motion edge bounce, fling momentum at an edge. In review: typography (leading, faux bold, Work hierarchy, contrast), lift/flip ease, rail label font, Skills panel direction, rubber-band pull, pill fill, drawer swipe-to-close, Calendly motion.
+
+| Item | Note |
+| --- | --- |
+| Touch throw at finger speed | The page always leaves at ~5,500 px/s; a quick flick never commits (no momentum projection). |
+| Reversible transitions | Phase 0: queue clicks made in flight. 1: Back reverses in place. 2: reverse wheel/pull/click. 3: velocity-continuous reversal. |
+| Root font size (item 9) | `112.5%` / `calc(15rem/18)` respects the browser's text size but needs heading caps and a rem rail first (overflow at 125%+). |
+| No-GPU desktop Home | The static fallback shows the phone hero, sparse at desktop width. Needs a design. |
+| Smaller | Pointer-down feedback on rail/tabs; rail shows two current items mid-lift; modal origin barely moves; heading drift repaints forever and jumps at its loop seam; no reduced-transparency/contrast handling; reduced-motion hover cuts; rail opens by animating width; pre-tilt velocity dropped at the flip; wheel edge hint doesn't move the page; About→Work takes one notch vs 520 px back; hover sounds have no mute; phone "Contact me" leaves the site without saying so. |
 
 ## Decided / dropped
 
