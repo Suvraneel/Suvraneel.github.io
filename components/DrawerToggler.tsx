@@ -16,7 +16,7 @@ const MenuToggle = ({ toggle, isOpen }: { toggle: () => void; isOpen: boolean })
     type="button"
     title={isOpen ? "Close navigation" : "Open navigation"}
     onClick={toggle}
-    className="hamburger hamburger--collapse pointer-events-auto fixed right-4 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[2003] rounded-full border border-white/10 bg-black/70 p-3 text-white backdrop-blur-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+    className="hamburger hamburger--collapse pointer-events-auto fixed right-4 top-[calc(env(safe-area-inset-top)+0.75rem)] z-menu-toggle rounded-full border border-white/10 bg-black/70 p-3 text-white backdrop-blur-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
     whileTap={{ scale: 0.96 }}
     aria-expanded={isOpen}
     aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}

@@ -4,6 +4,9 @@
 @tailwind utilities;
 
 :root {
+  /* The desktop rail: collapsed (content starts past it) and open on hover/focus. */
+  --rail-w: 50px;
+  --rail-w-open: 140px;
   /* #1BFCD7: the wordmark texture's cyan end (seed-46867.png), for every small accent. */
   --accent: 27 252 215;
 }
@@ -57,7 +60,7 @@ a:hover {
 .sidebar-container {
   position: fixed;
   height: 100%;
-  width: 50px;
+  width: var(--rail-w);
   background-color: #1f1c1c33;
   box-shadow: 0 0 20px 1px rgba(0, 0, 0, 0.5);
   -webkit-backdrop-filter: blur(8px);
@@ -68,7 +71,7 @@ a:hover {
   overflow: hidden;
   gap: 12px;
   padding: 20px 0;
-  z-index: 50;
+  z-index: theme(zIndex.rail);
 }
 .hamburger {
   display: none;
@@ -97,7 +100,7 @@ a:hover {
    behind, which would hold the rail open after the pointer leaves. */
 .sidebar-container:hover,
 .sidebar-container:focus-within:not(:has(:focus:not(:focus-visible))) {
-  width: 140px;
+  width: var(--rail-w-open);
 }
 
 .rail-music,
@@ -565,8 +568,8 @@ a:focus-visible > .link-draw::after {
 
 /* Projects */
 .nav-gap {
-  margin-left: 50px;
-  width: calc(100% - 50px) !important;
+  margin-left: var(--rail-w);
+  width: calc(100% - var(--rail-w)) !important;
 }
 /* No rail here: same breakpoints as the rail/hamburger swap. */
 @media only screen and (max-width: 768px), only screen and (max-height: 520px) {

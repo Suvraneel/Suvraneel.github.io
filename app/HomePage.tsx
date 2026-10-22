@@ -1,6 +1,5 @@
 "use client";
 
-import "../styles/Home.module.css";
 import Image from "next/image";
 import { motion, useSpring } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";

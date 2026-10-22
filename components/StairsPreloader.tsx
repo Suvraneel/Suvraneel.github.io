@@ -166,7 +166,7 @@ export default function StairsPreloader({ progress, status, readyAt, onSkip }: P
   return (
     <motion.div
       ref={rootRef}
-      className="preloader fixed inset-0 z-[500] flex max-[550px]:hidden"
+      className="preloader fixed inset-0 z-preloader flex max-[550px]:hidden"
       style={{ "--p": "0" } as CSSProperties}
       // Reduced motion fades the whole cover at once (no column seams); otherwise the columns carry the exit.
       exit={reduceMotion ? { opacity: 0, pointerEvents: "none" } : { pointerEvents: "none" }}

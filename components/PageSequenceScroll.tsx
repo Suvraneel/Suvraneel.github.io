@@ -50,8 +50,9 @@ const axisLockAfter = 10;
 const sidewaysRatio = 2;
 /** Share of the wheel's intent threshold from which the hint starts to show. */
 const wheelHintFrom = 0.15;
-/** The rail's collapsed width (.sidebar-container, globals.css); the content column starts past it. */
-const railWidth = 50;
+/** The rail's collapsed width (--rail-w, globals.css); the content column starts past it. */
+const railWidth = () =>
+  Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--rail-w")) || 50;
 
 const pageLabels: Record<(typeof pageOrder)[number], string> = {
   "/": "Home",
@@ -345,7 +346,7 @@ const PageSequenceScroll = () => {
 
     const hint = document.createElement("div");
     hint.setAttribute("aria-hidden", "true");
-    hint.className = `pointer-events-none fixed left-1/2 z-[1500] flex items-center gap-2 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-white/10 px-4 py-2 text-white opacity-0 shadow-[0_12px_32px_rgba(0,0,0,0.45)] backdrop-blur-md transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none ${tasaOrbiter.className}`;
+    hint.className = `pointer-events-none fixed left-1/2 z-hint flex items-center gap-2 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-white/10 px-4 py-2 text-white opacity-0 shadow-[0_12px_32px_rgba(0,0,0,0.45)] backdrop-blur-md transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none ${tasaOrbiter.className}`;
     hint.style.transform = "translate(-50%, 0.5rem)";
     // A faint fill, left to right with the pull, 1:1 (no easing to lag behind it); full at the threshold.
     const hintFill = document.createElement("span");
@@ -449,7 +450,7 @@ const PageSequenceScroll = () => {
       const width = hint.offsetWidth;
       const menu = forward ? null : document.querySelector<HTMLElement>("button.hamburger")?.getBoundingClientRect();
       // A rail shown (display: none hides it with its client rects) starts the column past it.
-      const rail = wheel && document.querySelector(".sidebar-container")?.getClientRects().length ? railWidth : 0;
+      const rail = wheel && document.querySelector(".sidebar-container")?.getClientRects().length ? railWidth() : 0;
       let center = rail + (viewport - rail) / 2;
       let room = viewport - rail - gutter * 2;
       if (menu && menu.width > 0 && menu.left - menuGap > viewport / 2) {

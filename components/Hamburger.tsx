@@ -191,7 +191,7 @@ const Hamburger = () => {
           <motion.button
             type="button"
             aria-label="Close navigation drawer"
-            className="fixed inset-0 z-[2000] cursor-default bg-black/50 backdrop-blur-[2px]"
+            className="fixed inset-0 z-drawer-backdrop cursor-default bg-black/50 backdrop-blur-[2px]"
             variants={backdrop}
             initial="closed"
             animate="open"
@@ -206,7 +206,7 @@ const Hamburger = () => {
         initial={false}
         animate="open"
         custom="100%"
-        className="hamburger fixed inset-0 z-[2001] pointer-events-none text-white"
+        className="hamburger fixed inset-0 z-drawer pointer-events-none text-white"
       >
         <MenuToggle toggle={isOpen ? closeDrawer : openDrawer} isOpen={isOpen} />
         <AnimatePresence initial={false}>

@@ -9,6 +9,17 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
+			// Site-wide stacking, lowest first. Local stacking inside a component
+			// (z-[1], z-10, ...) stays literal.
+			zIndex: {
+				rail: "50",
+				preloader: "500",
+				hint: "1500",
+				"drawer-backdrop": "2000",
+				drawer: "2001",
+				"menu-toggle": "2003",
+				modal: "5000",
+			},
 			fontFamily: {
 				sans: ["serif", "sans-serif"],
 				primary: ['var(--font-spaceBoards)', "sans-serif"],

@@ -18,7 +18,6 @@ import {
   anchorToOrigin,
   type ModalOrigin,
 } from "@lib/modalMotion";
-import { stateLogger } from "../stateLogger";
 
 export type { ModalOrigin };
 
@@ -127,7 +126,6 @@ export default function ProjectModal({
       root.style.overflow = previousRootOverflow;
       Object.assign(body.style, previousBodyStyles);
       window.scrollTo(0, scrollPosition);
-      stateLogger("Project modal", false);
     };
 
     // A queued close event from an earlier close() (Strict Mode re-runs this
@@ -136,7 +134,6 @@ export default function ProjectModal({
       if (!currentDialog.open) releasePage();
     };
 
-    stateLogger("Project modal", true);
     currentDialog.showModal();
     closeButton.current?.focus();
     currentDialog.addEventListener("close", onClose);
@@ -170,7 +167,7 @@ export default function ProjectModal({
       ref={dialog}
       aria-modal="true"
       aria-labelledby="project-dialog-title"
-      className="fixed inset-0 z-[5000] m-0 flex h-dvh w-full max-w-none items-center justify-center overflow-hidden border-0 bg-transparent p-2 backdrop:bg-transparent sm:p-5"
+      className="fixed inset-0 z-modal m-0 flex h-dvh w-full max-w-none items-center justify-center overflow-hidden border-0 bg-transparent p-2 backdrop:bg-transparent sm:p-5"
       onCancel={(event) => {
         event.preventDefault();
         handleClose();

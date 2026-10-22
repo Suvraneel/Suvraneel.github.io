@@ -317,7 +317,7 @@ const Work = () => {
         <div className="min-h-[100dvh] grid md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)] gap-0">
           <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-[100dvh] self-start md:block">
             {/* The plant centres in the space you can see (right of the nav rail). */}
-            <div className="absolute inset-y-0 left-0 right-0 min-[769px]:[@media(min-height:521px)]:left-[50px]">
+            <div className="absolute inset-y-0 left-0 right-0 min-[769px]:[@media(min-height:521px)]:left-[var(--rail-w)]">
               {/* Never clipped: the canvas is at least as wide as the ground glow (about half
                   its height), so the glow fades out on its own, under the glass rail and the text. */}
               <div className="pointer-events-none absolute inset-y-0 left-[calc(50%-max(50%,32.5vh))] w-[max(100%,65vh)]">
