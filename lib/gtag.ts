@@ -16,23 +16,32 @@ declare global {
 export const gtagInit = (id: string) =>
   `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',${JSON.stringify(id)},{send_page_view:false});`;
 
-/** Frames pageview() waits for a route's <title> before sending without it. */
-const MAX_TITLE_WAIT_FRAMES = 10;
+/** Frames (~1/3 s) pageview() waits for a route's own <title> before sending anyway. */
+const MAX_TITLE_WAIT_FRAMES = 20;
+
+/** The last page view sent, so a route change can tell its title from the old page's. */
+let lastSent: { path: string; title: string } | null = null;
 
 /** A GA4 page view for the current URL and title. */
-export const pageview = (frames = 0) => {
+export const pageview = () => {
   if (typeof window === "undefined" || typeof window.gtag !== "function") return;
-  // A client navigation can commit a frame before its <title> lands (the old one
-  // is already gone): wait a few frames rather than send an empty title.
-  if (!document.title && frames < MAX_TITLE_WAIT_FRAMES) {
-    window.requestAnimationFrame(() => pageview(frames + 1));
-    return;
-  }
+  // The URL is read now, so a navigation during the wait cannot relabel this hit.
+  const location = window.location.href;
+  const path = window.location.pathname;
 
-  window.gtag("event", "page_view", {
-    page_location: window.location.href,
-    page_title: document.title,
-  });
+  const send = (frames: number) => {
+    const title = document.title;
+    // A client navigation can commit before its <title> lands: for a frame or
+    // two the document has no title, or still the previous page's.
+    const stale = !title || (lastSent !== null && lastSent.path !== path && title === lastSent.title);
+    if (stale && frames < MAX_TITLE_WAIT_FRAMES) {
+      window.requestAnimationFrame(() => send(frames + 1));
+      return;
+    }
+    lastSent = { path, title };
+    window.gtag("event", "page_view", { page_location: location, page_title: title });
+  };
+  send(0);
 };
 
 // https://developers.google.com/analytics/devguides/collection/gtagjs/events

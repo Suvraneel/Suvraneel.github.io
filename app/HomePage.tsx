@@ -40,6 +40,12 @@ const readReducedMotionOnServer = () => false;
  */
 let homeSeenNarrow = false;
 
+/**
+ * About's desktop portrait, warmed from Home. Held for the session: an
+ * unreferenced Image can be collected, and About would fetch the photo again.
+ */
+let aboutPortrait: HTMLImageElement | null = null;
+
 /** A flip or unflip in flight drives the rig itself. */
 const flipOwnsRig = () => {
   const t = getTransition();
@@ -120,8 +126,9 @@ const Home = () => {
   // way to the static hero, so a first flip to About never shows the photo
   // arriving partway through.
   useEffect(() => {
-    if (!(isReady || sceneFailed) || !window.matchMedia("(min-width: 1024px)").matches) return;
-    new window.Image().src = "/images/Suvraneel_DP.jpeg";
+    if (aboutPortrait || !(isReady || sceneFailed) || !window.matchMedia("(min-width: 1024px)").matches) return;
+    aboutPortrait = new window.Image();
+    aboutPortrait.src = "/images/Suvraneel_DP.jpeg";
   }, [isReady, sceneFailed]);
 
   // Under reduced motion the flip is a fade, so the rig is never turned partway.
