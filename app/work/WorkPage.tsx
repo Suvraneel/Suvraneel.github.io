@@ -338,10 +338,10 @@ const Work = () => {
             <div className="max-w-6xl px-5 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-20 [container-type:inline-size] sm:px-10 sm:pb-28 sm:pt-14 lg:px-14">
           <header className="max-w-4xl">
             {/* Shrinks with the column only where "experience" would not fit at full size. */}
-            <LiftHeading rootRef={mainRef} className={`text-4xl font-bold leading-none tracking-[-0.045em] sm:text-[length:min(3.75rem,13cqi)] ${spaceBoards.className}`}>
+            <LiftHeading rootRef={mainRef} className={`text-4xl leading-none tracking-[-0.045em] sm:text-[length:min(3.75rem,13cqi)] ${spaceBoards.className}`}>
               Work &amp; experience
             </LiftHeading>
-            <p className={`mt-5 max-w-2xl text-base leading-7 text-white/65 sm:text-lg ${tasaOrbiter.className}`}>
+            <p className={`mt-5 max-w-2xl text-base leading-7 text-white/65 sm:text-lg/7 ${tasaOrbiter.className}`}>
               Enterprise engineering, open-source leadership, and the communities that shaped how I build.
             </p>
            </header>
@@ -350,7 +350,7 @@ const Work = () => {
            <div ref={entriesRef} className="relative">
            <TimelineSpine scrollY={scrollY} />
            <section className="mt-10 sm:mt-12" aria-labelledby="professional-work">
-            <h2 id="professional-work" className="text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
+            <h2 id="professional-work" className={`text-3xl font-semibold tracking-[-0.03em] text-white sm:text-4xl ${tasaOrbiter.className}`}>
               Professional experience
             </h2>
             <div className="mt-2">
@@ -362,7 +362,7 @@ const Work = () => {
 
           <section className="mt-16 sm:mt-20" aria-labelledby="community-leadership">
             <div className="max-w-2xl">
-              <h2 id="community-leadership" className="text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
+              <h2 id="community-leadership" className={`text-3xl font-semibold tracking-[-0.03em] text-white sm:text-4xl ${tasaOrbiter.className}`}>
                 Community &amp; leadership
               </h2>
             </div>
@@ -374,7 +374,7 @@ const Work = () => {
            </section>
 
            <section className="mt-16 sm:mt-20" aria-labelledby="education">
-            <h2 id="education" className="text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
+            <h2 id="education" className={`text-3xl font-semibold tracking-[-0.03em] text-white sm:text-4xl ${tasaOrbiter.className}`}>
               Education
             </h2>
             {/* Two columns (dates | details) as in ChronoCard: from sm, once the column has 28rem. */}
@@ -390,7 +390,7 @@ const Work = () => {
                   />
                 </div>
                 <div className="pt-2 sm:[@container(min-width:28rem)]:hidden">
-                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/40">
+                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/60">
                     {educationData.duration}
                   </p>
                   <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] text-accent/70 ${tasaOrbiter.className}`}>
@@ -408,13 +408,13 @@ const Work = () => {
                   <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] text-accent/70 sm:[@container(min-width:28rem)]:block ${tasaOrbiter.className}`}>
                     {educationData.institution}
                   </p>
-                  <h3 className="mt-2 text-xl font-semibold leading-tight tracking-[-0.035em] text-white sm:text-2xl">
+                  <h3 className="mt-2 text-xl font-semibold leading-tight tracking-[-0.035em] text-white sm:text-2xl/tight">
                     {educationData.degree}
                   </h3>
                   <p className={`mt-1 text-sm leading-6 text-white/55 ${tasaOrbiter.className}`}>{educationData.campus}</p>
                 </div>
                 <p className="flex items-baseline gap-2 sm:flex-col sm:items-end sm:gap-1 sm:text-right">
-                  <span className={`text-3xl font-semibold leading-none tracking-[-0.03em] text-white tabular-nums sm:text-4xl ${tasaOrbiter.className}`}>
+                  <span className={`text-3xl font-semibold leading-none tracking-[-0.03em] text-white tabular-nums sm:text-4xl/none ${tasaOrbiter.className}`}>
                     {educationData.score.split(" ")[0]}
                   </span>
                   <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-accent/70">

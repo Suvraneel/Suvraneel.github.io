@@ -70,11 +70,21 @@ const useLiveReducedMotion = () =>
  * The sheet stops being a modal as soon as its exit starts, so isDialogOpen()
  * does not hold page navigation while it slides away.
  */
-function DrawerSheet({ reduceMotion, children }: { reduceMotion: boolean; children: ReactNode }) {
+function DrawerSheet({
+  reduceMotion,
+  onClose,
+  children,
+}: {
+  reduceMotion: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
   const isPresent = useIsPresent();
+  const sheetRef = useRef<HTMLElement>(null);
 
   return (
     <motion.aside
+      ref={sheetRef}
       role="dialog"
       aria-modal={isPresent ? "true" : undefined}
       aria-label="Navigation"
@@ -85,6 +95,17 @@ function DrawerSheet({ reduceMotion, children }: { reduceMotion: boolean; childr
       initial="closed"
       animate="open"
       exit="closed"
+      // Swiped back the way it came: it follows the finger to the right (and
+      // resists to the left), and a throw or a pull past a third of its width
+      // lets it go; anything less springs it back. Vertical scrolling is kept.
+      drag={isPresent ? "x" : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={{ left: 0.04, right: 1 }}
+      dragMomentum={false}
+      onDragEnd={(_, info) => {
+        const width = sheetRef.current?.offsetWidth ?? 320;
+        if (info.offset.x > width / 3 || info.velocity.x > 500) onClose();
+      }}
     >
       {children}
     </motion.aside>
@@ -190,7 +211,7 @@ const Hamburger = () => {
         <MenuToggle toggle={isOpen ? closeDrawer : openDrawer} isOpen={isOpen} />
         <AnimatePresence initial={false}>
           {isOpen && (
-            <DrawerSheet key="drawer-sheet" reduceMotion={reduceMotion}>
+            <DrawerSheet key="drawer-sheet" reduceMotion={reduceMotion} onClose={closeDrawer}>
               <motion.ul
                 key="drawer-menu"
                 variants={variantsNav}

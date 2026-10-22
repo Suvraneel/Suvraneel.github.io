@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion, type Transition } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { spaceBoards, tasaOrbiter } from "@font";
 import LiquidMetalButton from "@components/LiquidMetalButton";
@@ -9,22 +9,18 @@ import PillButton from "@components/PillButton";
 import { AnimateIcon } from "@components/animate-ui/icons/icon";
 import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
 import { XIcon } from "@components/animate-ui/icons/x";
-import { EASE_FADE } from "@lib/pageTransition";
+import {
+  MODAL_BACKDROP_CLASS,
+  MODAL_BACKDROP_EXIT_MOTION,
+  MODAL_BACKDROP_MOTION,
+  MODAL_PANEL_MOTION,
+  MODAL_REDUCED_MOTION,
+  anchorToOrigin,
+  type ModalOrigin,
+} from "@lib/modalMotion";
 import { stateLogger } from "../stateLogger";
 
-/** The opened tile's centre, in viewport px. */
-export type ModalOrigin = { x: number; y: number };
-
-// The panel grows from the tile and shrinks back toward it; the backdrop fades
-// under it and, on close, clears 70ms after the panel has gone, so the page
-// comes back sharp just as the panel lands.
-const PANEL_S = 0.42;
-const BACKDROP_S = 0.32;
-const PANEL_MOTION: Transition = { duration: PANEL_S, ease: [0.16, 1, 0.3, 1] };
-const BACKDROP_MOTION: Transition = { duration: BACKDROP_S, ease: EASE_FADE };
-const BACKDROP_EXIT_MOTION: Transition = { ...BACKDROP_MOTION, delay: PANEL_S + 0.07 - BACKDROP_S };
-// Reduced motion: both layers crossfade, nothing scales.
-const REDUCED_MOTION: Transition = { duration: 0.15, ease: "easeOut" };
+export type { ModalOrigin };
 
 /** A case note's text, with markdown-style `[label](https://…)` links as real links. */
 const NOTE_LINK = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
@@ -84,7 +80,7 @@ export default function ProjectModal({
   const stack =
     project.tech_stk.length > 0 ? (
       <section aria-label="Technology stack">
-        <p className="mb-3 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-white/40">Stack</p>
+        <p className="mb-3 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-white/60">Stack</p>
         <div className="flex flex-wrap gap-2">
           {project.tech_stk.map((tech) => (
             <span key={tech} className="rounded-full border border-white/[0.09] bg-white/[0.035] px-3 py-1.5 text-[0.7rem] font-medium text-white/70">
@@ -164,10 +160,7 @@ export default function ProjectModal({
     const currentDialog = dialog.current;
     const section = panel.current;
     if (!origin || !currentDialog || !section || reduceMotion) return;
-    const frame = currentDialog.getBoundingClientRect();
-    const left = frame.left + currentDialog.clientLeft + section.offsetLeft;
-    const top = frame.top + currentDialog.clientTop + section.offsetTop;
-    section.style.transformOrigin = `${origin.x - left}px ${origin.y - top}px`;
+    anchorToOrigin(currentDialog, section, origin);
   }, [origin, reduceMotion]);
 
   return (
@@ -188,11 +181,11 @@ export default function ProjectModal({
           opacity only, never the blur radius. A click on it closes the dialog. */}
       <motion.div
         aria-hidden="true"
-        className="fixed inset-0 bg-[#030609]/85 backdrop-blur-xl"
+        className={MODAL_BACKDROP_CLASS}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0, transition: reduceMotion ? REDUCED_MOTION : BACKDROP_EXIT_MOTION }}
-        transition={reduceMotion ? REDUCED_MOTION : BACKDROP_MOTION}
+        exit={{ opacity: 0, transition: reduceMotion ? MODAL_REDUCED_MOTION : MODAL_BACKDROP_EXIT_MOTION }}
+        transition={reduceMotion ? MODAL_REDUCED_MOTION : MODAL_BACKDROP_MOTION}
         onClick={handleClose}
       />
       {/*
@@ -214,7 +207,7 @@ export default function ProjectModal({
         initial={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "scale(0.94)" }}
         animate={reduceMotion ? { opacity: 1 } : { opacity: 1, transform: "scale(1)" }}
         exit={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "scale(0.96)" }}
-        transition={reduceMotion ? REDUCED_MOTION : PANEL_MOTION}
+        transition={reduceMotion ? MODAL_REDUCED_MOTION : MODAL_PANEL_MOTION}
       >
         {/* Left column backdrop (wide layout only). */}
         <div
@@ -233,7 +226,7 @@ export default function ProjectModal({
             onClick={handleClose}
           >
             {/* A keyboard hint only where there is a keyboard-and-pointer setup. */}
-            <span className="font-mono text-[0.6rem] uppercase tracking-[0.12em] text-white/40 [@media(hover:none)]:hidden">Esc</span>
+            <span className="font-mono text-[0.6rem] uppercase tracking-[0.12em] text-white/60 [@media(hover:none)]:hidden">Esc</span>
             <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-full bg-white/[0.07] text-base">
               <XIcon size={14} />
             </span>
@@ -284,7 +277,7 @@ export default function ProjectModal({
           <section className="mt-7 border-t border-white/[0.08] pt-6">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-white/90">Overview</h3>
-              <span className="font-mono text-[0.62rem] text-white/35">{String(notes.length).padStart(2, "0")} NOTES</span>
+              <span className="font-mono text-[0.62rem] text-white/55">{String(notes.length).padStart(2, "0")} NOTES</span>
             </div>
             <ol className="space-y-4">
               {notes.map((detail, index) => (

@@ -69,8 +69,10 @@ const panelMotion: Variants = {
   shown: { opacity: 1, transition: { duration: 0.12, staggerChildren: 0.035 } },
   gone: { opacity: 0, transition: { duration: 0.12, ease: EASE_OUT } },
 };
+// Each step rises from the side the selection moved towards: from below for a
+// later area, from above for an earlier one (custom: 1 or -1).
 const panelStep: Variants = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: (direction: number = 1) => ({ opacity: 0, y: 10 * direction }),
   shown: { opacity: 1, y: 0, transition: { duration: 0.34, ease: EASE_OUT } },
 };
 // Reduced motion keeps the steps still: the same settled frame as panelStep, so
@@ -94,6 +96,8 @@ export default function SkillsPage() {
   // still-exiting copy: the first panel's copy skips animations (initial={false})
   // and would stay at its exit opacity.
   const [switches, setSwitches] = useState(0);
+  /** 1 when the latest switch moved to a later area, -1 to an earlier one. */
+  const [direction, setDirection] = useState<1 | -1>(1);
   const reduceMotion = useReducedMotion();
   const activeArea = capabilityAreas.find((area) => area.id === activeId) ?? capabilityAreas[0];
   const practiceSteps = useRef<HTMLOListElement>(null);
@@ -104,10 +108,10 @@ export default function SkillsPage() {
     <main className="nav-gap min-h-[100dvh] overflow-x-hidden bg-black text-white">
       <div className="mx-auto max-w-[1440px] px-5 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-24 lg:px-14 xl:px-20">
         <header className="max-w-4xl">
-          <LiftHeading className={`text-4xl font-bold leading-none tracking-[-0.04em] sm:text-6xl ${spaceBoards.className}`}>
+          <LiftHeading className={`text-4xl leading-none tracking-[-0.04em] sm:text-6xl ${spaceBoards.className}`}>
             Skills
           </LiftHeading>
-          <p className={`mt-6 max-w-2xl text-lg leading-8 text-white/70 sm:text-xl ${tasaOrbiter.className}`}>
+          <p className={`mt-6 max-w-2xl text-lg leading-8 text-white/70 sm:text-xl/8 ${tasaOrbiter.className}`}>
             Skills matter only when they help a team ship, operate, and improve a real system.
           </p>
         </header>
@@ -136,6 +140,8 @@ export default function SkillsPage() {
                       aria-controls="capability-detail"
                       onClick={() => {
                         if (active) return;
+                        const indexOf = (id: string) => capabilityAreas.findIndex((each) => each.id === id);
+                        setDirection(indexOf(area.id) > indexOf(activeId) ? 1 : -1);
                         setActiveId(area.id);
                         setAnnouncement(area.label);
                         setSwitches((count) => count + 1);
@@ -181,7 +187,12 @@ export default function SkillsPage() {
                 live region that arrives with its text is skipped by screen readers. */}
             <p className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</p>
             <AnimatePresence mode="popLayout" initial={false}>
-              <CapabilityPanel key={`${activeArea.id}-${switches}`} area={activeArea} reduceMotion={Boolean(reduceMotion)} />
+              <CapabilityPanel
+                key={`${activeArea.id}-${switches}`}
+                area={activeArea}
+                direction={direction}
+                reduceMotion={Boolean(reduceMotion)}
+              />
             </AnimatePresence>
           </div>
         </section>
@@ -190,7 +201,7 @@ export default function SkillsPage() {
           <div className="grid gap-7 lg:grid-cols-[minmax(18rem,0.72fr)_minmax(0,1.28fr)] lg:gap-16">
             <h2
               id="practice-heading"
-              className={`max-w-sm pt-0 text-2xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-3xl lg:pt-5 ${tasaOrbiter.className}`}
+              className={`max-w-sm pt-0 text-2xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-3xl/tight lg:pt-5 ${tasaOrbiter.className}`}
             >
               How I build
             </h2>
@@ -205,7 +216,7 @@ export default function SkillsPage() {
                   <h3 className={`text-base font-semibold text-white sm:text-lg ${tasaOrbiter.className}`}>
                     {title}
                   </h3>
-                  <p className={`text-sm leading-6 text-white/55 sm:text-base ${tasaOrbiter.className}`}>
+                  <p className={`text-sm leading-6 text-white/55 sm:text-base/6 ${tasaOrbiter.className}`}>
                     {description}
                   </p>
                 </li>
@@ -220,9 +231,10 @@ export default function SkillsPage() {
 
 function CapabilityPanel({
   area,
+  direction,
   reduceMotion,
   ref,
-}: Readonly<{ area: CapabilityArea; reduceMotion: boolean; ref?: Ref<HTMLElement> }>) {
+}: Readonly<{ area: CapabilityArea; direction: 1 | -1; reduceMotion: boolean; ref?: Ref<HTMLElement> }>) {
   // The outgoing panel lingers through its fade over the new one: only the
   // present one keeps the ids, the accessibility tree and the pointer.
   const present = useIsPresent();
@@ -240,26 +252,26 @@ function CapabilityPanel({
       exit="gone"
       className={`min-h-[27rem] border-t border-white/15 pt-8 sm:pt-10 lg:border-t-0 lg:pt-0 ${present ? "" : "pointer-events-none"}`}
     >
-      <motion.div variants={step} className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.14em]">
+      <motion.div variants={step} custom={direction} className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.14em]">
         <span className="tabular-nums text-accent">{area.index}</span>
         <span aria-hidden="true" className="h-px w-8 bg-white/25" />
-        <span className="text-white/45">{area.label}</span>
+        <span className="text-white/55">{area.label}</span>
       </motion.div>
       <motion.h2
-        variants={step}
+        variants={step} custom={direction}
         id={present ? "capability-detail-title" : undefined}
-        className={`mt-7 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-4xl lg:text-5xl ${tasaOrbiter.className}`}
+        className={`mt-7 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-4xl/[1.08] lg:text-5xl/[1.08] ${tasaOrbiter.className}`}
       >
         {area.title}
       </motion.h2>
-      <motion.p variants={step} className={`mt-6 max-w-2xl text-base leading-7 text-white/70 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
+      <motion.p variants={step} custom={direction} className={`mt-6 max-w-2xl text-base leading-7 text-white/70 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
         {area.description}
       </motion.p>
 
       {/* Technologies and proof enter as one step, keeping the cascade to four. */}
-      <motion.div variants={step}>
+      <motion.div variants={step} custom={direction}>
         <div className="mt-9 border-t border-white/10 pt-5">
-          <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-white/45">
+          <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-white/55">
             Technologies
           </h3>
           <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-2" aria-label={`${area.label} technologies`}>
@@ -274,7 +286,7 @@ function CapabilityPanel({
           </ul>
         </div>
 
-        <p className={`mt-7 max-w-2xl text-sm leading-6 text-white/55 sm:text-base ${tasaOrbiter.className}`}>
+        <p className={`mt-7 max-w-2xl text-sm leading-6 text-white/55 sm:text-base/6 ${tasaOrbiter.className}`}>
           {area.proof}
         </p>
       </motion.div>

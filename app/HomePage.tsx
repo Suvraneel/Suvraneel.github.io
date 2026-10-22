@@ -254,7 +254,7 @@ const Home = () => {
           transition={{ duration: 0.6, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
           className="mt-5"
         >
-          <h1 className={`text-[1.5rem] font-bold leading-[1.05] tracking-normal min-[320px]:text-[1.8rem] min-[360px]:text-[2.1rem] min-[390px]:text-[2.4rem] min-[480px]:text-[2.6rem] ${spaceBoards.className}`}>
+          <h1 className={`text-[1.5rem] leading-[1.05] tracking-normal min-[320px]:text-[1.8rem] min-[360px]:text-[2.1rem] min-[390px]:text-[2.4rem] min-[480px]:text-[2.6rem] ${spaceBoards.className}`}>
             Suvraneel Bhuin
           </h1>
           <h2 className={`mt-2 max-w-[28ch] text-lg font-bold leading-7 text-white ${tasaOrbiter.className}`}>

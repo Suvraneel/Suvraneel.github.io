@@ -38,10 +38,10 @@ const ChronoCard = ({
           </div>
         )}
         <div className="pt-2 sm:[@container(min-width:28rem)]:hidden">
-          <p className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/40">
+          <p className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/60">
             {curElem.duration}
           </p>
-          <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] ${isWork ? "text-accent/70" : "text-white/45"} ${tasaOrbiter.className}`}>
+          <p className={`mt-1 text-[0.68rem] font-medium uppercase tracking-[0.2em] ${isWork ? "text-accent/70" : "text-white/55"} ${tasaOrbiter.className}`}>
             {curElem.company}
           </p>
         </div>
@@ -62,10 +62,10 @@ const ChronoCard = ({
             }`}
           />
         </div>
-        <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:[@container(min-width:28rem)]:block ${isWork ? "text-accent/70" : "text-white/45"} ${tasaOrbiter.className}`}>
+        <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:[@container(min-width:28rem)]:block ${isWork ? "text-accent/70" : "text-white/55"} ${tasaOrbiter.className}`}>
           {curElem.company}
         </p>
-        <h3 className={`mt-2 max-w-3xl font-semibold leading-tight tracking-[-0.035em] text-white ${isWork ? "text-3xl sm:text-4xl" : "text-xl sm:text-2xl"}`}>
+        <h3 className={`mt-2 max-w-3xl font-semibold leading-tight tracking-[-0.035em] text-white ${isWork ? "text-2xl sm:text-3xl/tight" : "text-xl sm:text-2xl/tight"}`}>
           {curElem.role}
         </h3>
         <p className={`mt-4 max-w-2xl text-[0.98rem] leading-7 text-white/70 ${tasaOrbiter.className}`}>

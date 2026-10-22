@@ -25,6 +25,25 @@ const pullThreshold = 70;
 const pullHintFrom = 20;
 /** How far the page may scroll back under a finger easing off a pull before the pull is over. */
 const pullSlack = 12;
+/** How readily the page follows a pull at first: a third of the finger's travel, stiffer at the sequence's ends. */
+const pullFollow = 0.35;
+const pullFollowAtEnd = 0.12;
+
+/**
+ * Apple's rubber band: the page follows `constant` x the travel at first and
+ * resists more the further it goes, never hitting a wall. Half the viewport
+ * sets how soon it stiffens.
+ */
+const rubberband = (distance: number, constant: number) => {
+  const dimension = window.innerHeight / 2;
+  return (distance * dimension * constant) / (dimension + constant * distance);
+};
+/** The travel that stretches the page `offset` px (the inverse; Infinity past its reach). */
+const travelFor = (offset: number, constant: number) => {
+  const dimension = window.innerHeight / 2;
+  return offset >= dimension ? Infinity : (offset * dimension) / (constant * (dimension - offset));
+};
+
 /** Finger travel after which a touch can be read as vertical (a pull) or sideways (ignored). */
 const axisLockAfter = 10;
 /** How much more sideways than vertical a touch must be to count as a swipe (about 63° off vertical). */
@@ -328,10 +347,10 @@ const PageSequenceScroll = () => {
     hint.setAttribute("aria-hidden", "true");
     hint.className = `pointer-events-none fixed left-1/2 z-[1500] flex items-center gap-2 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-white/10 px-4 py-2 text-white opacity-0 shadow-[0_12px_32px_rgba(0,0,0,0.45)] backdrop-blur-md transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none ${tasaOrbiter.className}`;
     hint.style.transform = "translate(-50%, 0.5rem)";
-    // A faint fill, left to right with the pull; full at the threshold.
+    // A faint fill, left to right with the pull, 1:1 (no easing to lag behind it); full at the threshold.
     const hintFill = document.createElement("span");
     hintFill.className =
-      "absolute inset-0 origin-left bg-white/[0.14] transition-transform duration-100 ease-linear motion-reduce:transition-none";
+      "absolute inset-0 origin-left bg-white/[0.14]";
     hintFill.style.transform = "scaleX(0)";
     // Both labels share one grid cell, so the pill keeps the longer one's width
     // and the words crossfade at the threshold instead of resizing it.
@@ -348,7 +367,7 @@ const PageSequenceScroll = () => {
     hintAction.append(pullLabel, releaseLabel);
     // The next page's name as its wordmark, at the label's scale.
     const hintTitle = document.createElement("span");
-    hintTitle.className = `animated-heading relative text-[0.95rem] font-bold leading-none tracking-[-0.02em] ${spaceBoards.className}`;
+    hintTitle.className = `animated-heading relative text-[0.95rem] leading-none tracking-[-0.02em] ${spaceBoards.className}`;
     hint.append(hintFill, hintAction, hintTitle);
     document.body.append(hint);
 
@@ -612,9 +631,10 @@ const PageSequenceScroll = () => {
         pull.edgeFromStall = !atEdge;
         // A stretch caught mid spring-back carries on from where it was, if this
         // pull goes the same way (offsets are opposite to the pull's direction).
-        const band = pageOrder[pageIndex + moving] ? 0.35 : 0.12;
-        if (pull.carry && Math.sign(pull.carry) === -moving && Math.abs(pull.carry) < 120) {
-          pull.edgeY = y + moving * (Math.abs(pull.carry) / band);
+        const follow = pageOrder[pageIndex + moving] ? pullFollow : pullFollowAtEnd;
+        const carried = travelFor(Math.abs(pull.carry), follow);
+        if (pull.carry && Math.sign(pull.carry) === -moving && Number.isFinite(carried)) {
+          pull.edgeY = y + moving * carried;
         } else if (pull.carry) {
           relax(pullTarget(scroller));
         }
@@ -629,8 +649,7 @@ const PageSequenceScroll = () => {
         return;
       }
       const hasNext = Boolean(pageOrder[pageIndex + direction]);
-      // Rubber band: about a third of the finger's travel, and stiffer at the very ends of the sequence.
-      const offset = prefersReducedMotion() ? 0 : -direction * Math.min(pull.distance * (hasNext ? 0.35 : 0.12), 120);
+      const offset = prefersReducedMotion() ? 0 : -direction * rubberband(pull.distance, hasNext ? pullFollow : pullFollowAtEnd);
       const distance = hasNext ? pull.distance : 0;
       tick(distance >= pullThreshold);
 

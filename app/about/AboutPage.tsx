@@ -129,11 +129,11 @@ const About = () => {
               <p data-reveal className={`mb-3 text-xs font-medium uppercase tracking-[0.2em] text-accent/70 ${tasaOrbiter.className}`}>
                 Profile
               </p>
-              <LiftHeading data-reveal className={`max-w-xl text-4xl font-bold leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
+              <LiftHeading data-reveal className={`max-w-xl text-4xl leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
                 About Me
               </LiftHeading>
               <div className="mt-8 max-w-2xl space-y-5">
-                <p data-reveal className={`text-xl font-medium leading-8 tracking-[-0.025em] text-white sm:text-2xl ${tasaOrbiter.className}`}>
+                <p data-reveal className={`text-xl font-medium leading-8 tracking-[-0.025em] text-white sm:text-2xl/8 ${tasaOrbiter.className}`}>
                   I like building things that are useful, not just impressive.
                 </p>
                 <p data-reveal className={`text-base leading-7 text-white/75 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "../styles/globals.css";
 import AppShell from "@components/AppShell";
+import { spaceBoards, tasaOrbiter } from "@font";
 import { GA_TRACKING_ID, gtagInit } from "@lib/gtag";
 import { homeTitle, shareImage, siteDescription, siteName, siteUrl, twitterHandle } from "@lib/seo";
 
@@ -66,7 +67,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   };
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    // The fonts' CSS variables (--font-TASAOrb, --font-spaceBoards), for CSS that
+    // can't take next/font's generated class names (the rail labels).
+    <html lang="en" className={`${tasaOrbiter.variable} ${spaceBoards.variable}`} suppressHydrationWarning>
       <head>
         {/* Without JavaScript the Home preloader's cover would never lift: never show it. */}
         <noscript>

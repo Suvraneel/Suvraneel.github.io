@@ -100,7 +100,7 @@ export default function ProjectsPage() {
           <LiftHeading className={`text-4xl leading-[0.95] tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
             Projects
           </LiftHeading>
-          <p className={`mt-5 max-w-xl text-base leading-7 text-white/65 sm:text-lg ${tasaOrbiter.className}`}>
+          <p className={`mt-5 max-w-xl text-base leading-7 text-white/65 sm:text-lg/7 ${tasaOrbiter.className}`}>
             A selection of web products, open-source tools, and experiments across engineering, community, and Web3.
           </p>
         </header>
@@ -506,7 +506,7 @@ function ProjectTile({
         {/* Smaller tiles (see .tile-title-lift in globals.css): the title lifts and one compact row fades in under it. */}
         {/* A span, not a heading: a button may hold only phrasing content. Hidden from
             assistive tech because the button's aria-label already reads "Open <name>". */}
-        <span aria-hidden="true" className="tile-title-lift block max-w-[22ch] text-xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-2xl">
+        <span aria-hidden="true" className="tile-title-lift block max-w-[22ch] text-xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-2xl/tight">
           {project.name}
         </span>
         <div aria-hidden="true" className="tile-brief-meta absolute inset-x-5 bottom-5 hidden items-center gap-1.5 sm:inset-x-6 sm:bottom-6">
@@ -524,7 +524,7 @@ function ProjectTile({
       {/* A visual preview of the case notes the dialog opens, so assistive tech skips it. */}
       <div aria-hidden="true" className="tile-brief-side pointer-events-none absolute inset-y-0 right-0 z-20 hidden w-[52%] translate-x-4 flex-col border-l border-white/10 bg-[#0a0f16]/90 p-5 opacity-0 backdrop-blur-md transition duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none sm:p-6">
         <span className="font-mono text-[0.65rem] uppercase tracking-[0.22em] text-accent">Project brief</span>
-        <span className="mt-3 block text-lg font-semibold leading-tight tracking-[-0.025em] text-white lg:text-xl">{project.name}</span>
+        <span className="mt-3 block text-lg font-semibold leading-tight tracking-[-0.025em] text-white lg:text-xl/tight">{project.name}</span>
         <p className={`mt-3 line-clamp-4 text-sm leading-6 text-white/65 ${tasaOrbiter.className}`}>{overview}</p>
         <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
           {project.tech_stk.slice(0, 3).map((tech) => (

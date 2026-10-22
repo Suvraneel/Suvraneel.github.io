@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AnimatePresence } from "motion/react";
 import { FormEvent, Suspense, SyntheticEvent, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { preconnect, prefetchDNS } from "react-dom";
 import { useSfx } from "@hooks/useSfx";
@@ -14,6 +15,7 @@ import { CheckIcon } from "@components/animate-ui/icons/check";
 import { CopyIcon } from "@components/animate-ui/icons/copy";
 import { SendIcon } from "@components/animate-ui/icons/send";
 import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
+import type { ModalOrigin } from "@lib/modalMotion";
 
 // One loader for the click and the warm-up: next/dynamic would wrap its import() in a separate chunk.
 const loadScheduler = () => import("@components/CalendlyModal");
@@ -70,6 +72,8 @@ const EMAIL = "bsuvraneel@gmail.com";
 export default function ContactPage() {
   const form = useRef<HTMLFormElement>(null);
   const [showScheduler, setShowScheduler] = useState(false);
+  /** The Book button's centre, where the scheduler grows from and shrinks back to. */
+  const [schedulerOrigin, setSchedulerOrigin] = useState<ModalOrigin | null>(null);
   // Stable, so a re-render while the scheduler is open does not re-run its open effect (and refocus it).
   const closeScheduler = useCallback(() => setShowScheduler(false), []);
   const [submissionState, setSubmissionState] = useState<SubmissionState>("idle");
@@ -88,13 +92,15 @@ export default function ContactPage() {
     if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
   }, []);
 
-  // The modal dialog leaves focus on <body> when it unmounts, so hand it back to
-  // the button that opened it. Runs after the modal's own cleanup has closed it.
-  useEffect(() => {
-    if (showScheduler || !schedulerOpener.current) return;
-    schedulerOpener.current.focus();
-    schedulerOpener.current = null;
-  }, [showScheduler]);
+  // The modal dialog leaves focus on <body> when it closes, so hand it back to
+  // the button that opened it. The dialog calls this once it has closed, after
+  // its exit (the page is inert until then). Stable, so the dialog's open
+  // effect never re-runs mid-exit.
+  const restoreSchedulerFocus = useCallback(() => {
+    const opener = schedulerOpener.current;
+    const focusDropped = document.activeElement === null || document.activeElement === document.body;
+    if (opener?.isConnected && focusDropped) opener.focus();
+  }, []);
 
   // A send removes the form, and the focused Send button with it, which drops
   // focus to <body>: hand it to the confirmation, unless it was moved elsewhere meanwhile.
@@ -159,10 +165,10 @@ export default function ContactPage() {
         <div className="grid gap-12 lg:grid-cols-[minmax(17rem,0.95fr)_minmax(0,1.05fr)] lg:gap-0 min-[1440px]:grid-cols-[minmax(17rem,0.72fr)_minmax(0,1.28fr)]">
           <div className="min-w-0 lg:pr-8 min-[1440px]:pr-12">
             <header className="max-w-4xl">
-              <LiftHeading className={`w-max text-4xl font-bold leading-none tracking-[-0.04em] sm:text-6xl lg:text-5xl min-[1440px]:text-6xl ${spaceBoards.className}`}>
+              <LiftHeading className={`w-max text-4xl leading-none tracking-[-0.04em] sm:text-6xl lg:text-5xl min-[1440px]:text-6xl ${spaceBoards.className}`}>
                 Contact
               </LiftHeading>
-              <p className={`mt-6 max-w-3xl text-lg leading-8 text-white/70 sm:text-xl ${tasaOrbiter.className}`}>
+              <p className={`mt-6 max-w-3xl text-lg leading-8 text-white/70 sm:text-xl/8 ${tasaOrbiter.className}`}>
                 Let&apos;s make something useful. I&apos;m open to thoughtful product work, dependable engineering problems, and collaborations with people who care about the details.
               </p>
             </header>
@@ -215,6 +221,8 @@ export default function ContactPage() {
               <PillButton
                 onClick={(event) => {
                   schedulerOpener.current = event.currentTarget;
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  setSchedulerOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
                   setShowScheduler(true);
                   playConfirm();
                 }}
@@ -316,11 +324,13 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {showScheduler && (
-        <Suspense fallback={null}>
-          <CalendlyModal onClose={closeScheduler} />
-        </Suspense>
-      )}
+      <AnimatePresence>
+        {showScheduler && (
+          <Suspense key="scheduler" fallback={null}>
+            <CalendlyModal onClose={closeScheduler} onClosed={restoreSchedulerFocus} origin={schedulerOrigin} />
+          </Suspense>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
