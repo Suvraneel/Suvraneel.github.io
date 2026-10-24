@@ -53,6 +53,17 @@ function loadSfx() {
  * creating the audio context is a long task on a phone, which would stall the
  * very animation the tap started. A sound asked for sooner loads on demand.
  */
+/**
+ * Loads the sounds now, in idle time: for a moment that will play one soon
+ * without a pointer having moved first (a keyboard-filled form), so the load
+ * doesn't land on the animation that sound accompanies.
+ */
+export function warmSfx() {
+  if (loading) return;
+  if ("requestIdleCallback" in window) window.requestIdleCallback(() => void loadSfx(), { timeout: 1000 });
+  else void loadSfx();
+}
+
 function loadOnFirstPointer() {
   if (loading || waitingForPointer) return;
   waitingForPointer = true;

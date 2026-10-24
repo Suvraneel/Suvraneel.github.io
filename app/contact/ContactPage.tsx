@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react";
 import { FormEvent, Suspense, SyntheticEvent, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { preconnect, prefetchDNS } from "react-dom";
-import { useSfx } from "@hooks/useSfx";
+import { useSfx, warmSfx } from "@hooks/useSfx";
 import { spaceBoards, tasaOrbiter } from "@font";
 import LiftHeading from "@components/LiftHeading";
 import LiquidMetalButton from "@components/LiquidMetalButton";
@@ -16,10 +16,37 @@ import { CopyIcon } from "@components/animate-ui/icons/copy";
 import { SendIcon } from "@components/animate-ui/icons/send";
 import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
 import type { ModalOrigin } from "@lib/modalMotion";
+import { EASE_FADE } from "@lib/pageTransition";
+import { REVEAL_DISTANCE_PX, REVEAL_MS, REVEAL_STAGGER_MS } from "@hooks/useReveal";
 
 // One loader for the click and the warm-up: next/dynamic would wrap its import() in a separate chunk.
 const loadScheduler = () => import("@components/CalendlyModal");
 const CalendlyModal = lazy(loadScheduler);
+/** After a lift has landed (1100 ms) and the page has settled. */
+const SFX_WARM_AFTER_MS = 1600;
+
+// A sent message: the form goes at once (the confirmation is never held back)
+// and the confirmation rises in with the site's reveal, icon ring first, which
+// alone gets a little spring: the one place a bounce fits.
+const sentList: Variants = { shown: { transition: { staggerChildren: REVEAL_STAGGER_MS / 1000 } } };
+const sentItem: Variants = {
+  hidden: { opacity: 0, y: REVEAL_DISTANCE_PX },
+  shown: { opacity: 1, y: 0, transition: { duration: REVEAL_MS / 1000, ease: EASE_FADE } },
+};
+const sentRing: Variants = {
+  hidden: { opacity: 0, y: REVEAL_DISTANCE_PX, scale: 0.9 },
+  shown: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      default: { duration: REVEAL_MS / 1000, ease: EASE_FADE },
+      scale: { type: "spring", visualDuration: 0.5, bounce: 0.2 },
+    },
+  },
+};
+// Reduced motion: a plain 200ms fade, all at once.
+const sentFade: Variants = { hidden: { opacity: 0 }, shown: { opacity: 1, transition: { duration: 0.2 } } };
 
 let schedulerWarmed = false;
 /** Hover or focus on "Book a conversation" starts the scheduler's chunk and Calendly connections before the click. */
@@ -77,6 +104,7 @@ export default function ContactPage() {
   // Stable, so a re-render while the scheduler is open does not re-run its open effect (and refocus it).
   const closeScheduler = useCallback(() => setShowScheduler(false), []);
   const [submissionState, setSubmissionState] = useState<SubmissionState>("idle");
+  const reduceMotion = useReducedMotion();
   const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
   const [playConfirm] = useSfx("confirm", { volume: 0.25 });
   const [emailCopied, setEmailCopied] = useState(false);
@@ -87,6 +115,14 @@ export default function ContactPage() {
   const copiedTimer = useRef<number | null>(null);
   const schedulerOpener = useRef<HTMLElement | null>(null);
   const sentHeading = useRef<HTMLParagraphElement>(null);
+
+  // The confirm sound loads once the page has settled after arriving (the
+  // form's first focus is the backstop), so neither the first keystroke nor
+  // the success reveal pays for compiling the sound chunk.
+  useEffect(() => {
+    const timer = window.setTimeout(warmSfx, SFX_WARM_AFTER_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => () => {
     if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
@@ -103,10 +139,22 @@ export default function ContactPage() {
   }, []);
 
   // A send removes the form, and the focused Send button with it, which drops
-  // focus to <body>: hand it to the confirmation, unless it was moved elsewhere meanwhile.
+  // focus to <body>: hand it to the confirmation, unless it was moved elsewhere
+  // meanwhile. Safari never focuses a clicked button, so focus may still be on
+  // the page's <main>; that counts as dropped too.
   useEffect(() => {
     if (submissionState !== "success") return;
-    if (document.activeElement === null || document.activeElement === document.body) sentHeading.current?.focus();
+    const active = document.activeElement;
+    if (active === null || active === document.body || active.tagName === "MAIN") sentHeading.current?.focus();
+  }, [submissionState]);
+
+  // "Send another message" removes the focused button with the confirmation:
+  // focus goes to the form's first field instead of <body>.
+  const refocusForm = useRef(false);
+  useEffect(() => {
+    if (submissionState !== "idle" || !refocusForm.current) return;
+    refocusForm.current = false;
+    form.current?.querySelector<HTMLElement>("input, textarea")?.focus();
   }, [submissionState]);
 
   const copyEmail = async () => {
@@ -254,26 +302,46 @@ export default function ContactPage() {
             {/* Mounted from the start: screen readers skip a live region that arrives with its text. */}
             <span className="sr-only" role="status">{submissionState === "success" ? "Message sent. I'll get back to you soon." : ""}</span>
 
-            {submissionState === "success" ? (
-              <div className={`mt-7 flex flex-col items-start gap-5 lg:flex-1 lg:justify-center ${tasaOrbiter.className}`}>
-                <span className="grid size-12 place-items-center rounded-full border border-accent/40 text-accent">
+            {/* Its own presence boundary, mounted and unmounted with the confirmation:
+                the route stage's AnimatePresence starts the first-loaded page with
+                initial={false}, which would otherwise reach this later mount and skip
+                the reveal. Gone with the conditional, a send-another swaps back to the
+                form in the same commit. */}
+            {submissionState === "success" && (
+              <AnimatePresence>
+              <motion.div
+                key="sent"
+                className={`mt-7 flex flex-col items-start gap-5 lg:flex-1 lg:justify-center ${tasaOrbiter.className}`}
+                variants={reduceMotion ? undefined : sentList}
+                initial="hidden"
+                animate="shown"
+              >
+                <motion.span variants={reduceMotion ? sentFade : sentRing} className="grid size-12 place-items-center rounded-full border border-accent/40 text-accent">
                   <SendIcon aria-hidden="true" size={20} animate />
-                </span>
-                <p ref={sentHeading} tabIndex={-1} className="text-xl font-semibold tracking-[-0.02em] text-white outline-none sm:text-2xl">Message sent.</p>
-                <p className="text-base leading-7 text-white/70">I&apos;ll get back to you soon.</p>
-                <button
+                </motion.span>
+                <motion.p variants={reduceMotion ? sentFade : sentItem} ref={sentHeading} tabIndex={-1} className="text-xl font-semibold tracking-[-0.02em] text-white outline-none sm:text-2xl">Message sent.</motion.p>
+                <motion.p variants={reduceMotion ? sentFade : sentItem} className="text-base leading-7 text-white/70">I&apos;ll get back to you soon.</motion.p>
+                <motion.button
+                  variants={reduceMotion ? sentFade : sentItem}
                   type="button"
-                  onClick={() => setSubmissionState("idle")}
+                  onClick={() => {
+                    refocusForm.current = true;
+                    setSubmissionState("idle");
+                  }}
                   className="text-sm text-white/60 transition-colors duration-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
                 >
                   <span className="link-draw">Send another message</span>
-                </button>
-              </div>
-            ) : (
+                </motion.button>
+              </motion.div>
+              </AnimatePresence>
+            )}
+            {submissionState !== "success" && (
             <form
               ref={form}
               noValidate
               onSubmit={sendEmail}
+              // Backstop for a visitor quicker than the warm-up above.
+              onFocus={warmSfx}
               onInput={() => {
                 if (attempted && form.current) setErrors(validateForm(form.current));
               }}
