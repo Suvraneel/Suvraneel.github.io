@@ -12,7 +12,7 @@ const RELIEF = 0.14;
 const PIVOT_DEPTH = 0.6;
 /** Narrow lens, so at rest the mesh projects almost exactly onto the flat photo it replaces. */
 const FOV = 14;
-/** Overscan, so turning never shows the mesh's edge inside the frame. */
+/** The mesh runs this far past the photo (its edge pixels stretched), so turning never shows its edge in the frame. */
 const OVERSCAN = 1.06;
 const SEGMENTS = 192;
 const EASE = 0.06;
@@ -22,11 +22,13 @@ const VERTEX = /* glsl */ `
   uniform sampler2D uDepth;
   uniform float uRelief;
   uniform float uPivot;
+  uniform float uOverscan;
   varying vec2 vUv;
   void main() {
-    vUv = uv;
+    // Past 0..1 the textures clamp to their edge.
+    vUv = (uv - 0.5) * uOverscan + 0.5;
     vec3 p = position;
-    p.z = (texture2D(uDepth, uv).r - uPivot) * uRelief;
+    p.z = (texture2D(uDepth, vUv).r - uPivot) * uRelief;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
   }
 `;
@@ -132,7 +134,7 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
       // At z = 0 the view is one unit tall.
       camera.position.z = 0.5 / Math.tan((FOV * Math.PI) / 360);
 
-      const geometry = new THREE.PlaneGeometry(1, 1, SEGMENTS, SEGMENTS);
+      const geometry = new THREE.PlaneGeometry(OVERSCAN, OVERSCAN, SEGMENTS, SEGMENTS);
       const material = new THREE.ShaderMaterial({
         vertexShader: VERTEX,
         fragmentShader: FRAGMENT,
@@ -141,6 +143,7 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
           uDepth: { value: depth },
           uRelief: { value: RELIEF },
           uPivot: { value: PIVOT_DEPTH },
+          uOverscan: { value: OVERSCAN },
         },
       });
       const mesh = new THREE.Mesh(geometry, material);
@@ -158,7 +161,7 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         const aspect = width / height;
         camera.aspect = aspect;
         camera.updateProjectionMatrix();
-        const side = Math.max(aspect, 1) * OVERSCAN;
+        const side = Math.max(aspect, 1);
         const [px, py] = position;
         mesh.scale.set(side, side, side);
         mesh.position.x = (aspect - side) * px + side / 2 - aspect / 2;
