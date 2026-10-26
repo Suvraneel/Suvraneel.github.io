@@ -1,7 +1,7 @@
 "use client";
 
 import { spaceBoards, tasaOrbiter } from "@font";
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import * as gtag from "@lib/gtag";
 import { useLiftEntrance } from "@hooks/useLiftEntrance";
@@ -9,6 +9,7 @@ import { useSfx } from "@hooks/useSfx";
 import LiftHeading from "@components/LiftHeading";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
+import DepthPortrait from "@components/DepthPortrait";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
 import { gestureGate, isTransitionLocked } from "@components/transition/transitionStore";
 import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
@@ -29,6 +30,8 @@ const PHOTO_FADE: CSSProperties = {
   maskImage: "linear-gradient(to right, transparent, #000 4.5rem), linear-gradient(to bottom, transparent, #000 10%)",
   maskComposite: "intersect",
 };
+/** The photo's object-position (object-[40%_100%]), for the relief that replaces it. */
+const PHOTO_POSITION: [number, number] = [0.4, 1];
 
 const About = () => {
   const router = useRouter();
@@ -40,6 +43,8 @@ const About = () => {
   // Reached by a lift, the copy settles with it line by line instead of arriving as one block.
   const copy = useRef<HTMLDivElement>(null);
   useLiftEntrance(copy);
+  // Once the relief draws, the flat photo under it steps aside (after the fade).
+  const [relief, setRelief] = useState(false);
 
   useEffect(() => {
     // Keep the next route and its remote scene in the browser cache while the
@@ -186,10 +191,20 @@ const About = () => {
                   width={1456}
                   height={1456}
                   decoding="async"
-                  className="absolute bottom-0 left-0 h-[95%] max-h-[222cqw] w-full object-cover object-[40%_100%] grayscale"
+                  className={`absolute bottom-0 left-0 h-[95%] max-h-[222cqw] w-full object-cover object-[40%_100%] grayscale ${relief ? "invisible transition-[visibility] delay-700" : ""}`}
                   style={PHOTO_FADE}
                 />
               </picture>
+              {/* The same photo in relief, turning a few degrees toward the pointer; same box and fade. */}
+              <DepthPortrait
+                src="/images/Suvraneel_DP.jpeg"
+                depthSrc="/images/Suvraneel_DP-depth.webp"
+                media={PORTRAIT_MEDIA}
+                position={PHOTO_POSITION}
+                onReady={setRelief}
+                className="absolute bottom-0 left-0 h-[95%] max-h-[222cqw] w-full"
+                style={PHOTO_FADE}
+              />
             </div>
           </aside>
         </div>
