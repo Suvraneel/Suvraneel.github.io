@@ -3,11 +3,19 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { hasHardwareWebGL2 } from "@lib/gpu";
 
-/** Most the portrait turns toward the pointer: a few degrees, enough to read as depth, not as a spinning card. */
-const MAX_YAW = (5 * Math.PI) / 180;
-const MAX_PITCH = (3 * Math.PI) / 180;
+const DEG = Math.PI / 180;
+/** Most the portrait turns toward the pointer: enough to read plainly as depth, not as a spinning card. */
+const MAX_YAW = 11 * DEG;
+const MAX_PITCH = 6 * DEG;
 /** How far the nearest point (the hands) stands off the backdrop, as a share of the photo's width. */
-const RELIEF = 0.14;
+const RELIEF = 0.24;
+/** With the pointer still (or none: touch), the portrait drifts on its own, this far and this slowly. */
+const SWAY_YAW = 3 * DEG;
+const SWAY_PITCH = 1.5 * DEG;
+const SWAY_SPEED = 0.45;
+/** How long the pointer rests before the drift takes over, and how long it takes to fade in (ms). */
+const SWAY_DELAY = 1500;
+const SWAY_FADE = 1500;
 /** The depth (0 far, 1 near) that stays put as it turns: about the face, so the eyes hold still. */
 const PIVOT_DEPTH = 0.6;
 /** Narrow lens, so at rest the mesh projects almost exactly onto the flat photo it replaces. */
@@ -172,9 +180,11 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
       resizer.observe(container);
 
       const target = { x: 0, y: 0 };
+      let pointerAt = -Infinity;
       const handlePointer = (event: PointerEvent) => {
         target.x = (event.clientX / window.innerWidth) * 2 - 1;
         target.y = (event.clientY / window.innerHeight) * 2 - 1;
+        pointerAt = performance.now();
       };
       const handleLeave = () => {
         target.x = 0;
@@ -185,11 +195,13 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
 
       let frame = 0;
       let first = true;
-      const tick = () => {
+      const tick = (now: number) => {
         frame = window.requestAnimationFrame(tick);
         if (!width || !height || document.hidden) return;
-        const yaw = target.x * MAX_YAW;
-        const pitch = target.y * MAX_PITCH;
+        const t = (now / 1000) * SWAY_SPEED;
+        const sway = Math.min(Math.max((now - pointerAt - SWAY_DELAY) / SWAY_FADE, 0), 1);
+        const yaw = target.x * MAX_YAW + Math.sin(t) * SWAY_YAW * sway;
+        const pitch = target.y * MAX_PITCH + Math.sin(t * 0.7 + 1) * SWAY_PITCH * sway;
         const dy = yaw - mesh.rotation.y;
         const dx = pitch - mesh.rotation.x;
         if (!first && Math.abs(dy) < 1e-5 && Math.abs(dx) < 1e-5) return;
