@@ -254,6 +254,7 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
       gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
       gl.activeTexture(gl.TEXTURE0);
       const color = upload(gl, photo, true);
+      const photoSize = photo.naturalHeight;
       const anisotropic = gl.getExtension("EXT_texture_filter_anisotropic");
       if (anisotropic) {
         const max = gl.getParameter(anisotropic.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number;
@@ -311,14 +312,27 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_INT, 0);
       };
+      // The frame's CSS size, and its exact box in device pixels as the browser reports it (Chromium,
+      // Firefox). The backing must be that box: a pixel off (as flooring the rounded CSS size gives at
+      // 1.25x or 2x) and the browser resamples the whole canvas to fit, which blurs it.
+      let cssSize: [number, number] = [container.clientWidth, container.clientHeight];
+      let devicePixels: [number, number] | null = null;
+      // Where it isn't reported (WebKit), the box WebKit shows the canvas in: the frame's edges snapped
+      // to whole CSS pixels, in device pixels.
+      const snapped = (): [number, number] => {
+        const rect = container.getBoundingClientRect();
+        const dpr = window.devicePixelRatio;
+        return [(Math.round(rect.right) - Math.round(rect.left)) * dpr, (Math.round(rect.bottom) - Math.round(rect.top)) * dpr];
+      };
       // Cover-fit the square photo into the frame at `position`, as object-fit does.
       const layout = () => {
-        width = container.clientWidth;
-        height = container.clientHeight;
+        [width, height] = cssSize;
         if (!width || !height) return;
-        const ratio = Math.min(window.devicePixelRatio, 2);
-        canvas.width = Math.floor(width * ratio);
-        canvas.height = Math.floor(height * ratio);
+        const [deviceWidth, deviceHeight] = devicePixels ?? snapped();
+        // Past 2x the backing stays at 2x.
+        const ratio = Math.min(window.devicePixelRatio, 2) / window.devicePixelRatio;
+        canvas.width = Math.max(1, Math.round(deviceWidth * ratio));
+        canvas.height = Math.max(1, Math.round(deviceHeight * ratio));
         gl.viewport(0, 0, canvas.width, canvas.height);
         const aspect = width / height;
         projection = perspective(FOV, aspect);
@@ -326,18 +340,42 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         const [px, py] = position;
         offsetX = (aspect - side) * px + side / 2 - aspect / 2;
         offsetY = -((1 - side) * py + side / 2 - 0.5);
+        // Mipmaps only once the photo is drawn under half size: nearer 1:1, trilinear filtering blends in
+        // the half-size level and the face comes out softer than on the flat <img>.
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, color);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, photoSize / (side * canvas.height) > 2 ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
         // Resizing clears the drawing buffer; redraw now, or the frame shows blank until the next turn.
         render();
       };
       layout();
-      const resizer = new ResizeObserver(layout);
-      resizer.observe(container);
+      const resizer = new ResizeObserver(([entry]) => {
+        cssSize = [entry.contentRect.width, entry.contentRect.height];
+        const dpr = window.devicePixelRatio;
+        const box = entry.devicePixelContentBoxSize?.[0];
+        devicePixels = null;
+        // Only while it is the CSS size at this density (DevTools' device emulation reports CSS pixels).
+        if (box && Math.abs(box.inlineSize - cssSize[0] * dpr) <= 1 && Math.abs(box.blockSize - cssSize[1] * dpr) <= 1)
+          devicePixels = [box.inlineSize, box.blockSize];
+        layout();
+      });
+      // Observing again (even an observed frame) makes the observer report afresh.
+      const observe = () => {
+        try {
+          resizer.observe(container, { box: "device-pixel-content-box" });
+        } catch {
+          resizer.observe(container);
+        }
+      };
       // Moving to a screen of another pixel density changes no CSS size, so watch the density itself.
       let density: MediaQueryList | null = null;
       const handleDensity = () => {
         density?.removeEventListener("change", handleDensity);
         density = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
         density.addEventListener("change", handleDensity);
+        // Keep the reported box: Chromium reports the new one before this event fires. And when browser
+        // zoom leaves the device box as it was, the observer would not report at all, so ask it to.
+        observe();
         layout();
       };
       handleDensity();
