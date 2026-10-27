@@ -2,6 +2,7 @@
 
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { hasHardwareWebGL2 } from "@lib/gpu";
+import { getTransition, isInFlight, subscribeTransition } from "@components/transition/transitionStore";
 
 const DEG = Math.PI / 180;
 /** Most the portrait turns toward the pointer: enough to read plainly as depth, not as a spinning card. */
@@ -22,10 +23,17 @@ const PIVOT_DEPTH = 0.6;
 const FOV = 14;
 const NEAR = 0.1;
 const FAR = 100;
-/** The mesh runs this far past the photo (its edge pixels stretched), so turning never shows its edge in the frame. */
-const OVERSCAN = 1.06;
+/**
+ * The mesh runs this far past the photo (its edge pixels stretched), so turning never shows its edge
+ * in the frame: wider across, since in a box wider than tall the photo spans exactly its width.
+ */
+const OVERSCAN: [number, number] = [1.25, 1.06];
 const SEGMENTS = 192;
+/** Share of the remaining turn covered per 60 Hz frame; scaled by elapsed time, so any refresh rate turns alike. */
 const EASE = 0.06;
+const FRAME_MS = 1000 / 60;
+/** Longest a page transition may hold back the build. */
+const TRANSITION_WAIT_MS = 3000;
 const ANISOTROPY = 4;
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -37,13 +45,21 @@ const VERTEX = /* glsl */ `#version 300 es
   uniform sampler2D uDepth;
   uniform float uRelief;
   uniform float uPivot;
-  uniform float uOverscan;
+  uniform vec2 uOverscan;
+  uniform vec2 uOffset;
+  uniform float uScale;
+  uniform float uDistance;
   out vec2 vUv;
   void main() {
     // Past 0..1 the textures clamp to their edge.
     vUv = (uv - 0.5) * uOverscan + 0.5;
-    vec3 p = vec3((uv - 0.5) * uOverscan, (texture(uDepth, vUv).r - uPivot) * uRelief);
-    gl_Position = uMvp * vec4(p, 1.0);
+    vec2 q = (uv - 0.5) * uOverscan;
+    float z = (texture(uDepth, vUv).r - uPivot) * uRelief;
+    // Each point sits back along the camera ray through its pixel, so at rest the relief lands
+    // exactly on the flat photo (no shift for the cross-fade to show) and only turning moves it.
+    vec2 view = uScale * q + uOffset;
+    q = (view * (uDistance - uScale * z) / uDistance - uOffset) / uScale;
+    gl_Position = uMvp * vec4(q, z, 1.0);
   }
 `;
 
@@ -91,6 +107,21 @@ const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
   gl.compileShader(shader);
   return shader;
 };
+
+/** Resolves once no page transition is in flight (at most TRANSITION_WAIT_MS later). */
+const transitionSettled = () =>
+  new Promise<void>((resolve) => {
+    if (!isInFlight(getTransition())) return resolve();
+    const done = () => {
+      unsubscribe();
+      window.clearTimeout(timer);
+      resolve();
+    };
+    const unsubscribe = subscribeTransition(() => {
+      if (!isInFlight(getTransition())) done();
+    });
+    const timer = window.setTimeout(done, TRANSITION_WAIT_MS);
+  });
 
 /** Same-origin and without crossOrigin, so it shares the cache entry the flat <img> already filled. */
 const loadImage = async (url: string) => {
@@ -190,6 +221,9 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
       } catch {
         return;
       }
+      // Building costs a long frame (shader compile, texture upload); during a page transition it
+      // would stall the flip, so wait for the page to settle first.
+      await transitionSettled();
       if (!wanted()) return;
 
       const canvas = document.createElement("canvas");
@@ -245,8 +279,10 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
       gl.uniform1i(gl.getUniformLocation(program, "uDepth"), 1);
       gl.uniform1f(gl.getUniformLocation(program, "uRelief"), RELIEF);
       gl.uniform1f(gl.getUniformLocation(program, "uPivot"), PIVOT_DEPTH);
-      gl.uniform1f(gl.getUniformLocation(program, "uOverscan"), OVERSCAN);
+      gl.uniform2f(gl.getUniformLocation(program, "uOverscan"), ...OVERSCAN);
       const mvpLocation = gl.getUniformLocation(program, "uMvp");
+      const offsetLocation = gl.getUniformLocation(program, "uOffset");
+      const scaleLocation = gl.getUniformLocation(program, "uScale");
 
       gl.enable(gl.DEPTH_TEST);
       gl.depthFunc(gl.LEQUAL);
@@ -259,12 +295,22 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
 
       // At z = 0 the view is one unit tall.
       const distance = 0.5 / Math.tan((FOV * DEG) / 2);
+      gl.uniform1f(gl.getUniformLocation(program, "uDistance"), distance);
       let width = 0;
       let height = 0;
       let projection = perspective(FOV, 1);
       let side = 1;
       let offsetX = 0;
       let offsetY = 0;
+      const rotation = { x: 0, y: 0 };
+      const render = () => {
+        if (!width || !height) return;
+        gl.uniformMatrix4fv(mvpLocation, false, multiply(projection, modelView(offsetX, offsetY, distance, rotation.x, rotation.y, side)));
+        gl.uniform2f(offsetLocation, offsetX, offsetY);
+        gl.uniform1f(scaleLocation, side);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_INT, 0);
+      };
       // Cover-fit the square photo into the frame at `position`, as object-fit does.
       const layout = () => {
         width = container.clientWidth;
@@ -280,23 +326,30 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         const [px, py] = position;
         offsetX = (aspect - side) * px + side / 2 - aspect / 2;
         offsetY = -((1 - side) * py + side / 2 - 0.5);
+        // Resizing clears the drawing buffer; redraw now, or the frame shows blank until the next turn.
+        render();
       };
       layout();
       const resizer = new ResizeObserver(layout);
       resizer.observe(container);
-
-      const rotation = { x: 0, y: 0 };
-      const render = () => {
-        gl.uniformMatrix4fv(mvpLocation, false, multiply(projection, modelView(offsetX, offsetY, distance, rotation.x, rotation.y, side)));
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_INT, 0);
+      // Moving to a screen of another pixel density changes no CSS size, so watch the density itself.
+      let density: MediaQueryList | null = null;
+      const handleDensity = () => {
+        density?.removeEventListener("change", handleDensity);
+        density = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+        density.addEventListener("change", handleDensity);
+        layout();
       };
+      handleDensity();
 
+      const clamp = (value: number) => Math.min(Math.max(value, -1), 1);
       const target = { x: 0, y: 0 };
-      let pointerAt = -Infinity;
+      // The drift waits as if the pointer had just moved, so the relief arrives at rest, on the flat photo.
+      let pointerAt = performance.now();
       const handlePointer = (event: PointerEvent) => {
-        target.x = (event.clientX / window.innerWidth) * 2 - 1;
-        target.y = (event.clientY / window.innerHeight) * 2 - 1;
+        // A drag carried outside the window keeps reporting; the turn stays within its range.
+        target.x = clamp((event.clientX / window.innerWidth) * 2 - 1);
+        target.y = clamp((event.clientY / window.innerHeight) * 2 - 1);
         pointerAt = performance.now();
       };
       const handleLeave = () => {
@@ -308,8 +361,12 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
 
       let frame = 0;
       let first = true;
+      let last = 0;
       const tick = (now: number) => {
         frame = window.requestAnimationFrame(tick);
+        // Capped, so a frame after a long gap (hidden tab, stall) can't jump the turn.
+        const elapsed = last ? Math.min(now - last, 100) : FRAME_MS;
+        last = now;
         if (!width || !height || document.hidden) return;
         const t = (now / 1000) * SWAY_SPEED;
         const sway = Math.min(Math.max((now - pointerAt - SWAY_DELAY) / SWAY_FADE, 0), 1);
@@ -318,8 +375,9 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         const dy = yaw - rotation.y;
         const dx = pitch - rotation.x;
         if (!first && Math.abs(dy) < 1e-5 && Math.abs(dx) < 1e-5) return;
-        rotation.y += dy * EASE;
-        rotation.x += dx * EASE;
+        const ease = 1 - Math.pow(1 - EASE, elapsed / FRAME_MS);
+        rotation.y += dy * ease;
+        rotation.x += dx * ease;
         render();
         if (first) {
           first = false;
@@ -338,6 +396,7 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         teardown = null;
         window.cancelAnimationFrame(frame);
         resizer.disconnect();
+        density?.removeEventListener("change", handleDensity);
         window.removeEventListener("pointermove", handlePointer);
         document.documentElement.removeEventListener("pointerleave", handleLeave);
         canvas.removeEventListener("webglcontextlost", handleContextLost);
