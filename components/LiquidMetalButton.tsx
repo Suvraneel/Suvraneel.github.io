@@ -4,7 +4,7 @@ import Link from "next/link";
 import { type MouseEvent, ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { tasaOrbiter } from "@font";
 import { useMagnetic } from "@hooks/useMagnetic";
-import { hasHardwareWebGL2 } from "@lib/gpu";
+import { hasFastWebGL2 } from "@lib/gpu";
 import { isPlainAnchor } from "@lib/linkKind";
 
 // Shader speeds: calm at rest, livelier on hover/focus, a short burst on click.
@@ -150,7 +150,9 @@ export default function LiquidMetalButton({
       // Firefox forks (webgl.disabled), blocklisted GPUs/drivers,
       // webgl.enable-webgl2=false. Software WebGL2 (no GPU) would run it but
       // stall the main thread on every frame. Either way, skip the shader chunk.
-      if (!hasHardwareWebGL2()) {
+      const hardware = await hasFastWebGL2();
+      if (disposed || shaderMount.current) return;
+      if (!hardware) {
         fallBack(new Error("WebGL2 is unavailable or not GPU-accelerated"));
         return;
       }

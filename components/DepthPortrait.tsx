@@ -1,7 +1,7 @@
 "use client";
 
 import { type CSSProperties, useEffect, useRef, useState } from "react";
-import { hasHardwareWebGL2 } from "@lib/gpu";
+import { hasFastWebGL2 } from "@lib/gpu";
 import { getTransition, isInFlight, subscribeTransition } from "@components/transition/transitionStore";
 
 const DEG = Math.PI / 180;
@@ -36,52 +36,6 @@ const FRAME_MS = 1000 / 60;
 const TRANSITION_WAIT_MS = 3000;
 const ANISOTROPY = 4;
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
-/**
- * Before it shows, the relief times PROBE_DRAWS copies of its mesh drawn into a PROBE_SIZE px square:
- * vertex work alone, so the same at any frame size. Once warm, a GPU takes 1–5 ms (an M5 Pro in Chrome,
- * Firefox and Safari, up to 2560×1440 at 2x, with 4x CPU throttling, a busy main thread, or Spline
- * loading or flipping behind it; 12 at worst); a software rasteriser 40 ms or more, even on that M5
- * Pro's CPU (Apple's under Firefox 40, SwiftShader 69). The cut also sits under a 60 Hz frame, so a
- * timer coarsened to 16.7 ms (resistFingerprinting) still reads a GPU as 0 and software as 16.7 or more.
- */
-const PROBE_DRAWS = 16;
-const PROBE_SIZE = 16;
-const SOFTWARE_PROBE_MS = 16;
-/**
- * Probes run until one is fast. The first also uploads the photo and compiles the shaders, and any one
- * can wait behind other GPU work, so later ones spread out, each gap PROBE_BACKOFF ms longer: software
- * is ruled only after PROBE_TRIES slow probes across about 2.5 s.
- */
-const PROBE_TRIES = 6;
-const PROBE_BACKOFF = 250;
-const SOFTWARE_KEY = "depth-portrait:software";
-
-// hasHardwareWebGL2() goes by the renderer's name, which can hide software: Firefox reports
-// SwiftShader and softpipe as "Generic Renderer" and Apple's as "Apple M1", resistFingerprinting
-// reports every renderer as "Mozilla", and Chrome names one only through an extension a browser may
-// withhold. Where no real name is given, the probe tells by speed, and a software verdict holds for
-// the tab's session. Where Chrome or Safari do name it, that name has already been ruled on, and the
-// probe is skipped: in Chrome a probe waits behind every other page's GPU work, so a busy GPU (a game
-// or 3D page in another window) would read as software.
-let software = false;
-const knownSoftware = () => {
-  if (!software) {
-    try {
-      software = window.sessionStorage.getItem(SOFTWARE_KEY) === "1";
-    } catch {
-      // Storage unavailable: the flag still covers this document.
-    }
-  }
-  return software;
-};
-const rememberSoftware = () => {
-  software = true;
-  try {
-    window.sessionStorage.setItem(SOFTWARE_KEY, "1");
-  } catch {
-    // Storage unavailable: the flag still covers this document.
-  }
-};
 
 // Plain WebGL2 rather than three.js: one grid, two textures and one shader don't need a
 // 180 KB (gzip) engine. The grid is only its uv; the shader places each vertex.
@@ -250,10 +204,10 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
     const wanted = () => !disposed && wide.matches && !reducedMotion.matches;
 
     const build = async () => {
-      if (building || teardown || !wanted() || knownSoftware() || !hasHardwareWebGL2()) return;
+      if (building || teardown || !wanted()) return;
       building = true;
       try {
-        await mount();
+        if (await hasFastWebGL2()) await mount();
       } finally {
         building = false;
       }
@@ -282,8 +236,6 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         powerPreference: "low-power",
       });
       if (!gl) return;
-      // Chrome and Safari mask RENDERER as "WebKit WebGL" and give the real name through this extension.
-      const named = gl.getParameter(gl.RENDERER) === "WebKit WebGL" && gl.getExtension("WEBGL_debug_renderer_info") !== null;
 
       const program = gl.createProgram()!;
       const vertexShader = compile(gl, gl.VERTEX_SHADER, VERTEX);
@@ -333,14 +285,6 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
       const offsetLocation = gl.getUniformLocation(program, "uOffset");
       const scaleLocation = gl.getUniformLocation(program, "uScale");
 
-      const probeTarget = gl.createFramebuffer();
-      const probeColor = gl.createRenderbuffer();
-      gl.bindRenderbuffer(gl.RENDERBUFFER, probeColor);
-      gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, PROBE_SIZE, PROBE_SIZE);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, probeTarget);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, probeColor);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
       gl.enable(gl.DEPTH_TEST);
       gl.depthFunc(gl.LEQUAL);
       gl.enable(gl.CULL_FACE);
@@ -367,19 +311,6 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         gl.uniform1f(scaleLocation, side);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.drawElements(gl.TRIANGLES, index.length, gl.UNSIGNED_INT, 0);
-      };
-      const pixel = new Uint8Array(4);
-      /** ms to draw the probe and wait for it: a read waits for the GPU, where finish() is only a flush in Chrome. */
-      const probe = () => {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, probeTarget);
-        gl.viewport(0, 0, PROBE_SIZE, PROBE_SIZE);
-        const start = performance.now();
-        for (let i = 0; i < PROBE_DRAWS; i++) render();
-        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
-        const elapsed = performance.now() - start;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, canvas.width, canvas.height);
-        return elapsed;
       };
       // The frame's CSS size, and its exact box in device pixels as the browser reports it (Chromium,
       // Firefox). The backing must be that box: a pixel off (as flooring the rounded CSS size gives at
@@ -468,10 +399,6 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
 
       let frame = 0;
       let first = true;
-      // Unless the renderer is named, hidden and held at rest until a probe finds a GPU: one fast probe proves it.
-      let probing = !named;
-      let probes = 0;
-      let nextProbe = 0;
       let last = 0;
       const tick = (now: number) => {
         frame = window.requestAnimationFrame(tick);
@@ -479,17 +406,6 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         const elapsed = last ? Math.min(now - last, 100) : FRAME_MS;
         last = now;
         if (!width || !height || document.hidden) return;
-        if (probing) {
-          if (now < nextProbe) return;
-          if (probe() >= SOFTWARE_PROBE_MS) {
-            if (++probes === PROBE_TRIES) {
-              rememberSoftware();
-              teardown?.();
-            } else nextProbe = now + (probes - 1) * PROBE_BACKOFF;
-            return;
-          }
-          probing = false;
-        }
         const t = (now / 1000) * SWAY_SPEED;
         const sway = Math.min(Math.max((now - pointerAt - SWAY_DELAY) / SWAY_FADE, 0), 1);
         const yaw = target.x * MAX_YAW + Math.sin(t) * SWAY_YAW * sway;
@@ -525,8 +441,6 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         if (!gl.isContextLost()) {
           gl.deleteBuffer(uvBuffer);
           gl.deleteBuffer(indexBuffer);
-          gl.deleteFramebuffer(probeTarget);
-          gl.deleteRenderbuffer(probeColor);
           gl.deleteVertexArray(vao);
           gl.deleteTexture(color);
           gl.deleteTexture(depth);
