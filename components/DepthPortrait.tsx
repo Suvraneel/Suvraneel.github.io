@@ -17,6 +17,8 @@ const SWAY_SPEED = 0.45;
 /** How long the pointer rests before the drift takes over, and how long it takes to fade in (ms). */
 const SWAY_DELAY = 1500;
 const SWAY_FADE = 1500;
+/** After the pointer has rested this long, the drift fades out again and the relief stops drawing (ms). */
+const SWAY_IDLE = 30000;
 /** The depth (0 far, 1 near) that stays put as it turns: about the face, so the eyes hold still. */
 const PIVOT_DEPTH = 0.6;
 /** Narrow lens, so at rest the mesh projects almost exactly onto the flat photo it replaces. */
@@ -384,35 +386,65 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
       const target = { x: 0, y: 0 };
       // The drift waits as if the pointer had just moved, so the relief arrives at rest, on the flat photo.
       let pointerAt = performance.now();
+      let frame = 0;
+      let first = true;
+      let last = 0;
+      let visible = true;
+      // Restarts the loop once it has gone to sleep (drift over, or out of view).
+      const wake = () => {
+        if (frame) return;
+        last = 0;
+        frame = window.requestAnimationFrame(tick);
+      };
       const handlePointer = (event: PointerEvent) => {
         // A drag carried outside the window keeps reporting; the turn stays within its range.
         target.x = clamp((event.clientX / window.innerWidth) * 2 - 1);
         target.y = clamp((event.clientY / window.innerHeight) * 2 - 1);
         pointerAt = performance.now();
+        wake();
       };
       const handleLeave = () => {
         target.x = 0;
         target.y = 0;
+        wake();
       };
       window.addEventListener("pointermove", handlePointer, { passive: true });
       document.documentElement.addEventListener("pointerleave", handleLeave);
+      const viewer = new IntersectionObserver(([entry]) => {
+        visible = entry.isIntersecting;
+        if (visible) wake();
+      });
+      viewer.observe(container);
 
-      let frame = 0;
-      let first = true;
-      let last = 0;
       const tick = (now: number) => {
+        // Out of view, nothing is drawn: the loop sleeps until the frame shows again.
+        if (!visible) {
+          frame = 0;
+          return;
+        }
         frame = window.requestAnimationFrame(tick);
         // Capped, so a frame after a long gap (hidden tab, stall) can't jump the turn.
         const elapsed = last ? Math.min(now - last, 100) : FRAME_MS;
         last = now;
         if (!width || !height || document.hidden) return;
         const t = (now / 1000) * SWAY_SPEED;
-        const sway = Math.min(Math.max((now - pointerAt - SWAY_DELAY) / SWAY_FADE, 0), 1);
+        const idle = now - pointerAt;
+        // The drift fades in once the pointer rests, and out again once it has rested SWAY_IDLE.
+        const sway =
+          Math.min(Math.max((idle - SWAY_DELAY) / SWAY_FADE, 0), 1) *
+          Math.min(Math.max((SWAY_IDLE + SWAY_FADE - idle) / SWAY_FADE, 0), 1);
         const yaw = target.x * MAX_YAW + Math.sin(t) * SWAY_YAW * sway;
         const pitch = target.y * MAX_PITCH + Math.sin(t * 0.7 + 1) * SWAY_PITCH * sway;
         const dy = yaw - rotation.y;
         const dx = pitch - rotation.x;
-        if (!first && Math.abs(dy) < 1e-5 && Math.abs(dx) < 1e-5) return;
+        if (!first && Math.abs(dy) < 1e-5 && Math.abs(dx) < 1e-5) {
+          // Settled with the drift over: the loop sleeps until the pointer moves.
+          if (idle > SWAY_IDLE + SWAY_FADE) {
+            window.cancelAnimationFrame(frame);
+            frame = 0;
+          }
+          return;
+        }
         const ease = 1 - Math.pow(1 - EASE, elapsed / FRAME_MS);
         rotation.y += dy * ease;
         rotation.x += dx * ease;
@@ -433,6 +465,7 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
       teardown = () => {
         teardown = null;
         window.cancelAnimationFrame(frame);
+        viewer.disconnect();
         resizer.disconnect();
         density?.removeEventListener("change", handleDensity);
         window.removeEventListener("pointermove", handlePointer);
