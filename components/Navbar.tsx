@@ -7,11 +7,12 @@ import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
 import { MessageCircleMoreIcon } from "@components/animate-ui/icons/message-circle-more";
 import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
 import { TerminalIcon } from "@components/animate-ui/icons/terminal";
+import { VolumeIcon } from "@components/animate-ui/icons/volume";
 import { motion, scrollInfo, useMotionValue, useReducedMotion, type MotionValue } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ElementType } from "react";
-import { useSfx } from "@hooks/useSfx";
+import { isSfxMuted, subscribeSfxMuted, toggleSfxMuted, useSfx, useSfxMuted } from "@hooks/useSfx";
 import { cssEase, type PageTransition } from "@lib/pageTransition";
 import {
   getTransition,
@@ -160,6 +161,20 @@ export default function Navbar() {
     }
   };
 
+  // Turning sounds off (here or in the phone drawer) stops the music too.
+  // Playing it stays its own choice: muted sounds don't block it.
+  useEffect(
+    () =>
+      subscribeSfxMuted(() => {
+        const music = musicRef.current;
+        if (!isSfxMuted() || !music || music.paused) return;
+        music.pause();
+        music.currentTime = 0;
+        setIsPlaying(false);
+      }),
+    []
+  );
+
   return (
     <nav className="sidebar-container portfolio-rail" aria-label="Primary navigation">
       <audio ref={musicRef} preload="none" src="/sounds/RoadsideFlowers.mp3" onEnded={() => setIsPlaying(false)} />
@@ -199,6 +214,10 @@ export default function Navbar() {
 
       <div className="rail-footer">
         <div className="rail-socials"><Socials /></div>
+        {/* Below the socials, whose row keeps its space while hidden in the
+            closed rail: nothing in the footer moves as the rail opens, so the
+            toggle holds still under the pointer. */}
+        <RailSoundToggle reduceMotion={reduceMotion} onSnap={playSnap} onStopSnap={stopSnap} onConfirm={playConfirm} />
         <small className="rail-copyright">
           <span className="rail-label rail-copyright-text">
             <span>Suvraneel Bhuin</span>
@@ -303,10 +322,58 @@ function RailLink({
         if (!wasClickDropped(event.nativeEvent)) onConfirm();
       }}
     >
-      <span className="rail-icon transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105">
+      <span className="rail-icon transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105 motion-reduce:transition-none">
         <Icon aria-hidden="true" size={24} animate={isHovered && !reduceMotion} />
       </span>
       <span className="rail-label">{item.name}</span>
     </Link>
+  );
+}
+
+/** Sounds on/off for the whole site. Its confirm sound plays only when it turns them back on. */
+function RailSoundToggle({
+  reduceMotion,
+  onSnap,
+  onStopSnap,
+  onConfirm,
+}: {
+  reduceMotion: boolean | null;
+  onSnap: () => void;
+  onStopSnap: () => void;
+  onConfirm: () => void;
+}) {
+  const muted = useSfxMuted();
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <button
+      type="button"
+      // As the music button: a click leaves no focus to reopen the rail later.
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={() => {
+        toggleSfxMuted();
+        onConfirm();
+      }}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        onSnap();
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        onStopSnap();
+      }}
+      // Keyboard focus animates the icon but stays silent, as on the links.
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
+      className="rail-sound"
+      // A toggle keeps one name; its state is the pressed state (on = sounds play) and the icon.
+      aria-label="Sounds"
+      aria-pressed={!muted}
+    >
+      <span className="rail-icon">
+        <VolumeIcon aria-hidden="true" size={24} muted={muted} animate={isHovered && !reduceMotion} />
+      </span>
+      <span className="rail-label">Sounds</span>
+    </button>
   );
 }

@@ -104,6 +104,7 @@ a:hover {
 }
 
 .rail-music,
+.rail-sound,
 .rail-link {
   position: relative;
   display: flex;
@@ -118,7 +119,8 @@ a:hover {
   transition: color 420ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.rail-music {
+.rail-music,
+.rail-sound {
   padding: 0 10px;
   border: 0;
   background: transparent;
@@ -126,12 +128,14 @@ a:hover {
 }
 
 .rail-music:hover,
+.rail-sound:hover,
 .rail-link:hover {
   color: rgb(var(--accent));
   background: transparent;
 }
 
 .rail-music:focus-visible,
+.rail-sound:focus-visible,
 .rail-link:focus-visible {
   outline: 2px solid rgb(var(--accent));
   /* Inset: the rail's overflow clips anything drawn past its edges. */
@@ -169,9 +173,13 @@ a:hover {
   transform: translateX(0);
 }
 
+/* 132px wherever the rail fits. On windows too short for it (down to the
+   drawer's 520px breakpoint) this space gives way first, so the footer's
+   sound toggle and copyright stay on screen instead of being clipped. */
 .rail-divider {
   height: 132px;
-  flex: 0 0 132px;
+  flex: 0 1 132px;
+  min-height: 24px;
 }
 
 .rail-links {
@@ -254,8 +262,13 @@ a:hover {
   padding: 0 0 2px;
 }
 
+/* Hidden, not removed, in the closed rail: the row keeps its space, so the
+   footer is one height open or closed and the sound toggle below it never
+   moves out from under the pointer as the rail opens, at any window height.
+   visibility also keeps the hidden links out of the Tab order. */
 .rail-socials {
-  display: none;
+  display: flex;
+  visibility: hidden;
   padding: 0 10px;
 }
 
@@ -267,7 +280,7 @@ a:hover {
 
 .sidebar-container:hover .rail-socials,
 .sidebar-container:focus-within:not(:has(:focus:not(:focus-visible))) .rail-socials {
-  display: flex;
+  visibility: visible;
   animation: rail-socials-in 220ms cubic-bezier(0.22, 1, 0.36, 1) 70ms both;
 }
 
