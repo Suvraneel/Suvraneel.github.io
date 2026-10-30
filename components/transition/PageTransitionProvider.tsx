@@ -18,6 +18,7 @@ import {
   LIFT_MS,
   PHOTO_LAG,
   PHOTO_SETTLE_FROM,
+  BLOB_PULL_SPAN,
   SCRIM_MAX,
   THROW_MS,
   UNDER_OFFSET,
@@ -138,7 +139,15 @@ type FlipDriver = {
   from: number;
   to: number;
   ease: (progress: number) => number;
+  /** How far the blob is pulled in at a progress of this turn (0 as it rests, 1 gone). */
+  pull: (progress: number) => number;
 };
+
+const easePull = cubicBezier(EASE_FLIP[0], EASE_FLIP[1], EASE_FLIP[2], EASE_FLIP[3]);
+
+/** The flip pulls the blob in over its first BLOB_PULL_SPAN; the return flip plays that backwards. */
+const pullAt = (progress: number) => easePull(Math.max(0, Math.min(1, progress / BLOB_PULL_SPAN)));
+const returnPullAt = (progress: number) => pullAt(1 - progress);
 
 type DevWindow = Window & {
   __pageTransitionSeek?: (p: number) => void;
@@ -188,8 +197,10 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
     const driver = flipDriver.current;
     if (!driver) return;
     const progress = Number(driver.effect.getComputedTiming().progress ?? 0);
-    const eased = driver.ease(Math.max(0, Math.min(1, progress)));
+    const clamped = Math.max(0, Math.min(1, progress));
+    const eased = driver.ease(clamped);
     sceneRef.current.setFlip(driver.from + (driver.to - driver.from) * eased);
+    sceneRef.current.setBlobPull(driver.pull(clamped));
   }, []);
 
   const stopFlip = useCallback(
@@ -197,7 +208,10 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       if (flipFrame.current !== null) window.cancelAnimationFrame(flipFrame.current);
       flipFrame.current = null;
       const driver = flipDriver.current;
-      if (driver && land) sceneRef.current.setFlip(driver.to);
+      if (driver && land) {
+        sceneRef.current.setFlip(driver.to);
+        sceneRef.current.setBlobPull(driver.pull(1));
+      }
       flipDriver.current = null;
     },
     []
@@ -206,7 +220,14 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
   const startFlip = useCallback(
     (
       track: TransitionTimeline,
-      options: { offset: number; duration: number; ease: readonly number[]; from: number; to: number }
+      options: {
+        offset: number;
+        duration: number;
+        ease: readonly number[];
+        from: number;
+        to: number;
+        pull: (progress: number) => number;
+      }
     ) => {
       stopFlip(false);
       const effect = new KeyframeEffect(null, [], { duration: options.duration, fill: "both" });
@@ -217,6 +238,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
         from: options.from,
         to: options.to,
         ease: cubicBezier(x1, y1, x2, y2),
+        pull: options.pull,
       };
       track.add(animation, options.offset, true);
       applyFlip();
@@ -499,6 +521,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
           ease: EASE_FLIP,
           from: Number(rig?.rotation.x ?? 0),
           to: -Math.PI,
+          pull: pullAt,
         });
         flip.finished.then(
           () =>
@@ -513,9 +536,11 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       } else if (kind === "unflip") {
         // Starts turning back with the lift, once the route has committed.
         currentScene.setFlip(-Math.PI);
+        currentScene.setBlobPull(1);
       } else if (to === "/") {
         // Off screen (or underneath) until it lands, so this never shows as a rotation.
         currentScene.setFlip(0);
+        currentScene.setBlobPull(0);
       }
 
       // 7. Analytics.
@@ -543,6 +568,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
         timeline.current?.cancel();
         timeline.current = null;
         sceneRef.current.setFlip(0);
+        sceneRef.current.setBlobPull(0);
         const container = sceneRef.current.containerRef.current;
         if (container) container.style.transform = "";
         releaseLocks();
@@ -693,6 +719,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
           ease: t.ease,
           from: -Math.PI,
           to: 0,
+          pull: returnPullAt,
         });
       }
     } else if (t.kind === "fade") {

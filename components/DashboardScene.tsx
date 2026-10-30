@@ -25,6 +25,9 @@ import {
 
 const DASHBOARD_SCENE = "/spline/sceneDACCORD_NEW.splinecode";
 const FLIP_RIG = "Dashboard Flip Rig";
+const BLOB = "Blob | Primary";
+/** Pulled all the way in, the blob is this small, and hidden (a zero scale would leave it a singular matrix). */
+const BLOB_PULLED_SCALE = 0.02;
 // SplineObj skips rendering at or below this width.
 export const SPLINE_MIN_WIDTH = 550;
 const FALLBACK_AFTER_MS = 8000;
@@ -55,6 +58,11 @@ type DashboardSceneContextValue = {
   getRig: () => any;
   /** Sets the rig's flip rotation (radians) on the live app, if it has loaded. */
   setFlip: (rotation: number) => void;
+  /**
+   * Pulls the blob in behind the turning dashboard: 0 as Home rests (the blob
+   * exactly as its idle loop has it), 1 gone.
+   */
+  setBlobPull: (amount: number) => void;
   /** HomePage reports whether its static hero is on screen. */
   setHeroShown: (shown: boolean) => void;
 };
@@ -70,6 +78,7 @@ const DashboardSceneContext = createContext<DashboardSceneContextValue>({
   containerRef: { current: null },
   getRig: () => null,
   setFlip: noop,
+  setBlobPull: noop,
   setHeroShown: noop,
 });
 
@@ -254,6 +263,8 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     [getRig]
   );
 
+  const setBlobPull = useCallback((amount: number) => pullBlob(appRef.current, amount), []);
+
   // A lift that has settled away from Home leaves the hidden scene at its last
   // keyframe; drop that before it can be shown again.
   useLayoutEffect(() => {
@@ -323,9 +334,10 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
       containerRef,
       getRig,
       setFlip,
+      setBlobPull,
       setHeroShown,
     }),
-    [app, getRig, hasSceneError, isReady, isSplineViewport, preloaderActive, setFlip]
+    [app, getRig, hasSceneError, isReady, isSplineViewport, preloaderActive, setFlip, setBlobPull]
   );
 
   // Off the first visit, an unready scene shows the static dashboard as its
@@ -522,6 +534,106 @@ function releaseSceneStill(app: any) {
   if (!controls || !Object.hasOwn(controls, "update")) return false;
   delete controls.update;
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// The flip pulls the blob in behind the turning dashboard. Its idle loop (the
+// looping Start transition) writes its scale from the runtime's own animation
+// frame, so a scale written from outside is gone before the next draw. The
+// pull is applied inside the scene's render instead, after the idle loop has
+// moved the blob and before it is drawn, on top of the scale the loop wrote.
+// Its material has no opacity that fades (set, it draws flat), so the blob
+// shrinks almost to nothing and is then hidden.
+//
+// Only the drawn frame sees the pull: the blob gets its own scale back as soon
+// as the frame is drawn. The loop starts every pass from the blob's live scale,
+// and play() rebuilds it from there, so a pulled scale left on the blob between
+// frames would become the loop's own and Home would land without its blob.
+//
+// Same runtime internals and pinned version as holdSceneStill: on any other
+// shape the blob is left as it is.
+// ---------------------------------------------------------------------------
+
+type Scale = { x: number; y: number; z: number };
+type BlobPull = {
+  blob: { scale: Scale; visible: boolean };
+  amount: number;
+  /** Takes the pull back out of the scene's render. */
+  detach: () => void;
+};
+
+/** The pull on each app's blob, while it is pulled in at all. */
+const blobPulls = new WeakMap<object, BlobPull>();
+
+const copyScale = (to: Scale, from: Scale) => {
+  to.x = from.x;
+  to.y = from.y;
+  to.z = from.z;
+};
+
+/** Pulls the blob in by `amount` (0 at rest, 1 gone); at 0 it is put back as its idle loop has it. */
+function pullBlob(app: any, amount: number) {
+  const current = app ? blobPulls.get(app) : undefined;
+
+  if (amount <= 0) {
+    if (!current) return;
+    blobPulls.delete(app);
+    // Its scale is its own again: detach takes back a pull still on it.
+    current.detach();
+    current.blob.visible = true;
+    requestSceneFrame(app);
+    return;
+  }
+
+  let pull = current;
+  if (!pull) {
+    const blob = app?.findObjectByName?.(BLOB);
+    const animation = app?._animationControls;
+    const update = animation && Object.getPrototypeOf(animation).update;
+    // The runtime fires "rendered" on its canvas right after each draw.
+    const canvas: EventTarget | undefined = app?.canvas;
+    if (!blob?.scale || typeof update !== "function" || typeof canvas?.addEventListener !== "function") return;
+    /** The blob's own scale, held aside while a frame is drawn with it pulled in. */
+    const base = { x: blob.scale.x, y: blob.scale.y, z: blob.scale.z };
+    /** Whether the blob carries the pull: from the patched update until its frame is drawn. */
+    let carriesPull = false;
+    const putBack = () => {
+      if (!carriesPull) return;
+      copyScale(blob.scale, base);
+      carriesPull = false;
+    };
+    const started: BlobPull = {
+      blob,
+      amount,
+      detach: () => {
+        putBack();
+        canvas.removeEventListener("rendered", putBack);
+        if (Object.hasOwn(animation, "update")) delete animation.update;
+      },
+    };
+    // Runs in every render, after the idle loop's latest write and before the draw.
+    animation.update = function (dt: number) {
+      // A draw that threw never fired "rendered": its pull comes off first, so
+      // it is never saved below as the blob's own scale.
+      putBack();
+      const result = update.call(this, dt);
+      // Between frames the blob carries its own scale, as the idle loop last wrote it.
+      copyScale(base, blob.scale);
+      const factor = 1 - started.amount * (1 - BLOB_PULLED_SCALE);
+      blob.scale.x = base.x * factor;
+      blob.scale.y = base.y * factor;
+      blob.scale.z = base.z * factor;
+      blob.visible = started.amount < 1;
+      carriesPull = true;
+      return result;
+    };
+    canvas.addEventListener("rendered", putBack);
+    blobPulls.set(app, started);
+    pull = started;
+  }
+  pull.amount = Math.min(1, amount);
+  // A scene held still draws only on request; a stopped one is hidden and draws the pull once it plays.
+  requestSceneFrame(app);
 }
 
 
