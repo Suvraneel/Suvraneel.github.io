@@ -207,16 +207,15 @@ export default function ContactPage() {
 
   return (
     <main className="nav-gap min-h-[100dvh] overflow-x-hidden bg-black text-white">
-      <div className="mx-auto max-w-[1440px] px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-24 lg:px-14 lg:pb-12 lg:pt-[max(4rem,calc((100dvh-30rem)/2))] xl:px-20">
-        {/* Editorial split: intro and direct options on the left, the form from the top on the right, so Send stays above the fold.
-            Desktop top padding centres the ~30rem composition from the viewport height alone, so the growing textarea never shifts it. */}
+      <div className="mx-auto max-w-[1440px] px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:px-14 lg:pb-12 lg:pt-16 xl:px-20">
+        {/* Editorial split: intro and direct options on the left, the form from the top on the right, so Send stays above the fold. */}
         <div className="grid gap-12 lg:grid-cols-[minmax(17rem,0.95fr)_minmax(0,1.05fr)] lg:gap-0 min-[1440px]:grid-cols-[minmax(17rem,0.72fr)_minmax(0,1.28fr)]">
           <div className="min-w-0 lg:pr-8 min-[1440px]:pr-12">
             <header className="max-w-4xl">
               <LiftHeading className={`w-max text-4xl leading-none tracking-[-0.04em] sm:text-6xl lg:text-5xl min-[1440px]:text-6xl ${spaceBoards.className}`}>
                 Contact
               </LiftHeading>
-              <p className={`mt-6 max-w-3xl text-lg leading-8 text-white/70 sm:text-xl/8 ${tasaOrbiter.className}`}>
+              <p className={`mt-5 max-w-2xl text-base leading-7 text-white/65 sm:text-lg/7 ${tasaOrbiter.className}`}>
                 Let&apos;s make something useful. I&apos;m open to thoughtful product work, dependable engineering problems, and collaborations with people who care about the details.
               </p>
             </header>
@@ -424,27 +423,33 @@ function Field({
 }>) {
   // Underline fields: focus thickens the rule to 2px accent instead of drawing a box.
   // Resting rule at white/40, the lightest step with 3:1 on black (white/35 is 2.998:1).
-  const className = "mt-1 w-full rounded-none border-0 border-b border-white/40 bg-transparent px-0 py-2 text-base text-white outline-none transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] placeholder:text-white/50 hover:border-white/50 focus:border-accent focus:shadow-[0_1px_0_0_rgb(var(--accent))]";
+  // The error look keys off aria-invalid: its attribute selector outranks the base,
+  // hover and focus colours, which plain error utilities tacked on would lose to
+  // whenever Tailwind emits them earlier in the stylesheet.
+  const fieldClassName = "mt-1 w-full rounded-none border-0 border-b border-white/40 bg-transparent px-0 py-2 text-base text-white outline-none transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] placeholder:text-white/50 hover:border-white/50 focus:border-accent focus:shadow-[0_1px_0_0_rgb(var(--accent))] aria-[invalid=true]:border-[#f0b6b6]/70 aria-[invalid=true]:hover:border-[#f0b6b6] aria-[invalid=true]:focus:border-[#f0b6b6] aria-[invalid=true]:focus:shadow-[0_1px_0_0_#f0b6b6]";
 
-  // Grow with the message instead of exposing the browser's resize grip.
+  // Grow with the message instead of exposing the browser's resize grip, up to
+  // the max-h cap, then scroll inside. The cap is applied here because CSS lets
+  // a min-height above max-height win, so an uncapped one grows without limit.
   const autoGrow = (event: FormEvent<HTMLTextAreaElement>) => {
     const field = event.currentTarget;
     field.style.minHeight = "";
-    field.style.minHeight = `${Math.max(field.clientHeight, field.scrollHeight)}px`;
+    const cap = Number.parseFloat(getComputedStyle(field).maxHeight) || Infinity;
+    field.style.minHeight = `${Math.min(cap, Math.max(field.clientHeight, field.scrollHeight))}px`;
   };
 
   const errorId = `${name}-error`;
   const invalid = Boolean(error);
-  const fieldClassName = invalid
-    ? `${className} border-[#f0b6b6]/70 hover:border-[#f0b6b6] focus:border-[#f0b6b6] focus:shadow-[0_1px_0_0_#f0b6b6]`
-    : className;
   const a11y = { "aria-invalid": invalid || undefined, "aria-describedby": invalid ? errorId : undefined };
 
   return (
     <label className={`block text-sm font-medium text-white/75 ${wrapperClassName}`}>
       {label}
       {textarea ? (
-        <textarea name={name} required rows={3} maxLength={maxLength} onInput={autoGrow} {...a11y} className={`${fieldClassName} max-h-[40vh] resize-none lg:flex-1`} placeholder="A few lines about the problem, scope, or idea…" />
+        // overflow-y-auto spelled out: Firefox computes a textarea's overflow as
+        // visible, so the page-sequence wheel handler would not see the capped box
+        // as a scroller and would spend an upward wheel on leaving the page.
+        <textarea name={name} required rows={3} maxLength={maxLength} onInput={autoGrow} {...a11y} className={`${fieldClassName} max-h-[40vh] resize-none overflow-y-auto lg:flex-1`} placeholder="A few lines about the problem, scope, or idea…" />
       ) : (
         <input name={name} type={type} required autoComplete={autoComplete} maxLength={maxLength} {...a11y} className={fieldClassName} />
       )}

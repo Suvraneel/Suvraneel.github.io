@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { getTransition, isInFlight, subscribeTransition } from "@components/transition/transitionStore";
 
 export type Sfx = "snap" | "pop" | "confirm";
 
@@ -21,11 +22,54 @@ const HOVER_SFX: Record<Sfx, boolean> = { snap: true, pop: false, confirm: false
 /** Wait after the first pointer before loading, so the load stays out of that interaction's frames. */
 const LOAD_AFTER_POINTER_MS = 1000;
 
+/** Set while the visitor has sounds off; absent (the default) means on. */
+const MUTED_KEY = "sfx:muted";
+
 let howls: Record<Sfx, Howl> | null = null;
 let loading: Promise<Record<Sfx, Howl> | null> | null = null;
 let waitingForPointer = false;
+let waitingForSettle = false;
 /** The latest pointer's type: a tap fires pointer events with "touch" before its mouse events. */
 let lastPointerType = "mouse";
+
+// Sounds on or off for the whole site: every play checks it, every toggle
+// (rail and drawer) reads and flips the same flag, and it is remembered for
+// the next visit.
+const readMuted = () => {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(MUTED_KEY) === "1";
+  } catch {
+    // Storage unavailable: sounds start on, as they always have.
+    return false;
+  }
+};
+
+let muted = readMuted();
+const mutedListeners = new Set<() => void>();
+
+export const isSfxMuted = () => muted;
+
+export const subscribeSfxMuted = (listener: () => void) => {
+  mutedListeners.add(listener);
+  return () => {
+    mutedListeners.delete(listener);
+  };
+};
+
+export const toggleSfxMuted = () => {
+  muted = !muted;
+  try {
+    if (muted) window.localStorage.setItem(MUTED_KEY, "1");
+    else window.localStorage.removeItem(MUTED_KEY);
+  } catch {
+    // Storage unavailable: the choice still holds for this visit.
+  }
+  mutedListeners.forEach((listener) => listener());
+};
+
+/** Whether sounds are off. The static HTML (and hydration) render them on; a stored "off" follows straight after. */
+export const useSfxMuted = () => useSyncExternalStore(subscribeSfxMuted, isSfxMuted, () => false);
 
 /** howler and one Howl per sound, created once and shared by every component. */
 function loadSfx() {
@@ -60,8 +104,32 @@ function loadSfx() {
  */
 export function warmSfx() {
   if (loading) return;
-  if ("requestIdleCallback" in window) window.requestIdleCallback(() => void loadSfx(), { timeout: 1000 });
-  else void loadSfx();
+  loadInIdleTime();
+}
+
+/**
+ * Idle time is not enough on its own: idle callbacks still fire while a page
+ * lift plays on the compositor, and evaluating howler is a 100+ ms long task
+ * that would stall it. A load that comes due while a transition is in flight
+ * waits for it to settle and starts right after.
+ */
+function loadInIdleTime() {
+  const load = () => {
+    if (loading || waitingForSettle) return;
+    if (!isInFlight(getTransition())) {
+      void loadSfx();
+      return;
+    }
+    waitingForSettle = true;
+    const unsubscribe = subscribeTransition(() => {
+      if (isInFlight(getTransition())) return;
+      unsubscribe();
+      waitingForSettle = false;
+      void loadSfx();
+    });
+  };
+  if ("requestIdleCallback" in window) window.requestIdleCallback(load, { timeout: 1000 });
+  else load();
 }
 
 function loadOnFirstPointer() {
@@ -70,10 +138,7 @@ function loadOnFirstPointer() {
   const start = () => {
     window.removeEventListener("pointermove", start, true);
     window.removeEventListener("pointerdown", start, true);
-    window.setTimeout(() => {
-      if ("requestIdleCallback" in window) window.requestIdleCallback(() => void loadSfx(), { timeout: 1000 });
-      else void loadSfx();
-    }, LOAD_AFTER_POINTER_MS);
+    window.setTimeout(loadInIdleTime, LOAD_AFTER_POINTER_MS);
   };
   window.addEventListener("pointermove", start, { capture: true, passive: true });
   window.addEventListener("pointerdown", start, { capture: true, passive: true });
@@ -108,9 +173,11 @@ export function useSfx(name: Sfx, { volume }: { volume: number }) {
   useEffect(() => loadOnFirstPointer(), []);
 
   const play = useCallback(() => {
-    if (!canSoundYet() || (HOVER_SFX[name] && lastPointerType === "touch")) return;
+    if (muted || !canSoundYet() || (HOVER_SFX[name] && lastPointerType === "touch")) return;
     const at = generation.current;
     const start = (sfx: Record<Sfx, Howl>) => {
+      // Sounds turned off while howler was still loading.
+      if (muted) return;
       const id = sfx[name].play();
       if (id === null) return;
       sfx[name].volume(volume, id);

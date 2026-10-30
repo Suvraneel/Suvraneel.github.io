@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useRef, useState, type ElementType } from "react";
+import { useRef, useState, type ElementType, type ReactNode } from "react";
 import { useSfx } from "@hooks/useSfx";
 import { GithubIcon, type GithubIconHandle } from "./animate-ui/icons/github";
 import { LinkedinIcon, type LinkedinIconHandle } from "./animate-ui/icons/linkedin";
@@ -56,7 +56,8 @@ function AnimatedSocialLink({ name, href, brandColor, icon: Icon }: AnimatedSoci
   );
 }
 
-const Socials = () => {
+/** `children` join the end of the row, spaced as the links are (the drawer's sound toggle). */
+const Socials = ({ children }: { children?: ReactNode }) => {
   return (
     <div className="flex flex-row justify-evenly content-center gap-2">
       <AnimatedSocialLink
@@ -77,6 +78,7 @@ const Socials = () => {
         brandColor="#00bbff"
         icon={TwitterIcon}
       />
+      {children}
     </div>
   );
 };

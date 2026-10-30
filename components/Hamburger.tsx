@@ -6,6 +6,8 @@ import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
 import { MessageCircleMoreIcon } from "@components/animate-ui/icons/message-circle-more";
 import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
 import { TerminalIcon } from "@components/animate-ui/icons/terminal";
+import { VolumeIcon } from "@components/animate-ui/icons/volume";
+import { toggleSfxMuted, useSfx, useSfxMuted } from "@hooks/useSfx";
 import { EASE_FADE, prefersReducedMotion } from "@lib/pageTransition";
 import { AnimatePresence, motion, stagger, useIsPresent, type Variants } from "motion/react";
 import Link from "next/link";
@@ -109,6 +111,47 @@ function DrawerSheet({
     >
       {children}
     </motion.aside>
+  );
+}
+
+/**
+ * The rail's sounds on/off, for phones: an icon at the end of the socials row,
+ * which answers hover, focus and a click as those links do.
+ */
+function DrawerSoundToggle({ reduceMotion }: { reduceMotion: boolean }) {
+  const muted = useSfxMuted();
+  const [isHovered, setIsHovered] = useState(false);
+  const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
+  const [playConfirm] = useSfx("confirm", { volume: 0.25 });
+
+  return (
+    <button
+      type="button"
+      // A toggle keeps one name; its state is the pressed state (on = sounds play) and the icon.
+      aria-label="Sounds"
+      aria-pressed={!muted}
+      // As the socials: a click leaves no focus ring behind.
+      onMouseDown={(event) => event.preventDefault()}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        stopSnap();
+        playSnap();
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        stopSnap();
+      }}
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
+      // Heard only when this turned sounds back on.
+      onClick={() => {
+        toggleSfxMuted();
+        playConfirm();
+      }}
+      className={`grid h-6 w-6 place-items-center rounded-md transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${isHovered ? "text-accent" : "text-white"}`}
+    >
+      <VolumeIcon aria-hidden="true" size={24} muted={muted} animate={isHovered && !reduceMotion} />
+    </button>
   );
 }
 
@@ -243,7 +286,9 @@ const Hamburger = () => {
                 ))}
               </motion.ul>
               <motion.div variants={reduceMotion ? undefined : variantsItem} initial="closed" animate="open" className="border-t border-white/10 px-5 py-5">
-                <Socials />
+                <Socials>
+                  <DrawerSoundToggle reduceMotion={reduceMotion} />
+                </Socials>
               </motion.div>
             </DrawerSheet>
           )}

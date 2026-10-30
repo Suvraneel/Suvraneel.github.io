@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import SplineObj from "@components/SplineObject";
+import SplineObj, { subscribeRuntimeDisposals } from "@components/SplineObject";
 import StairsPreloader, { PRELOADER_FAILSAFE_MS, type PreloaderStatus } from "@components/StairsPreloader";
 import { isInFlight, useTransitionState } from "@components/transition/transitionStore";
 import { SHEET_SHADOW } from "@lib/pageTransition";
@@ -25,6 +25,9 @@ import {
 
 const DASHBOARD_SCENE = "/spline/sceneDACCORD_NEW.splinecode";
 const FLIP_RIG = "Dashboard Flip Rig";
+const BLOB = "Blob | Primary";
+/** Pulled all the way in, the blob is this small, and hidden (a zero scale would leave it a singular matrix). */
+const BLOB_PULLED_SCALE = 0.02;
 // SplineObj skips rendering at or below this width.
 export const SPLINE_MIN_WIDTH = 550;
 const FALLBACK_AFTER_MS = 8000;
@@ -55,6 +58,11 @@ type DashboardSceneContextValue = {
   getRig: () => any;
   /** Sets the rig's flip rotation (radians) on the live app, if it has loaded. */
   setFlip: (rotation: number) => void;
+  /**
+   * Pulls the blob in behind the turning dashboard: 0 as Home rests (the blob
+   * exactly as its idle loop has it), 1 gone.
+   */
+  setBlobPull: (amount: number) => void;
   /** HomePage reports whether its static hero is on screen. */
   setHeroShown: (shown: boolean) => void;
 };
@@ -70,6 +78,7 @@ const DashboardSceneContext = createContext<DashboardSceneContextValue>({
   containerRef: { current: null },
   getRig: () => null,
   setFlip: noop,
+  setBlobPull: noop,
   setHeroShown: noop,
 });
 
@@ -215,10 +224,13 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
 
   // Hidden, the scene does no work: its render loop and events are paused
   // (only after its first frames are compiled, so a later reveal never stalls).
-  // Under reduced motion a shown scene is held still; play() rebuilds its
-  // events, which restarts the idle loop, so the hold follows every play().
+  // play() rebuilds its events, and the idle loop is put back where it paused
+  // (resumeIdleLoop); under reduced motion a shown scene is held still, so the
+  // hold follows every play().
   useLayoutEffect(() => {
     if (!app || !isReady) return;
+    // The idle loop is kept before stop() or play() can leave only a rebuilt copy of it.
+    keepIdleLoop(app);
     if (!isVisible) {
       app.stop?.();
       return;
@@ -226,7 +238,15 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     // Released from reduced motion: a restart brings the idle loop back.
     if (!reduceMotion && releaseSceneStill(app)) app.stop?.();
     app.play?.();
+    resumeIdleLoop(app);
     if (reduceMotion) holdSceneStill(app);
+  }, [app, isReady, isVisible, reduceMotion]);
+
+  // Another runtime's disposal (Work's plant, once Work has gone) takes the
+  // idle loop off the shared ticker; the shown scene puts it back.
+  useEffect(() => {
+    if (!app || !isReady || !isVisible || reduceMotion) return;
+    return subscribeRuntimeDisposals(() => resumeIdleLoop(app));
   }, [app, isReady, isVisible, reduceMotion]);
 
   useEffect(() => {
@@ -253,6 +273,8 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     },
     [getRig]
   );
+
+  const setBlobPull = useCallback((amount: number) => pullBlob(appRef.current, amount), []);
 
   // A lift that has settled away from Home leaves the hidden scene at its last
   // keyframe; drop that before it can be shown again.
@@ -323,9 +345,10 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
       containerRef,
       getRig,
       setFlip,
+      setBlobPull,
       setHeroShown,
     }),
-    [app, getRig, hasSceneError, isReady, isSplineViewport, preloaderActive, setFlip]
+    [app, getRig, hasSceneError, isReady, isSplineViewport, preloaderActive, setFlip, setBlobPull]
   );
 
   // Off the first visit, an unready scene shows the static dashboard as its
@@ -522,6 +545,248 @@ function releaseSceneStill(app: any) {
   if (!controls || !Object.hasOwn(controls, "update")) return false;
   delete controls.update;
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// The idle loop (the blob's looping Start transition) resumes where it paused.
+// Two things in the runtime would otherwise leave the blob frozen on Home:
+//
+// - play() rebuilds every Start event, and the rebuilt loop opens on the
+//   blob's current state, which the loop itself moves to its far state halfway
+//   through each pass. Rebuilt past that point, it runs from that state to
+//   itself and never moves. So the loop the scene loaded with is kept for the
+//   session: play()'s rebuilt copy is set aside, and the kept loop takes its
+//   place again, its pass stopped where stop() left it.
+// - Disposing any other runtime (Work's plant, once Work has gone) disposes
+//   the transition ticker all runtimes share: the loop is no longer updated,
+//   and the ticker's clock starts again from zero. The kept loop is put back.
+//
+// Either way the ticker time the loop was off it is skipped, so its pass
+// picks up exactly where it was last drawn.
+//
+// Same runtime internals and pinned version as holdSceneStill (the Start
+// handler's transitions and their runners): on any other shape the loop is
+// left as the runtime has it.
+// ---------------------------------------------------------------------------
+
+type LoopPass = { isPlaying: boolean; startTime: number; endTime: number };
+type LoopRunner = {
+  isPlaying: boolean;
+  hasPlayedOnce: boolean;
+  hasClaimed: boolean;
+  claimedAt?: number;
+  startTime: number;
+  currentTween?: LoopPass;
+};
+type IdleLoop = StartTransition & {
+  data: object;
+  object: { previousAction?: unknown };
+  runner?: LoopRunner;
+  start: () => void;
+  update: (time: number) => unknown;
+};
+type KeptLoop = {
+  loop: IdleLoop;
+  /** The ticker time the loop was last drawn at. */
+  lastTime?: number;
+  /** Set on resume: the next update first skips the ticker time the loop was off it. */
+  catchUp: boolean;
+};
+
+/** The kept loop of each looping Start transition, by its action data (the same object in every rebuild). */
+const keptLoops = new WeakMap<object, KeptLoop>();
+
+/** Calls `visit` with each looping Start transition the scene has, and the list it sits in. */
+function forEachIdleLoop(app: any, visit: (loop: IdleLoop, list: IdleLoop[], index: number) => void) {
+  const start = app?.eventManager?.handlers?.Start;
+  if (!(start?.eventsPerObject instanceof Map)) return;
+  for (const events of start.eventsPerObject.values() as Iterable<{ actions?: { Transition?: IdleLoop[] } }[]>) {
+    for (const event of events) {
+      event.actions?.Transition?.forEach((transition, index, list) => {
+        if (transition.loopsForever) visit(transition, list, index);
+      });
+    }
+  }
+}
+
+/** Moves a loop's running pass later by `by` seconds of ticker time. */
+function shiftPass(runner: LoopRunner | undefined, by: number) {
+  const pass = runner?.currentTween;
+  if (!runner || !pass) return;
+  runner.startTime += by;
+  if (runner.claimedAt !== undefined) runner.claimedAt += by;
+  pass.startTime += by;
+  pass.endTime += by;
+}
+
+/** The shared ticker's time, read through a transition's start() on a stand-in runner that starts nothing. */
+function tickerTime(loop: IdleLoop) {
+  let time: number | undefined;
+  // start() hands the runner the ticker's time, and goes on the ticker only if the runner is then playing.
+  const standIn = {
+    isPlaying: false,
+    play: (at: unknown) => {
+      if (typeof at === "number") time = at;
+    },
+  };
+  loop.start.call({ runner: standIn });
+  return time;
+}
+
+/** Keeps each idle loop the scene runs that is not kept yet (called while it still runs the one it loaded with). */
+function keepIdleLoop(app: any) {
+  forEachIdleLoop(app, (loop) => {
+    const update = Object.getPrototypeOf(loop).update;
+    if (
+      keptLoops.has(loop.data) ||
+      typeof update !== "function" ||
+      typeof loop.start !== "function" ||
+      !loop.runner?.currentTween
+    ) {
+      return;
+    }
+    // The loop runs now, so the ticker's time is the time it was last drawn at: a
+    // loop held or stopped before its next update still takes up from there.
+    const kept: KeptLoop = { loop, catchUp: false, lastTime: tickerTime(loop) };
+    loop.update = function (time: number) {
+      // Back from a pause or a reset ticker: the pass takes up at the time it was last drawn at.
+      if (kept.catchUp && kept.lastTime !== undefined) shiftPass(loop.runner, time - kept.lastTime);
+      kept.catchUp = false;
+      kept.lastTime = time;
+      return update.call(this, time);
+    };
+    keptLoops.set(loop.data, kept);
+  });
+}
+
+/**
+ * Puts each kept idle loop back in place of play()'s rebuilt copy and back on
+ * the ticker, to carry on from where it was last drawn. Only for a playing scene.
+ */
+function resumeIdleLoop(app: any) {
+  if (!app || app.isStopped) return;
+  forEachIdleLoop(app, (transition, list, index) => {
+    const kept = keptLoops.get(transition.data);
+    const runner = kept?.loop.runner;
+    const pass = runner?.currentTween;
+    if (!kept || !runner?.hasPlayedOnce || !pass) return;
+    const { loop } = kept;
+    if (transition !== loop) {
+      // play() started the rebuilt copy: stopping it also takes it off the ticker.
+      transition.pause();
+      list[index] = loop;
+    }
+    // stop() (or a hold) stopped the pass in place; it carries on from there.
+    runner.isPlaying = true;
+    pass.isPlaying = true;
+    // A fresh claim would rebuild the pass from the blob's current scale with
+    // its time already part-way through (a jump), so it stays claimed.
+    runner.hasClaimed = true;
+    loop.object.previousAction = loop;
+    kept.catchUp = true;
+    // Its runner is playing, so start() only puts it back on the ticker.
+    loop.start();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// The flip pulls the blob in behind the turning dashboard. Its idle loop (the
+// looping Start transition) writes its scale from the runtime's own animation
+// frame, so a scale written from outside is gone before the next draw. The
+// pull is applied inside the scene's render instead, after the idle loop has
+// moved the blob and before it is drawn, on top of the scale the loop wrote.
+// Its material has no opacity that fades (set, it draws flat), so the blob
+// shrinks almost to nothing and is then hidden.
+//
+// Only the drawn frame sees the pull: the blob gets its own scale back as soon
+// as the frame is drawn. The loop starts every pass from the blob's live scale,
+// so a pulled scale left on the blob between frames would become the loop's
+// own and Home would land without its blob.
+//
+// Same runtime internals and pinned version as holdSceneStill: on any other
+// shape the blob is left as it is.
+// ---------------------------------------------------------------------------
+
+type Scale = { x: number; y: number; z: number };
+type BlobPull = {
+  blob: { scale: Scale; visible: boolean };
+  amount: number;
+  /** Takes the pull back out of the scene's render. */
+  detach: () => void;
+};
+
+/** The pull on each app's blob, while it is pulled in at all. */
+const blobPulls = new WeakMap<object, BlobPull>();
+
+const copyScale = (to: Scale, from: Scale) => {
+  to.x = from.x;
+  to.y = from.y;
+  to.z = from.z;
+};
+
+/** Pulls the blob in by `amount` (0 at rest, 1 gone); at 0 it is put back as its idle loop has it. */
+function pullBlob(app: any, amount: number) {
+  const current = app ? blobPulls.get(app) : undefined;
+
+  if (amount <= 0) {
+    if (!current) return;
+    blobPulls.delete(app);
+    // Its scale is its own again: detach takes back a pull still on it.
+    current.detach();
+    current.blob.visible = true;
+    requestSceneFrame(app);
+    return;
+  }
+
+  let pull = current;
+  if (!pull) {
+    const blob = app?.findObjectByName?.(BLOB);
+    const animation = app?._animationControls;
+    const update = animation && Object.getPrototypeOf(animation).update;
+    // The runtime fires "rendered" on its canvas right after each draw.
+    const canvas: EventTarget | undefined = app?.canvas;
+    if (!blob?.scale || typeof update !== "function" || typeof canvas?.addEventListener !== "function") return;
+    /** The blob's own scale, held aside while a frame is drawn with it pulled in. */
+    const base = { x: blob.scale.x, y: blob.scale.y, z: blob.scale.z };
+    /** Whether the blob carries the pull: from the patched update until its frame is drawn. */
+    let carriesPull = false;
+    const putBack = () => {
+      if (!carriesPull) return;
+      copyScale(blob.scale, base);
+      carriesPull = false;
+    };
+    const started: BlobPull = {
+      blob,
+      amount,
+      detach: () => {
+        putBack();
+        canvas.removeEventListener("rendered", putBack);
+        if (Object.hasOwn(animation, "update")) delete animation.update;
+      },
+    };
+    // Runs in every render, after the idle loop's latest write and before the draw.
+    animation.update = function (dt: number) {
+      // A draw that threw never fired "rendered": its pull comes off first, so
+      // it is never saved below as the blob's own scale.
+      putBack();
+      const result = update.call(this, dt);
+      // Between frames the blob carries its own scale, as the idle loop last wrote it.
+      copyScale(base, blob.scale);
+      const factor = 1 - started.amount * (1 - BLOB_PULLED_SCALE);
+      blob.scale.x = base.x * factor;
+      blob.scale.y = base.y * factor;
+      blob.scale.z = base.z * factor;
+      blob.visible = started.amount < 1;
+      carriesPull = true;
+      return result;
+    };
+    canvas.addEventListener("rendered", putBack);
+    blobPulls.set(app, started);
+    pull = started;
+  }
+  pull.amount = Math.min(1, amount);
+  // A scene held still draws only on request; a stopped one is hidden and draws the pull once it plays.
+  requestSceneFrame(app);
 }
 
 

@@ -9,7 +9,15 @@ import {
   getLastStartAt,
   isTransitionLocked,
 } from "@components/transition/transitionStore";
-import { COMMIT_WATCHDOG_MS, isDialogOpen, pageOrder, prefersReducedMotion } from "@lib/pageTransition";
+import {
+  COMMIT_WATCHDOG_MS,
+  isDialogOpen,
+  isDrawerOpen,
+  isPagePath,
+  pageOrder,
+  prefersReducedMotion,
+  type PagePath,
+} from "@lib/pageTransition";
 
 const intentThreshold = 520;
 const intentWindowMs = 500;
@@ -61,6 +69,29 @@ const pageLabels: Record<(typeof pageOrder)[number], string> = {
   "/projects": "Projects",
   "/skills": "Skills",
   "/contact": "Contact",
+};
+
+/**
+ * The page a step in `direction` leads to from `pathname`. The 404 page has
+ * no place in the sequence: its bottom edge leads Home, its top edge nowhere.
+ */
+const stepFrom = (pathname: string, direction: 1 | -1): PagePath | undefined => {
+  const index = pageOrder.indexOf(pathname as PagePath);
+  if (index !== -1) return pageOrder[index + direction];
+  return direction === 1 ? "/" : undefined;
+};
+
+/**
+ * The 404 page's step on. navigate() goes nowhere from a route off the
+ * sequence (a lift needs both pages in it), so the page loads outright, as
+ * the provider loads any link from there. It holds back where navigate()
+ * would hold back a gesture: a dialog or the drawer open, or the gate still
+ * swallowing the tail of an earlier gesture.
+ */
+const loadOffSequence = (path: PagePath) => {
+  if (isDialogOpen() || isDrawerOpen() || !gestureGate.canStart()) return false;
+  window.location.assign(path);
+  return true;
 };
 
 const findScrollContainer = (target: EventTarget | null) => {
@@ -149,7 +180,8 @@ const PageSequenceScroll = () => {
 
   useEffect(() => {
     // Home and About own their dashboard flip interaction. Every subsequent
-    // page uses its physical scroll boundary to move through the sequence.
+    // page uses its physical scroll boundary to move through the sequence,
+    // and the 404 page its bottom one to go Home (stepFrom).
     // This component now persists in the App Router shell, so clear the
     // one-shot navigation guard whenever a new screen has arrived.
     isNavigating.current = false;
@@ -159,9 +191,7 @@ const PageSequenceScroll = () => {
     boundaryReachedAt.current = null;
 
     if (pathname === "/" || pathname === "/about") return;
-
-    const pageIndex = pageOrder.indexOf(pathname as (typeof pageOrder)[number]);
-    if (pageIndex === -1) return;
+    const offSequence = !isPagePath(pathname);
 
     // The wheel's intent at an edge shows in the touch pull's pill, as a pull
     // distance (its fill is intent / threshold), painted in a frame. A pause
@@ -201,7 +231,7 @@ const PageSequenceScroll = () => {
 
       const scrollContainer = findScrollContainer(event.target);
       const movingForward = event.deltaY > 0;
-      const nextPath = movingForward ? pageOrder[pageIndex + 1] : pageOrder[pageIndex - 1];
+      const nextPath = stepFrom(pathname, movingForward ? 1 : -1);
 
       const isAtBoundary = isAtEdge(scrollContainer, movingForward ? 1 : -1);
 
@@ -274,7 +304,7 @@ const PageSequenceScroll = () => {
       }
 
       // Forward arrivals show the next page's top, backward ones its bottom.
-      if (navigate(nextPath, { source: "sequence", input: "wheel" })) {
+      if (offSequence ? loadOffSequence(nextPath) : navigate(nextPath, { source: "sequence", input: "wheel" })) {
         isNavigating.current = true;
         hideHint();
       } else {
@@ -297,8 +327,7 @@ const PageSequenceScroll = () => {
   // stops there; it takes a fresh press to go on.
   useEffect(() => {
     if (pathname === "/" || pathname === "/about") return;
-    const pageIndex = pageOrder.indexOf(pathname as (typeof pageOrder)[number]);
-    if (pageIndex === -1) return;
+    const offSequence = !isPagePath(pathname);
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.repeat || isTransitionLocked() || isNavigating.current || isDialogOpen()) return;
@@ -316,13 +345,17 @@ const PageSequenceScroll = () => {
           : ["ArrowUp", "PageUp"].includes(event.key) || (space && event.shiftKey)
             ? -1
             : null;
-      const nextPath = direction ? pageOrder[pageIndex + direction] : undefined;
+      const nextPath = direction ? stepFrom(pathname, direction) : undefined;
       if (!direction || !nextPath) return;
       // The page's own scroller (Work's <main>), else the document.
       const scroller = findScrollContainer(document.querySelector(`[data-page="${pathname}"] main`));
       if (!isAtEdge(scroller, direction)) return;
 
-      if (navigate(nextPath, { source: "key", arrival: direction > 0 ? "top" : "bottom" })) {
+      if (
+        offSequence
+          ? loadOffSequence(nextPath)
+          : navigate(nextPath, { source: "key", arrival: direction > 0 ? "top" : "bottom" })
+      ) {
         event.preventDefault();
         isNavigating.current = true;
       }
@@ -341,8 +374,7 @@ const PageSequenceScroll = () => {
   // enough. The wheel above shows the same pill at an edge, the wordmark and
   // the fill only.
   useEffect(() => {
-    const pageIndex = pageOrder.indexOf(pathname as (typeof pageOrder)[number]);
-    if (pageIndex === -1) return;
+    const offSequence = !isPagePath(pathname);
 
     const hint = document.createElement("div");
     hint.setAttribute("aria-hidden", "true");
@@ -359,12 +391,16 @@ const PageSequenceScroll = () => {
     hintAction.className = "relative grid justify-items-end text-sm font-medium text-white/85";
     const labelClass =
       "[grid-area:1/1] transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none";
+    // Set inline from the start: left to its default of 1, "Release for" would
+    // show through "Pull for" as it faded out on the pill's first show.
     const pullLabel = document.createElement("span");
     pullLabel.className = labelClass;
     pullLabel.textContent = "Pull for";
+    pullLabel.style.opacity = "1";
     const releaseLabel = document.createElement("span");
     releaseLabel.className = labelClass;
     releaseLabel.textContent = "Release for";
+    releaseLabel.style.opacity = "0";
     hintAction.append(pullLabel, releaseLabel);
     // The next page's name as its wordmark, at the label's scale.
     const hintTitle = document.createElement("span");
@@ -420,18 +456,44 @@ const PageSequenceScroll = () => {
     const menuGap = 8;
 
     /**
+     * Puts the labels back on "Pull for", with their crossfade suppressed, so
+     * every pull opens on it: a pill hidden at "Release for" (a pull let go,
+     * cancelled or refused there) would otherwise open the next one on it. It
+     * waits until the pill has faded out, so its words never swap in view; a
+     * pill shown again before then cancels its fade, and the reset with it.
+     */
+    const resetLabels = () => {
+      const reset = () => {
+        pullLabel.style.transition = releaseLabel.style.transition = "none";
+        pullLabel.style.opacity = "1";
+        releaseLabel.style.opacity = "0";
+        // A layout read commits the new opacities before the crossfade comes back.
+        void hintAction.offsetWidth;
+        pullLabel.style.transition = releaseLabel.style.transition = "";
+      };
+      const fade = hint
+        .getAnimations()
+        .find((animation) => animation instanceof CSSTransition && animation.transitionProperty === "opacity");
+      // No fade (reduced motion, or none to run) means the pill is already out of sight.
+      if (fade) void fade.finished.then(reset, () => undefined);
+      else reset();
+    };
+
+    /**
      * The hint for a pull `distance` px past the edge (0 hides it). The wheel
      * passes its intent in the same units; its pill drops the verb (it commits
      * on its own, with nothing to release) and centres on the content column.
      */
     const showHint = (direction: 1 | -1 | null, distance: number, input: "touch" | "wheel" = "touch") => {
       const wheel = input === "wheel";
-      const nextPath = direction ? pageOrder[pageIndex + direction] : undefined;
+      const nextPath = direction ? stepFrom(pathname, direction) : undefined;
       // Under reduced motion the wheel's pill only fades, without the slide.
       const away = wheel && prefersReducedMotion() ? 0 : direction === -1 ? -1 : 1;
       if (!nextPath || distance < (wheel ? wheelHintFrom * pullThreshold : pullHintFrom)) {
+        const shown = hint.style.opacity === "1";
         hint.style.opacity = "0";
         hint.style.transform = `translate(-50%, ${away * 0.5}rem) scale(${hintScale})`;
+        if (shown) resetLabels();
         return;
       }
 
@@ -632,7 +694,7 @@ const PageSequenceScroll = () => {
         pull.edgeFromStall = !atEdge;
         // A stretch caught mid spring-back carries on from where it was, if this
         // pull goes the same way (offsets are opposite to the pull's direction).
-        const follow = pageOrder[pageIndex + moving] ? pullFollow : pullFollowAtEnd;
+        const follow = stepFrom(pathname, moving) ? pullFollow : pullFollowAtEnd;
         const carried = travelFor(Math.abs(pull.carry), follow);
         if (pull.carry && Math.sign(pull.carry) === -moving && Number.isFinite(carried)) {
           pull.edgeY = y + moving * carried;
@@ -649,7 +711,7 @@ const PageSequenceScroll = () => {
         dropEdge(pull);
         return;
       }
-      const hasNext = Boolean(pageOrder[pageIndex + direction]);
+      const hasNext = Boolean(stepFrom(pathname, direction));
       const offset = prefersReducedMotion() ? 0 : -direction * rubberband(pull.distance, hasNext ? pullFollow : pullFollowAtEnd);
       const distance = hasNext ? pull.distance : 0;
       tick(distance >= pullThreshold);
@@ -663,7 +725,7 @@ const PageSequenceScroll = () => {
 
     const handleTouchEnd = () => {
       const ended = pull;
-      const nextPath = ended?.direction ? pageOrder[pageIndex + ended.direction] : undefined;
+      const nextPath = ended?.direction ? stepFrom(pathname, ended.direction) : undefined;
       const qualifies =
         ended !== null &&
         ended.direction !== null &&
@@ -683,7 +745,7 @@ const PageSequenceScroll = () => {
         crossed = false;
         const target = pullTarget(ended.scroller);
         pull = null;
-        if (navigate(nextPath, { source: "sequence", input: "touch" })) {
+        if (offSequence ? loadOffSequence(nextPath) : navigate(nextPath, { source: "sequence", input: "touch" })) {
           isNavigating.current = true;
           // The page leaves with its layer. Should the route never commit,
           // the page is still here once the transition gives up: let it go back.
@@ -714,6 +776,21 @@ const PageSequenceScroll = () => {
       hint.remove();
     };
   }, [navigate, pathname]);
+
+  useEffect(() => {
+    // The 404 leaves for Home by a full load (loadOffSequence). Coming back to it,
+    // Safari and Firefox may restore it from the back/forward cache with the
+    // one-shot guard still set and a touch pull's stretch still on its <main>.
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      isNavigating.current = false;
+      document.querySelectorAll<HTMLElement>(`[data-page="${pathname}"] main`).forEach((main) => {
+        main.style.transform = "";
+      });
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [pathname]);
 
   useEffect(() => {
     const pageIndex = pageOrder.indexOf(pathname as (typeof pageOrder)[number]);

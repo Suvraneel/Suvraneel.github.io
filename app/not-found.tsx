@@ -15,8 +15,9 @@ export default function NotFound() {
   return (
     <main className="nav-gap flex min-h-[100dvh] bg-black text-white">
       <div className="mx-auto flex w-full max-w-[1440px] flex-col items-start justify-center px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-24 lg:px-14 xl:px-20">
+        {/* A capital F: Space Boards' lowercase f is two bars with no stem, so "found" read as "=OUND". */}
         <LiftHeading className={`text-4xl leading-none tracking-[-0.04em] sm:text-6xl ${spaceBoards.className}`}>
-          Not found
+          Not Found
         </LiftHeading>
         <PillButton href="/" className="mt-10">
           Back to home

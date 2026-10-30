@@ -66,6 +66,19 @@ const changeLiveRuntimes = (delta: number) => {
   runtimeListeners.forEach((listener) => listener());
 };
 
+// Disposing a runtime also disposes the transition ticker every runtime on the
+// page shares (@splinetool/runtime 2.0.75: Application.dispose ends with it):
+// the running transitions of the runtimes still alive drop off it, and its
+// clock starts again from zero. Those runtimes hear of each disposal once it
+// has happened, to put theirs back.
+const disposalListeners = new Set<() => void>();
+export const subscribeRuntimeDisposals = (listener: () => void) => {
+  disposalListeners.add(listener);
+  return () => {
+    disposalListeners.delete(listener);
+  };
+};
+
 // react-spline rethrows scene load failures during render; contain them so a
 // broken or blocked scene can't take down the whole app shell.
 class SceneErrorBoundary extends Component<
@@ -110,7 +123,12 @@ const SplineObj = (props: {
   useEffect(() => {
     if (!mounted) return;
     changeLiveRuntimes(1);
-    return () => changeLiveRuntimes(-1);
+    return () => {
+      changeLiveRuntimes(-1);
+      // react-spline disposes the runtime in its own effect cleanup, in this
+      // same flush (before or after this one): listeners hear once it is done.
+      queueMicrotask(() => disposalListeners.forEach((listener) => listener()));
+    };
   }, [mounted]);
 
   useEffect(() => {

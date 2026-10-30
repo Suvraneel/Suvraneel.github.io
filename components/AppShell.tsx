@@ -1,5 +1,6 @@
 "use client";
 
+import { MotionConfig } from "motion/react";
 import { ThemeProvider } from "next-themes";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
@@ -24,16 +25,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeProvider defaultTheme="dark" attribute="class">
-      <DashboardSceneProvider>
-        <PageTransitionProvider>
-          <Layout>
-            <AsciiArt />
-            <PageSequenceScroll />
-            <SplineLinkGuard />
-            <PageStage>{children}</PageStage>
-          </Layout>
-        </PageTransitionProvider>
-      </DashboardSceneProvider>
+      {/* Under reduced motion, Motion jumps transform and layout animations to
+          their end (icon wags and nudges, hover lifts, the drawer's links);
+          fades still play. Components with their own reduced path keep it. */}
+      <MotionConfig reducedMotion="user">
+        <DashboardSceneProvider>
+          <PageTransitionProvider>
+            <Layout>
+              <AsciiArt />
+              <PageSequenceScroll />
+              <SplineLinkGuard />
+              <PageStage>{children}</PageStage>
+            </Layout>
+          </PageTransitionProvider>
+        </DashboardSceneProvider>
+      </MotionConfig>
     </ThemeProvider>
   );
 }

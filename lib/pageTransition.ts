@@ -73,6 +73,13 @@ export const FLIP_MS = 1000;
 export const EASE_FLIP = EASE_LIFT;
 // The 3D flip leads; Home starts lifting away while the dashboard is mid-turn.
 export const FLIP_LEAD_MS = 200;
+/**
+ * Over this share of the flip (EASE_FLIP across it) the blob behind the
+ * dashboard is pulled in, so the lifting sheet's edge never cuts it and the
+ * card's back face never turns over it. The return flip plays it backwards
+ * over the same share at its end, so Home lands exactly as it rests.
+ */
+export const BLOB_PULL_SPAN = 0.45;
 
 export const FADE_MS = 200;
 export const EASE_FADE = [0.32, 0.72, 0, 1] as const;

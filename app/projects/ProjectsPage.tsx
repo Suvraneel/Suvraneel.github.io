@@ -23,7 +23,7 @@ import {
   type RefObject,
 } from "react";
 import LiftHeading from "@components/LiftHeading";
-import ProjectModal, { type ModalOrigin } from "@components/ProjectModal";
+import ProjectModal, { isOnScreen, type ModalSource } from "@components/ProjectModal";
 import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
 import { layerPathOf, layoutTop, whenPlaced } from "@components/transition/arrival";
 import { getTransition, isInFlight } from "@components/transition/transitionStore";
@@ -69,7 +69,10 @@ const cardLayout = [
 export default function ProjectsPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [previewTime, setPreviewTime] = useState(0);
-  const [openedFrom, setOpenedFrom] = useState<ModalOrigin | null>(null);
+  const [openedFrom, setOpenedFrom] = useState<ModalSource | null>(null);
+  // The dialog is up, open or still leaving: from the press until its exit has
+  // finished and it has unlocked the page.
+  const [dialogPresent, setDialogPresent] = useState(false);
   const reduceMotion = useReducedMotion();
   const gallery = useRef<HTMLDivElement>(null);
   // The window's scroll, shared by every tile's media drift.
@@ -86,10 +89,11 @@ export default function ProjectsPage() {
   const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.35 });
   const [playPop] = useSfx("pop", { volume: 0.45 });
 
-  const openProject = (project: Project, time: number, origin: ModalOrigin) => {
+  const openProject = (project: Project, time: number, source: ModalSource) => {
     setSelectedProject(project);
     setPreviewTime(time);
-    setOpenedFrom(origin);
+    setOpenedFrom(source);
+    setDialogPresent(true);
     playPop();
   };
 
@@ -119,7 +123,8 @@ export default function ProjectsPage() {
                   reduceMotion={Boolean(reduceMotion)}
                   mountEntrance={!arrivingByTransition}
                   scrollY={scrollY}
-                  onOpen={(time, origin) => openProject(project, time, origin)}
+                  holdDepth={dialogPresent}
+                  onOpen={(time, source) => openProject(project, time, source)}
                   onHoverStart={playSnap}
                   onHoverEnd={stopSnap}
                 />
@@ -129,13 +134,13 @@ export default function ProjectsPage() {
         </section>
       </div>
 
-      <AnimatePresence>
+      <AnimatePresence onExitComplete={() => setDialogPresent(false)}>
         {selectedProject && (
           <ProjectModal
             key={("id" in selectedProject && selectedProject.id) || selectedProject.name}
             project={selectedProject}
             startAt={previewTime}
-            origin={openedFrom}
+            source={openedFrom}
             handleClose={() => setSelectedProject(null)}
           />
         )}
@@ -241,12 +246,17 @@ const getDepthQuery = () => (depthQuery ??= window.matchMedia(DEPTH_QUERY));
  * stand once settled (a framed sheet at its arrival offset); an exiting page
  * keeps its last frame while the window scrolls on underneath it. Transforms
  * only, with will-change just while they move; touch, phones and reduced
- * motion leave the media where it is.
+ * motion leave the media where it is. The tile's layout is read once it is
+ * placed and again only when something could have moved it (a resize, late
+ * fonts or images), so a scroll event reads nothing but the scroll offset.
+ * `held` (the project dialog is up) keeps the drift where it is until the
+ * dialog has gone.
  */
 function useMediaDepth(
   tileRef: RefObject<HTMLElement | null>,
   tilt: { rotateX: MotionValue<number>; rotateY: MotionValue<number> },
-  scrollY: MotionValue<number>
+  scrollY: MotionValue<number>,
+  held: boolean
 ) {
   const isPresent = useIsPresent();
   const presentRef = useRef(isPresent);
@@ -254,10 +264,29 @@ function useMediaDepth(
   const drift = useMotionValue(0);
   const willChange = useMotionValue("auto");
   const idleTimer = useRef<number | null>(null);
+  // The tile's layout offsets and sizes (no lift or depth transform touches them) and the view's height.
+  const layout = useRef<{ top: number; height: number; clientHeight: number; viewport: number } | null>(null);
+  // Kept in a layout effect, so it is set before the dialog's own effect locks the page.
+  const heldRef = useRef(held);
 
   useLayoutEffect(() => {
     presentRef.current = isPresent;
   }, [isPresent]);
+
+  useLayoutEffect(() => {
+    heldRef.current = held;
+  }, [held]);
+
+  const measureLayout = useCallback(() => {
+    const tile = tileRef.current;
+    if (!tile || !presentRef.current || !enabled.current) return;
+    layout.current = {
+      top: layoutTop(tile),
+      height: tile.offsetHeight,
+      clientHeight: tile.clientHeight,
+      viewport: window.innerHeight,
+    };
+  }, [tileRef]);
 
   const measureDrift = useCallback(() => {
     const tile = tileRef.current;
@@ -266,13 +295,23 @@ function useMediaDepth(
       drift.set(0);
       return;
     }
+    // The project dialog pins the page at scrollY 0 under it: the media holds
+    // where it was, so the preview frame lands back on it as the visitor left it.
+    if (heldRef.current) return;
+    if (!layout.current) measureLayout();
+    const box = layout.current;
+    if (!box) return;
     const t = getTransition();
     const scroll = isInFlight(t) && t.to === layerPathOf(tile) ? (t.arrivalScrollY ?? window.scrollY) : window.scrollY;
-    const viewport = window.innerHeight;
-    const progress = (scroll + viewport - layoutTop(tile)) / (viewport + tile.offsetHeight);
-    const reach = Math.min(tile.clientHeight * DRIFT_SHARE, DRIFT_MAX_PX);
+    const progress = (scroll + box.viewport - box.top) / (box.viewport + box.height);
+    const reach = Math.min(box.clientHeight * DRIFT_SHARE, DRIFT_MAX_PX);
     drift.set((Math.min(Math.max(progress, 0), 1) * 2 - 1) * reach);
-  }, [drift, tileRef]);
+  }, [drift, measureLayout, tileRef]);
+
+  const remeasure = useCallback(() => {
+    measureLayout();
+    measureDrift();
+  }, [measureDrift, measureLayout]);
 
   const pointerX = (rotateY: number) => (enabled.current ? (-rotateY / TILT_MAX_DEG) * POINTER_SHIFT_PX.x : 0);
   const pointerY = (rotateX: number) => (enabled.current ? (rotateX / TILT_MAX_DEG) * POINTER_SHIFT_PX.y : 0);
@@ -308,6 +347,19 @@ function useMediaDepth(
 
   useMotionValueEvent(scrollY, "change", measureDrift);
 
+  // Let go once the dialog has gone. Its own cleanup has unlocked the page and
+  // restored the scroll by now (a removed component's effects clean up before
+  // any effect runs), so this catches up on whatever moved while it held, such
+  // as a resize; a tile that was never held measures nothing here.
+  const wasHeld = useRef(false);
+  useEffect(() => {
+    if (held) wasHeld.current = true;
+    else if (wasHeld.current) {
+      wasHeld.current = false;
+      remeasure();
+    }
+  }, [held, remeasure]);
+
   // Once the page stands where it will be seen, and again whenever the query flips.
   // After the transforms above: they subscribe to `drift` in their own layout effects.
   useLayoutEffect(() => {
@@ -316,21 +368,32 @@ function useMediaDepth(
     const query = getDepthQuery();
     const sync = () => {
       enabled.current = query.matches;
-      measureDrift();
+      remeasure();
     };
     query.addEventListener("change", sync);
     // A resize that leaves scrollY alone (devtools, window snapping) still moves the tiles.
-    window.addEventListener("resize", measureDrift);
+    window.addEventListener("resize", remeasure);
+    // So do the tile or its page changing size, and fonts or images that load
+    // late and reflow the page above it.
+    const resizes = new ResizeObserver(remeasure);
+    resizes.observe(tile);
+    const page = tile.closest("[data-page]");
+    if (page) resizes.observe(page);
+    document.fonts.addEventListener("loadingdone", remeasure);
+    window.addEventListener("load", remeasure);
     const stopWaiting = whenPlaced(tile, sync);
     return () => {
       stopWaiting();
       query.removeEventListener("change", sync);
-      window.removeEventListener("resize", measureDrift);
+      window.removeEventListener("resize", remeasure);
+      resizes.disconnect();
+      document.fonts.removeEventListener("loadingdone", remeasure);
+      window.removeEventListener("load", remeasure);
       // The transforms drop their pending update as they unsubscribe, so a remount
       // (Strict Mode) must measure a change again.
       drift.jump(0);
     };
-  }, [drift, measureDrift, tileRef]);
+  }, [drift, remeasure, tileRef]);
 
   return {
     front: { x: frontX, y: frontY, willChange },
@@ -349,6 +412,7 @@ function ProjectTile({
   reduceMotion,
   mountEntrance,
   scrollY,
+  holdDepth,
   onOpen,
   onHoverStart,
   onHoverEnd,
@@ -358,20 +422,28 @@ function ProjectTile({
   /** Direct load: the short entrance on mount. A lift brings the cards in itself. */
   mountEntrance: boolean;
   scrollY: MotionValue<number>;
-  /** Gets where the hover preview had got to (0 if it never played) and the tile's centre. */
-  onOpen: (previewTime: number, origin: ModalOrigin) => void;
+  /** The project dialog is up: the media's drift holds where it is. */
+  holdDepth: boolean;
+  /** Gets where the hover preview had got to (0 if it never played) and the tile with its still. */
+  onOpen: (previewTime: number, source: ModalSource) => void;
   onHoverStart: () => void;
   onHoverEnd: () => void;
 }) {
   const tileRef = useRef<HTMLButtonElement>(null);
   const previewVideo = useRef<HTMLVideoElement>(null);
+  const stillImage = useRef<HTMLImageElement>(null);
   const tilt = useCardTilt(reduceMotion);
-  const depth = useMediaDepth(tileRef, tilt, scrollY);
+  const depth = useMediaDepth(tileRef, tilt, scrollY, holdDepth);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const hasDedicatedPreview = project.gif !== "video-to-be-added.webm";
   const youtubeId = getYouTubeId(project.video);
   const hasVideoThumbnail = Boolean(youtubeId && youtubeId !== placeholderDemoId && !thumbnailFailed);
   const thumbnail = "thumbnail" in project ? project.thumbnail : undefined;
+  const showsThumbnail = Boolean(thumbnail && !thumbnailFailed);
+  const videoPoster = `/images/project-assets/${project.gif.replace(/\.webm$/, ".poster.webp")}`;
+  const youtubeStill = `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
+  // The still the tile shows, already decoded: the dialog's preview starts on it.
+  const still = showsThumbnail ? thumbnail : hasDedicatedPreview ? videoPoster : hasVideoThumbnail ? youtubeStill : undefined;
   // Plain text here: case-note links ([label](url)) keep only their label on the tile.
   const overview = project.details
     .split("|")[0]
@@ -422,9 +494,17 @@ function ProjectTile({
       whileTap={{ scale: 0.985 }}
       style={{ rotateX: tilt.rotateX, rotateY: tilt.rotateY, transformPerspective: tilt.perspective }}
       onClick={(event) => {
-        const box = event.currentTarget.getBoundingClientRect();
+        const tile = event.currentTarget;
+        const media = hasDedicatedPreview && !showsThumbnail ? previewVideo.current : stillImage.current;
         // An unplayed preview has no src, so its currentTime reads 0.
-        onOpen(previewVideo.current?.currentTime ?? 0, { x: box.left + box.width / 2, y: box.top + box.height / 2 });
+        onOpen(previewVideo.current?.currentTime ?? 0, {
+          tile,
+          media,
+          poster: still ?? null,
+          strength: media ? parseFloat(getComputedStyle(media).opacity) : 1,
+          // Now, as it is pressed (a click, a key or a tap): before the dialog locks the page.
+          onScreen: isOnScreen(tile.getBoundingClientRect()),
+        });
       }}
       onHoverStart={startPreview}
       onHoverEnd={stopPreview}
@@ -453,6 +533,7 @@ function ProjectTile({
             {/* Sized and centred like object-contain, so the mask fades the drawn image's own edges. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
+              ref={stillImage}
               className="absolute inset-0 m-auto max-h-full max-w-full opacity-95 transition duration-500 ease-out group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
               src={thumbnail}
               alt=""
@@ -474,7 +555,7 @@ function ProjectTile({
           <video
             ref={previewVideo}
             aria-hidden="true"
-            poster={`/images/project-assets/${project.gif.replace(/\.webm$/, ".poster.webp")}`}
+            poster={videoPoster}
             className="h-full w-full object-cover opacity-75 transition duration-500 ease-out group-hover:scale-[1.035] group-hover:opacity-100 motion-reduce:transition-none"
             preload="none"
             muted
@@ -487,8 +568,9 @@ function ProjectTile({
           {/* YouTube provides a project-specific still until a real walkthrough is available. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            ref={stillImage}
             className="h-full w-full object-cover opacity-80 transition duration-500 ease-out group-hover:scale-[1.035] group-hover:opacity-100 motion-reduce:transition-none"
-            src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`}
+            src={youtubeStill}
             alt=""
             onError={() => setThumbnailFailed(true)}
           />

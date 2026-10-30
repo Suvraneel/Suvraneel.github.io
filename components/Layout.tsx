@@ -14,8 +14,10 @@ const Layout = ({
   const { preloaderActive } = useDashboardScene();
 
   return (
+    // overflow-x-clip, not hidden: a scroll container here would catch sticky
+    // elements (the Skills switcher) before they reach the window.
     <div
-      className="bg-transparent flex min-h-[100dvh] w-full flex-row justify-start overflow-x-hidden"
+      className="bg-transparent flex min-h-[100dvh] w-full flex-row justify-start overflow-x-clip"
       id="visits"
       inert={preloaderActive}
     >
