@@ -53,7 +53,7 @@ const ChronoCard = ({
         <div
           aria-hidden="true"
           data-timeline-dot
-          className="absolute left-0 top-1 hidden h-2 w-2 sm:[@container(min-width:28rem)]:block transition-transform duration-300 group-hover:scale-150"
+          className="absolute left-0 top-1 hidden h-2 w-2 sm:[@container(min-width:28rem)]:block transition-transform duration-300 group-hover:scale-150 motion-reduce:transition-none"
         >
           <span className="timeline-dot-dim absolute inset-0 rounded-full bg-white/25" />
           <span
