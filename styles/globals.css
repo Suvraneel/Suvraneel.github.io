@@ -45,6 +45,10 @@ body {
   /* background-repeat: repeat; */
   /* background-size: 4%; */
   background: black;
+  /* Clip, not hidden: hidden would make body a scroll container, and sticky
+     elements (the Skills switcher) would pin to it instead of the window.
+     html keeps hidden, which is what stops the page panning sideways. */
+  overflow-x: clip;
 }
 
 a {
