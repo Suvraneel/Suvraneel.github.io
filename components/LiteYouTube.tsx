@@ -27,6 +27,8 @@ const PLAYER_SETTLE_MS = 1500;
  */
 const LOADING_OPACITY = 0.01;
 const PLAYER_FADE = `opacity ${FADE_MS}ms ${cssEase(EASE_FADE)}`;
+/** The posters' own strength at rest, unhovered (their opacity-90 below). */
+const POSTER_REST_OPACITY = 0.9;
 
 /**
  * poster: ours, with the play button. loading: the player is starting under
@@ -55,13 +57,34 @@ const hasNavigated = (frame: Window) => {
  * (YouTube's iframe message protocol), and crossfades into the playing video
  * instead of cutting to black. That report trails the first audio by ~0.1 s.
  * Focus stays in the page, so Escape still closes the dialog around it.
+ * An `initialPoster` (a still the page has already decoded) covers the poster
+ * until YouTube's own frame has loaded, then fades out over it. While
+ * `holdInitialPoster` is set (the dialog's frame is still travelling in), it
+ * stays, alone, even once YouTube's frame has loaded, so the picture never
+ * changes mid-travel, and at least as strong as `initialPosterStrength` (how
+ * strong the page showed it: a hovered tile's full strength, say).
  */
-export default function LiteYouTube({ src, title }: Readonly<{ src: string; title: string }>) {
+export default function LiteYouTube({
+  src,
+  title,
+  initialPoster = null,
+  initialPosterStrength = 0,
+  holdInitialPoster = false,
+}: Readonly<{
+  src: string;
+  title: string;
+  initialPoster?: string | null;
+  initialPosterStrength?: number;
+  holdInitialPoster?: boolean;
+}>) {
   const id = videoIdOf(src);
   const [stage, setStage] = useState<Stage>("poster");
   // The player has answered: its frame has painted, so the poster can go once it is shown.
   const [heard, setHeard] = useState(false);
   const [poster, setPoster] = useState(id ? `https://i.ytimg.com/vi/${id}/maxresdefault.jpg` : "");
+  // YouTube's frame has loaded (the maxres one, or the hq fallback), so the initial poster can go once it may.
+  const [posterLoaded, setPosterLoaded] = useState(false);
+  const initialPosterHeld = Boolean(initialPoster) && holdInitialPoster;
   const [playHovered, setPlayHovered] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const controls = useRef<HTMLDivElement>(null);
@@ -175,18 +198,34 @@ export default function LiteYouTube({ src, title }: Readonly<{ src: string; titl
       </span>
       {stage !== "player" && (
       <>
+      {/* Hidden, not transparent, while the initial poster is held over it: no
+          trace of it shows through, and it comes back at once (no fade) as that
+          starts to fade out over it. */}
       <img
         src={poster}
         alt=""
-        className={`h-full w-full object-cover transition-opacity duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${started ? "opacity-100" : "opacity-90 group-hover:opacity-100"}`}
+        className={`h-full w-full object-cover transition-opacity duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${started ? "opacity-100" : "opacity-90 group-hover:opacity-100"} ${initialPosterHeld ? "invisible" : ""}`}
         // Older uploads have no maxres frame; YouTube then serves a 120px placeholder.
         onLoad={(event) => {
           if (event.currentTarget.naturalWidth <= 120 && poster.includes("maxres")) setPoster(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`);
+          else setPosterLoaded(true);
         }}
         onError={() => {
           if (poster.includes("maxres")) setPoster(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`);
         }}
       />
+      {/* Over YouTube's frame while it loads, so the stage is never black; it then
+          fades out at the poster's own pace. If neither YouTube frame loads, it stays. */}
+      {initialPoster && (
+        <img
+          src={initialPoster}
+          alt=""
+          className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${posterLoaded && !initialPosterHeld ? "opacity-0" : started ? "opacity-100" : "opacity-90 group-hover:opacity-100"}`}
+          // Held, it keeps the page's strength where that is the stronger, whatever
+          // the pointer does; let go, it eases from there to its own.
+          style={initialPosterHeld ? { opacity: Math.max(initialPosterStrength, POSTER_REST_OPACITY) } : undefined}
+        />
+      )}
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"

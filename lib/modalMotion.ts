@@ -3,17 +3,21 @@ import { EASE_FADE } from "@lib/pageTransition";
 
 // ---------------------------------------------------------------------------
 // One motion for the site's modal dialogs (the project case study, the
-// scheduler). The panel grows from the control that opened it and shrinks
-// back toward it; the backdrop fades under it and, on close, clears 70 ms
-// after the panel has gone, so the page comes back sharp just as it lands.
+// scheduler). The scheduler's panel grows from the control that opened it and
+// shrinks back toward it; the case study's preview frame travels from the
+// tile's media and back while the rest of its panel fades. The backdrop fades
+// under either and, on close, clears 70 ms after the panel has gone, so the
+// page comes back sharp just as it lands.
 // ---------------------------------------------------------------------------
 
 /** The opener's centre, in viewport px. */
 export type ModalOrigin = { x: number; y: number };
 
 export const MODAL_PANEL_S = 0.42;
+/** The panel's curve, also used by the case study's preview frame (a Web Animation, so it needs cubic-bezier). */
+export const MODAL_PANEL_EASE = [0.16, 1, 0.3, 1] as const;
 const MODAL_BACKDROP_S = 0.32;
-export const MODAL_PANEL_MOTION: Transition = { duration: MODAL_PANEL_S, ease: [0.16, 1, 0.3, 1] };
+export const MODAL_PANEL_MOTION: Transition = { duration: MODAL_PANEL_S, ease: MODAL_PANEL_EASE };
 export const MODAL_BACKDROP_MOTION: Transition = { duration: MODAL_BACKDROP_S, ease: EASE_FADE };
 export const MODAL_BACKDROP_EXIT_MOTION: Transition = {
   ...MODAL_BACKDROP_MOTION,
