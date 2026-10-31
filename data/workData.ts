@@ -18,16 +18,18 @@ export type EducationEntry = {
 
 export const workData: ExperienceEntry[] = [
   {
-    role: "Advanced App Engineering Sr. Analyst",
+    role: "Advanced Application Engineering Sr. Analyst",
     company: "Accenture",
-    duration: "2023 - Present",
+    duration: "Sep 2023 - Present",
     image: "ACN.svg",
-    summary: "Build backend services and integrations for a business-intelligence portal serving a global media client.",
+    summary:
+      "Backend engineer on a revenue-forecasting portal used by the licensing finance teams of a Fortune 50 media and entertainment client.",
     highlights: [
-      "Designed and deployed Java Spring Boot microservices for the portal.",
-      "Improved data validation and error handling, reducing support tickets by 60%.",
-      "Improved Elasticsearch query speed by 30%.",
-      "Worked with product and data teams to turn ambiguous requirements into pragmatic technical solutions.",
+      "Build and maintain the portal's Java/Spring Boot microservices, integrating Workday Adaptive Planning, AWS S3 and a MuleSoft integration layer.",
+      "Single-handedly architected an Apache POI engine generating four Excel data-entry templates with real-time, multi-layered validation, cutting manual handling time by 50% and data-entry errors by 80%.",
+      "Cut download time for existing KPI reports 120× and scaled their uploads from 3.5K to 80K+ rows.",
+      "Tuned Elasticsearch queries and indexing, cutting P95 latency by about 30%.",
+      "Built an MCP server for a legacy planning ERP that automates and standardises deployments across environments, reducing deployment time from 2 hours to 20 minutes on average.",
     ],
   },
 ];
@@ -52,7 +54,8 @@ export const communityLeadershipData: ExperienceEntry[] = [
     company: "HyperEdge Winter of Blockchain 2023",
     duration: "Jan 2023 - Apr 2023",
     image: "HyperEdgeWoB23.png",
-    summary: "Ran a blockchain learning programme for an 800+ member community.",
+    summary:
+      "Ran a blockchain learning programme for an 800+ member community.",
     highlights: [
       "Hosted 10+ sessions and workshops, including livestreams with industry practitioners.",
       "Led community partnerships, sponsorships, social media, and email campaigns.",
@@ -65,7 +68,8 @@ export const communityLeadershipData: ExperienceEntry[] = [
     company: "GirlScript Summer of Code 2022",
     duration: "Jan 2022 - Aug 2022",
     image: "GSSoC22.png",
-    summary: "Led delivery of the official platform and contributor programme for a national open-source initiative.",
+    summary:
+      "Led delivery of the official platform and contributor programme for a national open-source initiative.",
     highlights: [
       "Recruited and managed a 30-person team and ran the end-to-end contributor workflow.",
       "Built and maintained the official Next.js website for 6,000+ contributors, supporting applications and registration.",
@@ -79,7 +83,8 @@ export const communityLeadershipData: ExperienceEntry[] = [
     company: "GEOGO TechSolutions",
     duration: "Nov 2021 - Feb 2022",
     image: "GEOGO.png",
-    summary: "Built responsive web applications and APIs under industry mentorship.",
+    summary:
+      "Built responsive web applications and APIs under industry mentorship.",
     highlights: [
       "Developed full-stack projects, including a CoWIN vaccination-booking clone, using the MERN stack.",
       "Built and consumed APIs and maintained their documentation.",
@@ -91,7 +96,8 @@ export const communityLeadershipData: ExperienceEntry[] = [
     company: "GirlScript Winter of Contributing 2021",
     duration: "Sep 2021 - Dec 2021",
     image: "GWOC21.png",
-    summary: "Maintained an open-source programme repository and mentored new contributors.",
+    summary:
+      "Maintained an open-source programme repository and mentored new contributors.",
     highlights: [
       "Reviewed contributions to an open-source repository with roughly 900 stars and 1.6k forks.",
       "Mentored 6,000+ participants in Git, GitHub, and open-source workflows.",
