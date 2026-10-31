@@ -18,6 +18,7 @@ import {
   MODAL_PANEL_S,
   MODAL_REDUCED_MOTION,
 } from "@lib/modalMotion";
+import { useSfx } from "@hooks/useSfx";
 import { cssEase } from "@lib/pageTransition";
 
 /**
@@ -432,6 +433,9 @@ export default function ProjectModal({
   const scroller = useRef<HTMLElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const [visitHovered, setVisitHovered] = useState(false);
+  const [playTick, { stop: stopTick }] = useSfx("tick");
+  const [playPress] = useSfx("press");
+  const [playClose] = useSfx("close");
   // The demo clip has a frame of its own to show, so the tile's still can go.
   const [clipHasFrame, setClipHasFrame] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -615,12 +619,19 @@ export default function ProjectModal({
   // wait as long. A frame caught on its way in still carries the tile's
   // still, so it turns back at once. A dialog closed from outside (browser
   // Back) is already hidden.
+  const closeHeard = useRef(false);
   const close = () => {
     const tile = source?.tile;
     const leadsIn =
       travels && landed && tileStill.current !== null && dialog.current?.open === true && tile?.isConnected === true && isOnScreen(tile.getBoundingClientRect());
     setStillLeadIn(leadsIn ? STILL_LEAD_IN_MS : 0);
     handleClose();
+    // The whoosh goes with the frame, after the lead-in when there is one;
+    // once, however many times a close is asked for on the way out.
+    if (closeHeard.current) return;
+    closeHeard.current = true;
+    if (leadsIn) window.setTimeout(playClose, STILL_LEAD_IN_MS);
+    else playClose();
   };
 
   // Close: the frame goes back over the tile, re-measured now, from wherever
@@ -953,15 +964,29 @@ export default function ProjectModal({
                   href={project.url}
                   target="_blank"
                   rel="noreferrer"
-                  onMouseEnter={() => setVisitHovered(true)}
-                  onMouseLeave={() => setVisitHovered(false)}
+                  onMouseEnter={() => {
+                    setVisitHovered(true);
+                    playTick();
+                  }}
+                  onMouseLeave={() => {
+                    setVisitHovered(false);
+                    stopTick();
+                  }}
+                  onClick={playPress}
                 >
                   <span>Visit project</span>
                   <SquareArrowOutUpRightIcon aria-hidden="true" size={16} animate={visitHovered} />
                 </LiquidMetalButton>
               )}
               {project.github !== "#" && (
-                <PillButton href={project.github} target="_blank" rel="noreferrer">
+                <PillButton
+                  href={project.github}
+                  target="_blank"
+                  rel="noreferrer"
+                  onMouseEnter={playTick}
+                  onMouseLeave={stopTick}
+                  onClick={playPress}
+                >
                   View source
                 </PillButton>
               )}

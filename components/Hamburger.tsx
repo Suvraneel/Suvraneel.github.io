@@ -1,5 +1,6 @@
 "use client";
 
+import { Disc3Icon } from "@components/animate-ui/icons/disc-3";
 import { FingerprintIcon } from "@components/animate-ui/icons/fingerprint";
 import { LayoutDashboardIcon } from "@components/animate-ui/icons/layout-dashboard";
 import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
@@ -7,6 +8,7 @@ import { MessageCircleMoreIcon } from "@components/animate-ui/icons/message-circ
 import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
 import { TerminalIcon } from "@components/animate-ui/icons/terminal";
 import { VolumeIcon } from "@components/animate-ui/icons/volume";
+import { stopMusic, useMusicPlaying } from "@hooks/useMusic";
 import { toggleSfxMuted, useSfx, useSfxMuted } from "@hooks/useSfx";
 import { EASE_FADE, prefersReducedMotion } from "@lib/pageTransition";
 import { AnimatePresence, motion, stagger, useIsPresent, type Variants } from "motion/react";
@@ -15,7 +17,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import MenuToggle from "./DrawerToggler";
 import Socials from "./Socials";
-import { getTransition, isInFlight } from "./transition/transitionStore";
+import { getTransition, isInFlight, wasClickDropped } from "./transition/transitionStore";
 
 // Opens like a released sheet (no bounce). Closes faster, on the fade ease, so
 // the exit a drawer link starts overlaps the opening of the page lift.
@@ -121,8 +123,8 @@ function DrawerSheet({
 function DrawerSoundToggle({ reduceMotion }: { reduceMotion: boolean }) {
   const muted = useSfxMuted();
   const [isHovered, setIsHovered] = useState(false);
-  const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
-  const [playConfirm] = useSfx("confirm", { volume: 0.25 });
+  const [playTick, { stop: stopTick }] = useSfx("tick");
+  const [playConfirm] = useSfx("confirm");
 
   return (
     <button
@@ -134,12 +136,12 @@ function DrawerSoundToggle({ reduceMotion }: { reduceMotion: boolean }) {
       onMouseDown={(event) => event.preventDefault()}
       onMouseEnter={() => {
         setIsHovered(true);
-        stopSnap();
-        playSnap();
+        stopTick();
+        playTick();
       }}
       onMouseLeave={() => {
         setIsHovered(false);
-        stopSnap();
+        stopTick();
       }}
       onFocus={() => setIsHovered(true)}
       onBlur={() => setIsHovered(false)}
@@ -151,6 +153,48 @@ function DrawerSoundToggle({ reduceMotion }: { reduceMotion: boolean }) {
       className={`grid h-6 w-6 place-items-center rounded-md transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${isHovered ? "text-accent" : "text-white"}`}
     >
       <VolumeIcon aria-hidden="true" size={24} muted={muted} animate={isHovered && !reduceMotion} />
+    </button>
+  );
+}
+
+/**
+ * The rail's music button goes when the rail does (an iPad turned upright):
+ * while the music plays, the drawer offers the stop, after the socials.
+ */
+function DrawerMusicStop({ reduceMotion }: { reduceMotion: boolean }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [playTick, { stop: stopTick }] = useSfx("tick");
+  const [playPress] = useSfx("press");
+
+  return (
+    <button
+      type="button"
+      aria-label="Stop music"
+      // As the socials: a click leaves no focus ring behind.
+      onMouseDown={(event) => event.preventDefault()}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        stopTick();
+        playTick();
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        stopTick();
+      }}
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
+      onClick={(event) => {
+        // This button goes as the music stops: a keyboard press hands its
+        // focus to the Sounds toggle beside it rather than dropping it.
+        if (document.activeElement === event.currentTarget) {
+          event.currentTarget.parentElement?.querySelector<HTMLElement>('[aria-label="Sounds"]')?.focus();
+        }
+        playPress();
+        stopMusic();
+      }}
+      className={`grid h-6 w-6 place-items-center rounded-md transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${isHovered ? "text-accent" : "text-white"}`}
+    >
+      <Disc3Icon aria-hidden="true" size={24} animate={!reduceMotion} />
     </button>
   );
 }
@@ -176,6 +220,9 @@ const Hamburger = () => {
   ];
 
   const navRef = useRef<HTMLElement>(null);
+  const musicPlaying = useMusicPlaying();
+  const [playTick, { stop: stopTick }] = useSfx("tick");
+  const [playPress] = useSfx("press");
   const openDrawer = () => setIsOpen(true);
   const closeDrawer = () => setIsOpen(false);
   // A link that starts a page transition leaves the sheet up until the route
@@ -277,7 +324,16 @@ const Hamburger = () => {
                       // The current page carries the accent, as on the desktop rail.
                       aria-current={pathname === href ? "page" : undefined}
                       className={`flex w-full items-center gap-4 rounded-2xl border border-white/10 px-4 py-3 transition hover:border-white/15 hover:bg-white/[0.04] hover:text-accent focus-visible:border-white/15 focus-visible:bg-white/[0.04] focus-visible:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${pathname === href ? "text-accent" : "text-white"}`}
-                      onClick={() => onLinkClick(href)}
+                      onMouseEnter={() => {
+                        stopTick();
+                        playTick();
+                      }}
+                      onMouseLeave={stopTick}
+                      // As on the rail: silent for the current page or a click the transition turns away.
+                      onClick={(event) => {
+                        if (pathname !== href && !wasClickDropped(event.nativeEvent)) playPress();
+                        onLinkClick(href);
+                      }}
                     >
                       <Icon aria-hidden="true" size={21} animateOnHover />
                       <span className="text-lg font-medium">{name}</span>
@@ -287,6 +343,7 @@ const Hamburger = () => {
               </motion.ul>
               <motion.div variants={reduceMotion ? undefined : variantsItem} initial="closed" animate="open" className="border-t border-white/10 px-5 py-5">
                 <Socials>
+                  {musicPlaying && <DrawerMusicStop reduceMotion={reduceMotion} />}
                   <DrawerSoundToggle reduceMotion={reduceMotion} />
                 </Socials>
               </motion.div>
