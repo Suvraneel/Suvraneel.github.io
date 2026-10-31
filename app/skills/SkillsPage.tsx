@@ -237,15 +237,19 @@ const classicScrollbarWidth = () => {
 /**
  * The switcher's height as the live page lays it out. At lg the live page is
  * taller than the window in either mode, so a classic scrollbar always takes
- * its width there; a lift that stops the window scrolling hides it, and the
- * page widens by that much. Near a wrap that reads the switcher shorter, which would switch the
- * steps on for the lift alone, so while the scrollbar is hidden the page is
+ * its width there. A lift that stops the window scrolling hides it; the
+ * root's scrollbar-gutter keeps its width out of the page all the same, but
+ * where that is unsupported (Safari before 18.2) the page widens by that
+ * much. Near a wrap that reads the switcher shorter, which would switch the
+ * steps on for the lift alone, so while the page has that width back it is
  * narrowed by it for the reading and put back before anything is painted.
+ * Whether it has is read from <html>'s width: clientWidth takes out a
+ * scrollbar that is shown, but not the gutter kept for one that is hidden.
  * The page, not the switcher, is narrowed, so the column's 1440px cap still
  * decides how much of that width the switcher gives up.
  */
 function liveHeight(switcher: HTMLElement, main: HTMLElement | null) {
-  const hidden = window.innerWidth > document.documentElement.clientWidth ? 0 : classicScrollbarWidth();
+  const hidden = window.innerWidth > document.documentElement.offsetWidth ? 0 : classicScrollbarWidth();
   if (!hidden || !main) return switcher.offsetHeight;
   // .nav-gap sets <main>'s width as important, so the narrower one must be too.
   main.style.setProperty("width", `${Number.parseFloat(getComputedStyle(main).width) - hidden}px`, "important");

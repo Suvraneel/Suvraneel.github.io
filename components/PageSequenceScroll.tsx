@@ -581,7 +581,9 @@ const PageSequenceScroll = () => {
       // At the edge being pulled. Going forward: the bottom, over the page's
       // bottom padding. Going back: in the top bar's row, beside the menu
       // button, above the page's own heading rather than on it.
-      const viewport = document.documentElement.clientWidth;
+      // <html>'s own width: clientWidth takes out a scrollbar that is shown,
+      // but not the gutter kept for one that is hidden.
+      const viewport = document.documentElement.offsetWidth;
       const width = hint.offsetWidth;
       const menu = forward ? null : document.querySelector<HTMLElement>("button.hamburger")?.getBoundingClientRect();
       // A rail shown (display: none hides it with its client rects) starts the column past it.

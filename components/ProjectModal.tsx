@@ -344,9 +344,13 @@ export default function ProjectModal({
       width: body.style.width,
       paddingRight: body.style.paddingRight,
     };
-    const scrollbarWidth = window.innerWidth - root.clientWidth;
-
+    // The room a classic scrollbar gives back as it goes, padded out of the
+    // page so it doesn't widen. The root's scrollbar-gutter keeps that room
+    // where it is supported, so only an engine without it (Safari before 18.2)
+    // gives any back.
+    const width = root.offsetWidth;
     root.style.overflow = "hidden";
+    const scrollbarWidth = root.offsetWidth - width;
     body.style.overflow = "hidden";
     body.style.position = "fixed";
     body.style.top = `-${scrollPosition}px`;
