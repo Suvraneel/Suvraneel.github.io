@@ -301,7 +301,7 @@ const Work = () => {
               <div className="relative grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-8 sm:[@container(min-width:28rem)]:pl-5">
                 <div aria-hidden="true" data-timeline-dot className="absolute left-0 top-1 hidden h-2 w-2 sm:[@container(min-width:28rem)]:block">
                   <span className="timeline-dot-dim absolute inset-0 rounded-full bg-white/25" />
-                  <span className="timeline-dot-lit absolute inset-0 rounded-full bg-white/50" />
+                  <span className="timeline-dot-lit absolute inset-0 rounded-full bg-accent shadow-[0_0_12px_rgb(var(--accent)/0.6)]" />
                 </div>
                 <div>
                   <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] text-accent/70 sm:[@container(min-width:28rem)]:block ${tasaOrbiter.className}`}>
