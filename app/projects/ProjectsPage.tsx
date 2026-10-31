@@ -23,7 +23,14 @@ import {
   type RefObject,
 } from "react";
 import LiftHeading from "@components/LiftHeading";
-import ProjectModal, { isOnScreen, type ModalSource } from "@components/ProjectModal";
+import ProjectModal, {
+  isOnScreen,
+  THUMBNAIL_BACKDROP_CLASS,
+  THUMBNAIL_EDGE_STYLE,
+  THUMBNAIL_MOUNT_CLASS,
+  THUMBNAIL_VEIL_CLASS,
+  type ModalSource,
+} from "@components/ProjectModal";
 import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
 import { layerPathOf, layoutTop, whenPlaced } from "@components/transition/arrival";
 import { getTransition, isInFlight } from "@components/transition/transitionStore";
@@ -401,12 +408,6 @@ function useMediaDepth(
   };
 }
 
-// Soft edges on the drawn thumbnail itself (its box is the contained image, not
-// the tile), so a letterboxed image never meets its blurred copy in a hard line,
-// even as it moves.
-const THUMBNAIL_EDGE_MASK =
-  "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent), linear-gradient(to right, transparent, #000 5%, #000 95%, transparent)";
-
 function ProjectTile({
   project,
   reduceMotion,
@@ -514,21 +515,16 @@ function ProjectTile({
       onBlur={stopFocusPreview}
     >
       {thumbnail && !thumbnailFailed ? (
-        <div className="relative z-0 h-full w-full overflow-hidden bg-[#060606]">
+        <div className={`relative z-0 h-full w-full overflow-hidden ${THUMBNAIL_MOUNT_CLASS}`}>
           {/* Let the thumbnail's colours soften into the tile behind its crisp, uncropped copy. */}
           {/* Own compositing layer: WebKit otherwise re-renders the 40px blur in software on every
               repaint of the page, which cost ~100ms frames as a lift mounted /projects and as it settled. */}
           {/* Depth layers (useMediaDepth): the backdrop sits furthest back, the crisp copy moves at the full rate. */}
           <motion.div className="absolute inset-0" style={depth.back}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-2xl will-change-transform"
-              src={thumbnail}
-              alt=""
-              aria-hidden="true"
-            />
+            <img className={THUMBNAIL_BACKDROP_CLASS} src={thumbnail} alt="" aria-hidden="true" data-thumbnail-backdrop />
           </motion.div>
-          <div className="pointer-events-none absolute inset-0 bg-[#060606]/35" />
+          <div className={THUMBNAIL_VEIL_CLASS} />
           <motion.div className="absolute inset-0 z-10" style={depth.front}>
             {/* Sized and centred like object-contain, so the mask fades the drawn image's own edges. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -538,12 +534,7 @@ function ProjectTile({
               src={thumbnail}
               alt=""
               onError={() => setThumbnailFailed(true)}
-              style={{
-                WebkitMaskImage: THUMBNAIL_EDGE_MASK,
-                WebkitMaskComposite: "source-in",
-                maskImage: THUMBNAIL_EDGE_MASK,
-                maskComposite: "intersect",
-              }}
+              style={THUMBNAIL_EDGE_STYLE}
             />
           </motion.div>
         </div>

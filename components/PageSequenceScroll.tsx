@@ -62,6 +62,21 @@ const wheelHintFrom = 0.15;
 const railWidth = () =>
   Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--rail-w")) || 50;
 
+/**
+ * WebKit scrolls for as long as an arrow key is held, from its keydown to its
+ * keyup. A press let go before that scroll's first frame (on a busy page, or a
+ * synthetic tap) leaves the page where it was, so the arrows alone could never
+ * bring it to the edge that leads on. A press made while the page is at rest,
+ * which the browser has still not scrolled after this long, steps the page by
+ * WebKit's own arrow line instead. A press Chromium or Firefox scrolls is well
+ * under way by then; one made as the browser's last scroll ends, which
+ * Chromium drops when presses come fast, stays the browser's to drop, as it
+ * always was.
+ */
+const arrowSettleMs = 120;
+/** WebKit's arrow-key line, in px. */
+const arrowLine = 40;
+
 const pageLabels: Record<(typeof pageOrder)[number], string> = {
   "/": "Home",
   "/about": "About",
@@ -329,6 +344,55 @@ const PageSequenceScroll = () => {
     if (pathname === "/" || pathname === "/about") return;
     const offSequence = !isPagePath(pathname);
 
+    // Arrow presses still waiting to see whether the browser scrolled for them,
+    // and how far their steps have moved the page: a press made while another
+    // waits must not take that step for a scroll of the browser's own.
+    const pendingSteps = new Set<() => void>();
+    let stepped = 0;
+    // When the browser last scrolled anything, and where the last step left the
+    // page, so the scroll a step makes is never taken for one of the browser's.
+    let scrolledAt = Number.NEGATIVE_INFINITY;
+    let stepLanding: { scroller: Element; top: number } | null = null;
+    const noteScroll = (event: Event) => {
+      const element = event.target instanceof Element ? event.target : document.scrollingElement;
+      if (stepLanding && element === stepLanding.scroller && element.scrollTop === stepLanding.top) {
+        stepLanding = null;
+        return;
+      }
+      scrolledAt = window.performance.now();
+    };
+
+    /** Steps `scroller` a line for an arrow press the browser left it unscrolled by. */
+    const stepIfUnscrolled = (event: KeyboardEvent, scroller: Element, direction: 1 | -1) => {
+      // A key on something inside a nested scroller scrolls that, not the page.
+      if (findScrollContainer(event.target) !== scroller) return;
+      // A page still settling from the browser's last scroll is not at rest.
+      if (window.performance.now() - scrolledAt < arrowSettleMs) return;
+      const from = scroller.scrollTop;
+      const steppedBefore = stepped;
+      let timer = 0;
+      let frame = 0;
+      const cancel = () => {
+        window.clearTimeout(timer);
+        window.cancelAnimationFrame(frame);
+        pendingSteps.delete(cancel);
+      };
+      // Read in a frame, once the browser has run that frame's scrolling.
+      timer = window.setTimeout(() => {
+        frame = window.requestAnimationFrame(() => {
+          cancel();
+          const moved = scroller.scrollTop - from - (stepped - steppedBefore);
+          if (Math.abs(moved) > 0.5 || event.defaultPrevented) return;
+          if (isTransitionLocked() || isNavigating.current || isDialogOpen()) return;
+          const before = scroller.scrollTop;
+          scroller.scrollBy({ top: direction * arrowLine, left: 0, behavior: "instant" });
+          stepped += scroller.scrollTop - before;
+          if (scroller.scrollTop !== before) stepLanding = { scroller, top: scroller.scrollTop };
+        });
+      }, arrowSettleMs);
+      pendingSteps.add(cancel);
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.repeat || isTransitionLocked() || isNavigating.current || isDialogOpen()) return;
       const target = event.target as HTMLElement | null;
@@ -349,7 +413,10 @@ const PageSequenceScroll = () => {
       if (!direction || !nextPath) return;
       // The page's own scroller (Work's <main>), else the document.
       const scroller = findScrollContainer(document.querySelector(`[data-page="${pathname}"] main`));
-      if (!isAtEdge(scroller, direction)) return;
+      if (!isAtEdge(scroller, direction)) {
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") stepIfUnscrolled(event, scroller, direction);
+        return;
+      }
 
       if (
         offSequence
@@ -362,7 +429,13 @@ const PageSequenceScroll = () => {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    // Element scrolls do not bubble, so the window hears them while capturing.
+    window.addEventListener("scroll", noteScroll, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", noteScroll, true);
+      pendingSteps.forEach((cancel) => cancel());
+    };
   }, [navigate, pathname]);
 
   // Touch devices: pulling past a scroll edge moves through the sequence. The
@@ -508,7 +581,9 @@ const PageSequenceScroll = () => {
       // At the edge being pulled. Going forward: the bottom, over the page's
       // bottom padding. Going back: in the top bar's row, beside the menu
       // button, above the page's own heading rather than on it.
-      const viewport = document.documentElement.clientWidth;
+      // <html>'s own width: clientWidth takes out a scrollbar that is shown,
+      // but not the gutter kept for one that is hidden.
+      const viewport = document.documentElement.offsetWidth;
       const width = hint.offsetWidth;
       const menu = forward ? null : document.querySelector<HTMLElement>("button.hamburger")?.getBoundingClientRect();
       // A rail shown (display: none hides it with its client rects) starts the column past it.

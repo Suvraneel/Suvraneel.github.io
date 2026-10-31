@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion, type Variants } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { useReveal } from "@hooks/useReveal";
@@ -237,15 +237,19 @@ const classicScrollbarWidth = () => {
 /**
  * The switcher's height as the live page lays it out. At lg the live page is
  * taller than the window in either mode, so a classic scrollbar always takes
- * its width there; a lift that stops the window scrolling hides it, and the
- * page widens by that much. Near a wrap that reads the switcher shorter, which would switch the
- * steps on for the lift alone, so while the scrollbar is hidden the page is
+ * its width there. A lift that stops the window scrolling hides it; the
+ * root's scrollbar-gutter keeps its width out of the page all the same, but
+ * where that is unsupported (Safari before 18.2) the page widens by that
+ * much. Near a wrap that reads the switcher shorter, which would switch the
+ * steps on for the lift alone, so while the page has that width back it is
  * narrowed by it for the reading and put back before anything is painted.
+ * Whether it has is read from <html>'s width: clientWidth takes out a
+ * scrollbar that is shown, but not the gutter kept for one that is hidden.
  * The page, not the switcher, is narrowed, so the column's 1440px cap still
  * decides how much of that width the switcher gives up.
  */
 function liveHeight(switcher: HTMLElement, main: HTMLElement | null) {
-  const hidden = window.innerWidth > document.documentElement.clientWidth ? 0 : classicScrollbarWidth();
+  const hidden = window.innerWidth > document.documentElement.offsetWidth ? 0 : classicScrollbarWidth();
   if (!hidden || !main) return switcher.offsetHeight;
   // .nav-gap sets <main>'s width as important, so the narrower one must be too.
   main.style.setProperty("width", `${Number.parseFloat(getComputedStyle(main).width) - hidden}px`, "important");
@@ -294,6 +298,10 @@ export default function SkillsPage() {
     placed: false,
   });
   const reduceMotion = useReducedMotion();
+  // Leaving in a lift, the page is fixed in its layer and the window's scroll
+  // goes; the disc's layout, measured against the window, would read that as
+  // a move and fly in from the offset the page was left at. It stays put.
+  const leaving = !useIsPresent();
   // lg+ windows the pinned switcher fits: their scroll steps it through every
   // area. The server renders the click-driven switcher; the client measures
   // and steps it up once it is laid out.
@@ -617,7 +625,7 @@ export default function SkillsPage() {
                             <motion.span
                               aria-hidden="true"
                               layoutId="skills-active"
-                              transition={reduceMotion || selection.placed ? { duration: 0 } : DISC_SPRING}
+                              transition={reduceMotion || selection.placed || leaving ? { duration: 0 } : DISC_SPRING}
                               className="absolute inset-0 z-[1] rounded-full bg-accent"
                             />
                           )}

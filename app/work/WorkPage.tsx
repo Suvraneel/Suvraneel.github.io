@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { animate, useMotionValue, useScroll, useSpring, type AnimationPlaybackControls, type MotionValue } from "motion/react";
+import { useMotionValue, useScroll, useSpring, type MotionValue } from "motion/react";
 import type { Application } from "@splinetool/runtime";
 import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 import ChronoCard from "@components/ChronoCard";
@@ -19,15 +19,6 @@ import { renderOnDemand, scrubSplineScroll } from "@lib/splineScroll";
 
 /** The plant trails the page by a short settle, so a mouse wheel's steps read as one motion. */
 const PLANT_SPRING = { stiffness: 300, damping: 50 };
-
-/** Reached from above, the plant starts this far back along its scrub and grows into place. */
-const GROW_FROM = 0.35;
-/** Softer than PLANT_SPRING, so the grow reads as growth, not as a correction. */
-const GROW_SPRING = { type: "spring", stiffness: 120, damping: 22 } as const;
-/** A scene in later than this after Work is placed skips the grow: the visitor is reading by then. */
-const GROW_WINDOW_MS = 1500;
-/** The grow starts this long before the lift settles, so it overlaps the landing. */
-const GROW_LEAD_MS = 150;
 
 /** The scene's first frame fades in (rising 8px) over this; reduced motion only fades, faster. */
 const PLANT_FADE_MS = 600;
@@ -115,66 +106,6 @@ function useTimelineDots(mainRef: RefObject<HTMLElement | null>, scrollY: Motion
   }, [mainRef, scrollY]);
 }
 
-type PlantArrival = {
-  /** The transition that brought Work in; null for a direct load. */
-  id: number | null;
-  /** performance.now() once Work stands where the visitor sees it. */
-  placedAt: number;
-  /** A forward arrival at the top, or a direct load; never a backward or restored arrival. */
-  fromAbove: boolean;
-  /** Runs `start` GROW_LEAD_MS before the lift settles (at once without a lift). Returns a cancel. */
-  whenLanding: (start: () => void) => () => void;
-};
-
-/**
- * How and when Work arrived, for the plant's grow. A lift carries a silent
- * cue on its own timeline that ends GROW_LEAD_MS before it settles, so seeks,
- * resumes and settle move the grow's start with it.
- */
-function usePlantArrival(mainRef: RefObject<HTMLElement | null>) {
-  const arrival = useRef<PlantArrival | null>(null);
-
-  useLayoutEffect(() => {
-    const main = mainRef.current;
-    if (!main) return;
-    const stopWaiting = whenPlaced(main, (t, track) => {
-      // Strict Mode runs this again after the arrival, without its track: keep the first.
-      if (t && arrival.current?.id === t.id) return;
-      let landed = !track;
-      let onLanded: (() => void) | null = null;
-      if (track) {
-        const cue = new Animation(new KeyframeEffect(null, null, Math.max(0, track.duration - GROW_LEAD_MS)));
-        const land = () => {
-          landed = true;
-          onLanded?.();
-          onLanded = null;
-        };
-        // Settle finishes it; a cancelled lift rejects it. Either way the lift is over.
-        cue.finished.then(land, land);
-        track.add(cue);
-      }
-      arrival.current = {
-        id: t?.id ?? null,
-        placedAt: performance.now(),
-        fromAbove: t ? t.direction > 0 && t.arrival === "top" : true,
-        whenLanding: (start) => {
-          if (landed) {
-            start();
-            return () => undefined;
-          }
-          onLanded = start;
-          return () => {
-            onLanded = null;
-          };
-        },
-      };
-    });
-    return stopWaiting;
-  }, [mainRef]);
-
-  return arrival;
-}
-
 /** The scene's first frame fades in over its glow placeholder, which crossfades out in place. */
 function revealPlant(scene: HTMLElement | null, glow: HTMLElement | null) {
   const reduced = prefersReducedMotion();
@@ -208,9 +139,6 @@ const Work = () => {
   const seekPlant = useRef<((progress: number) => void) | null>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
-  /** Cancels the plant's arrival grow (waiting for its cue, or playing). */
-  const stopGrow = useRef<(() => void) | null>(null);
-  const plantArrival = usePlantArrival(mainRef);
   // Its column is display:none below md; an invisible canvas would still load
   // a Spline runtime. Mounted again later, the plant syncs on load (scrubPlant).
   const plantShown = useSyncExternalStore(subscribePlantQuery, isPlantShown, isPlantShownOnServer);
@@ -225,9 +153,6 @@ const Work = () => {
     if (!main) return;
     const reduced = prefersReducedMotion();
     const stopScroll = scrollY.on("change", (y) => {
-      // Any scroll takes the plant over from its arrival grow.
-      stopGrow.current?.();
-      stopGrow.current = null;
       const range = main.scrollHeight - main.clientHeight;
       const progress = range > 0 ? y / range : 0;
       if (reduced) plantProgress.jump(progress);
@@ -237,8 +162,6 @@ const Work = () => {
     return () => {
       stopScroll();
       stopSeek();
-      stopGrow.current?.();
-      stopGrow.current = null;
       seekPlant.current = null;
     };
   }, [scrollY, plantTarget, plantProgress]);
@@ -248,8 +171,6 @@ const Work = () => {
   useEffect(() => {
     if (plantShown) return;
     seekPlant.current = null;
-    stopGrow.current?.();
-    stopGrow.current = null;
     glowRef.current?.style.removeProperty("opacity");
   }, [plantShown]);
 
@@ -270,34 +191,12 @@ const Work = () => {
       const edge = t && !t.settled && t.to === "/work" && typeof t.arrival === "string" ? t.arrival : null;
       const range = main.scrollHeight - main.clientHeight;
       const progress = edge === "bottom" ? 1 : edge === "top" ? 0 : range > 0 ? main.scrollTop / range : 0;
-      // Reached from above (or loaded at the top) with the scene in early, the
-      // plant fades in a little way back and grows into place as the lift lands.
-      const arrival = plantArrival.current;
-      const grows =
-        progress === 0 &&
-        arrival !== null &&
-        arrival.fromAbove &&
-        performance.now() - arrival.placedAt <= GROW_WINDOW_MS &&
-        !prefersReducedMotion();
-      const start = grows ? GROW_FROM : progress;
       seekPlant.current = seek;
       plantTarget.jump(progress);
-      plantProgress.jump(start);
-      seek(start);
-      if (!grows) return;
-
-      let growing: AnimationPlaybackControls | null = null;
-      const stopWaiting = arrival.whenLanding(() => {
-        // Driven by jumps, so the scroll's own spring picks up from wherever the grow is.
-        growing = animate(GROW_FROM, 0, { ...GROW_SPRING, onUpdate: (value) => plantProgress.jump(value) });
-      });
-      stopGrow.current?.();
-      stopGrow.current = () => {
-        stopWaiting();
-        growing?.stop();
-      };
+      plantProgress.jump(progress);
+      seek(progress);
     },
-    [plantArrival, plantTarget, plantProgress],
+    [plantTarget, plantProgress],
   );
 
   // Focusable, so scroll keys reach <main> without tabbing into the entries.
@@ -402,7 +301,7 @@ const Work = () => {
               <div className="relative grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-8 sm:[@container(min-width:28rem)]:pl-5">
                 <div aria-hidden="true" data-timeline-dot className="absolute left-0 top-1 hidden h-2 w-2 sm:[@container(min-width:28rem)]:block">
                   <span className="timeline-dot-dim absolute inset-0 rounded-full bg-white/25" />
-                  <span className="timeline-dot-lit absolute inset-0 rounded-full bg-white/50" />
+                  <span className="timeline-dot-lit absolute inset-0 rounded-full bg-accent shadow-[0_0_12px_rgb(var(--accent)/0.6)]" />
                 </div>
                 <div>
                   <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] text-accent/70 sm:[@container(min-width:28rem)]:block ${tasaOrbiter.className}`}>

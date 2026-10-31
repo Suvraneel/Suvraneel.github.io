@@ -105,14 +105,18 @@ const About = () => {
       // Space and arrows belong to a focused control (e.g. Space activates a button).
       const isControl = target?.matches("a[href], button, summary, [role='button'], [role='link']");
 
-      if (isTyping || isControl || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (isTyping || isControl || event.altKey || event.ctrlKey || event.metaKey) return;
 
-      if (["ArrowUp", "PageUp"].includes(event.key) && window.scrollY <= 0) {
+      // Space with Shift goes up, as PageUp does; Shift with any other key is the browser's.
+      const space = event.key === " ";
+      if (event.shiftKey && !space) return;
+
+      if ((["ArrowUp", "PageUp"].includes(event.key) || (space && event.shiftKey)) && window.scrollY <= 0) {
         event.preventDefault();
         navigate("/", { source: "key" });
       }
 
-      if (["ArrowDown", "PageDown", " "].includes(event.key) && isAtPageBottom()) {
+      if ((["ArrowDown", "PageDown"].includes(event.key) || (space && !event.shiftKey)) && isAtPageBottom()) {
         event.preventDefault();
         navigate("/work", { source: "key", arrival: "top" });
       }

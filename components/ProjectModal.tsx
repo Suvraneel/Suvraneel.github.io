@@ -47,14 +47,43 @@ export type ModalSource = {
 export const isOnScreen = (box: DOMRect) =>
   box.width > 0 && box.height > 0 && box.bottom > 0 && box.right > 0 && box.top < window.innerHeight && box.left < window.innerWidth;
 
+/**
+ * How a tile draws a contained thumbnail, shared with the preview frame, which
+ * carries it the same way (see the frame's still): the image over a blurred
+ * copy of itself on a dark mount, under a veil.
+ */
+export const THUMBNAIL_MOUNT_CLASS = "bg-[#060606]";
+export const THUMBNAIL_BACKDROP_CLASS = "absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-2xl will-change-transform";
+export const THUMBNAIL_VEIL_CLASS = "pointer-events-none absolute inset-0 bg-[#060606]/35";
+
+// Soft edges on the drawn thumbnail itself (its box is the contained image, not
+// the tile), so a letterboxed image never meets its blurred copy in a hard line,
+// even as it moves.
+const THUMBNAIL_EDGE_MASK =
+  "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent), linear-gradient(to right, transparent, #000 5%, #000 95%, transparent)";
+export const THUMBNAIL_EDGE_STYLE: React.CSSProperties = {
+  WebkitMaskImage: THUMBNAIL_EDGE_MASK,
+  WebkitMaskComposite: "source-in",
+  maskImage: THUMBNAIL_EDGE_MASK,
+  maskComposite: "intersect",
+};
+
 type Size = { width: number; height: number };
 
 /**
  * Where the tile and its still stand (viewport px), the tile's border and inner
  * corner radius, how big it draws its picture whole (null: not known) and how
- * strong (the still's opacity: dimmed at rest, full on hover).
+ * strong (the still's opacity: dimmed at rest, full on hover), and where a
+ * contained thumbnail's blurred copy stands (null for any other still).
  */
-type TileRects = { box: DOMRect; still: DOMRect; picture: Size | null; border: number; radius: number; strength: number };
+type TileRects = { box: DOMRect; still: DOMRect; picture: Size | null; border: number; radius: number; strength: number; backdrop: DOMRect | null };
+
+/**
+ * A contained thumbnail's blurred copy, the image its tile marks as one (the
+ * still's soft edges fade into it); null for a clip or a YouTube still.
+ */
+const thumbnailBackdrop = ({ tile, media }: ModalSource) =>
+  media instanceof HTMLImageElement ? tile.querySelector<HTMLImageElement>("img[data-thumbnail-backdrop]") : null;
 
 /**
  * The tile's picture whole, as big as the tile draws it: a still with
@@ -78,15 +107,17 @@ function drawnPicture(media: HTMLElement, still: DOMRect, style: CSSStyleDeclara
 }
 
 /** The tile as it stands now (with its clip's poster size, where known); null once it is gone. */
-function measureTile({ tile, media }: ModalSource, poster: Size | null = null): TileRects | null {
+function measureTile(source: ModalSource, poster: Size | null = null): TileRects | null {
+  const { tile, media } = source;
   if (!tile.isConnected) return null;
   const box = tile.getBoundingClientRect();
   const border = tile.clientTop;
   const radius = parseFloat(getComputedStyle(tile).borderTopLeftRadius) - border;
-  if (!media?.isConnected) return { box, still: box, picture: null, border, radius, strength: 1 };
+  if (!media?.isConnected) return { box, still: box, picture: null, border, radius, strength: 1, backdrop: null };
   const still = media.getBoundingClientRect();
   const style = getComputedStyle(media);
-  return { box, still, picture: drawnPicture(media, still, style, poster), border, radius, strength: parseFloat(style.opacity) };
+  const backdrop = thumbnailBackdrop(source)?.getBoundingClientRect() ?? null;
+  return { box, still, picture: drawnPicture(media, still, style, poster), border, radius, strength: parseFloat(style.opacity), backdrop };
 }
 
 /**
@@ -156,15 +187,16 @@ function drawClipFrame(media: HTMLElement | null, canvas: HTMLCanvasElement | nu
   }
 }
 
+/** Where the frame stands laid over the tile's still (see placeOverTile). */
+type Placement = { home: DOMRect; scale: number; left: number; top: number };
+
 /**
- * The frame laid over the tile's still, from its own untransformed box: one
- * scale (so the picture never stretches) that lays the frame's picture over
- * the tile's, a clip to the part of the still the tile shows (inside the
- * tile's border, in the frame's own px so it scales with it), and its picture
- * layer dimmed to the still's strength from `own`, the strength the frame
- * draws its picture with on its own.
+ * Where the frame, from its own untransformed box (`home`), stands laid over
+ * the tile's still: one scale (so the picture never stretches) that lays the
+ * frame's picture over the tile's, and its box's top-left corner once scaled
+ * there (viewport px).
  */
-function frameOverTile(frame: HTMLElement, { box, still, picture, border, radius, strength }: TileRects, own: number): FrameState | null {
+function placeOverTile(frame: HTMLElement, { still, picture }: TileRects): Placement | null {
   const home = frame.getBoundingClientRect();
   if (home.width === 0 || home.height === 0) return null;
   // The frame draws the same picture with object-fit: cover inside its border.
@@ -175,8 +207,26 @@ function frameOverTile(frame: HTMLElement, { box, still, picture, border, radius
   const aspect = picture ? picture.width / picture.height : frame.clientWidth / frame.clientHeight;
   const tileWidth = picture?.width ?? Math.max(still.width, still.height * aspect);
   const scale = tileWidth / Math.max(frame.clientWidth, frame.clientHeight * aspect);
-  const left = still.left + still.width / 2 - (home.width * scale) / 2;
-  const top = still.top + still.height / 2 - (home.height * scale) / 2;
+  return {
+    home,
+    scale,
+    left: still.left + still.width / 2 - (home.width * scale) / 2,
+    top: still.top + still.height / 2 - (home.height * scale) / 2,
+  };
+}
+
+/**
+ * The frame laid over the tile's still (see placeOverTile): moved and scaled
+ * there, a clip to the part of the still the tile shows (inside the tile's
+ * border, in the frame's own px so it scales with it), and its picture layer
+ * dimmed to the still's strength from `own`, the strength the frame draws its
+ * picture with on its own.
+ */
+function frameOverTile(frame: HTMLElement, tile: TileRects, own: number): FrameState | null {
+  const at = placeOverTile(frame, tile);
+  if (!at) return null;
+  const { home, scale, left, top } = at;
+  const { box, still, border, radius, strength } = tile;
   // What the tile shows of it: the still's box, inside the tile's border.
   const shown = {
     left: Math.max(still.left, box.left + border),
@@ -200,17 +250,112 @@ function frameOverTile(frame: HTMLElement, { box, still, picture, border, radius
   };
 }
 
+/** The frame's copy of a contained thumbnail (see the frame's still): its mount, its blurred copy's layer and its image. */
+type ThumbnailCopy = { mount: HTMLElement | null; backdrop: HTMLElement | null; image: HTMLElement | null };
+
+/**
+ * How finely the copy's blurred layer is drawn, against the tile's px: its
+ * blur leaves nothing finer to see, and Firefox draws an SVG thumbnail in a
+ * fraction of the time (some 50 ms at full size, all of it on the open's first
+ * frame).
+ */
+const BACKDROP_DETAIL = 1 / 4;
+
+/**
+ * Draws the tile's thumbnail (loaded) into the copy's blurred layer, at the
+ * size the tile draws its own blurred copy (object-fit: cover inside the
+ * tile's border), BACKDROP_DETAIL as fine: a bitmap, drawn once. As an image,
+ * WebKit and Firefox draw an SVG thumbnail anew on every frame it moves, which
+ * slowed the travel.
+ */
+function drawThumbnailBackdrop({ box, border }: TileRects, thumbnail: HTMLElement | null, canvas: HTMLCanvasElement | null) {
+  if (!(thumbnail instanceof HTMLImageElement) || !canvas) return;
+  const { naturalWidth: width, naturalHeight: height } = thumbnail;
+  const scale = Math.max((box.width - 2 * border) / width, (box.height - 2 * border) / height) * BACKDROP_DETAIL;
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(thumbnail, 0, 0, canvas.width, canvas.height);
+}
+
+/**
+ * Lays the frame's copy of a contained thumbnail over the tile's own, part for
+ * part, so that laid over the tile the frame draws what the tile does, soft
+ * edges and all. The mount, with the blurred copy and its veil, stands in the
+ * tile's own px, from the corner inside the tile's border, scaled into the
+ * frame's untransformed px (which the frame's travel scales back), so its blur
+ * reaches as far as the tile's; the blurred copy goes where the tile's depth
+ * has moved its own. The image is laid out in the frame's px, as the frame
+ * draws its own picture, so the frame at its own size draws it from the image
+ * at that size rather than blown up from the tile's: where the tile's stands,
+ * at the tile's strength.
+ */
+function layThumbnail(frame: HTMLElement, tile: TileRects, { mount, backdrop, image }: ThumbnailCopy) {
+  const at = placeOverTile(frame, tile);
+  if (!at || !mount || !backdrop || !image) return;
+  const { box, still, border } = tile;
+  const inner = { left: box.left + border, top: box.top + border, width: box.width - 2 * border, height: box.height - 2 * border };
+  // A point of the tile in the frame's px, from the corner inside the frame's
+  // own border, where its picture layer starts.
+  const inFrame = (left: number, top: number) => [(left - at.left) / at.scale - frame.clientLeft, (top - at.top) / at.scale - frame.clientTop];
+  const [x, y] = inFrame(inner.left, inner.top);
+  Object.assign(mount.style, { width: `${inner.width}px`, height: `${inner.height}px`, transform: `translate(${x}px, ${y}px) scale(${1 / at.scale})` });
+  // Scaled about its centre like the tile's, so the move is centre to centre.
+  if (tile.backdrop) {
+    const dx = tile.backdrop.left + tile.backdrop.width / 2 - (inner.left + inner.width / 2);
+    const dy = tile.backdrop.top + tile.backdrop.height / 2 - (inner.top + inner.height / 2);
+    backdrop.style.transform = `translate(${dx}px, ${dy}px)`;
+  }
+  const [left, top] = inFrame(still.left, still.top);
+  Object.assign(image.style, {
+    left: `${left}px`,
+    top: `${top}px`,
+    width: `${still.width / at.scale}px`,
+    height: `${still.height / at.scale}px`,
+    opacity: String(tile.strength),
+  });
+}
+
 /** The frame's travel runs on the panel's own curve and duration. */
 const FRAME_TRAVEL: KeyframeAnimationOptions = { duration: MODAL_PANEL_S * 1000, easing: cssEase(MODAL_PANEL_EASE) };
 
 /**
  * The close's lead-in: the tile's still comes back over the frame's own
  * picture while the panel's fade does most of its work, and only then does the
- * frame set off home. The modal's own crossfade (reduced motion's, an
- * ease-out), so it reads as a fade over several frames, never a cut.
+ * frame set off home. Its own 120 ms, an ease-out: the shortest that still
+ * reads as a fade over several frames, never a cut. A thumbnail's copy gives
+ * way to the dialog's own picture the same way as the frame lands, the other
+ * way round.
  */
-const STILL_LEAD_IN_MS = (MODAL_REDUCED_MOTION.duration ?? 0.15) * 1000;
-const STILL_RETURN: KeyframeAnimationOptions = { duration: STILL_LEAD_IN_MS, easing: "ease-out", fill: "forwards" };
+const STILL_LEAD_IN_MS = 120;
+const STILL_FADE: KeyframeAnimationOptions = { duration: STILL_LEAD_IN_MS, easing: "ease-out", fill: "forwards" };
+
+/** One frame at 60 Hz: the most a thumbnail's handover moves on in any one frame (see playFrameByFrame). */
+const HANDOVER_FRAME_MS = 1000 / 60;
+
+/**
+ * Runs a held fade on a clock of its own, frame by frame, each moving it on by
+ * the time the frame took but never more than HANDOVER_FRAME_MS. The landing
+ * is where WebKit's frames run long: the dialog's own picture comes in under
+ * the copy, and a YouTube poster sets off on its own fade in it. A clock that
+ * kept to the time would spend the fade on those few frames, so the copy would
+ * drop away rather than fade; held to this one, a long frame slows the fade
+ * instead. A fade cancelled meanwhile (the dialog closing) is left as it is.
+ */
+function playFrameByFrame(fade: Animation) {
+  let previous: number | null = null;
+  const step = (time: number) => {
+    if (fade.playState !== "paused") return;
+    const elapsed = previous === null ? 0 : Math.min(time - previous, HANDOVER_FRAME_MS);
+    previous = time;
+    fade.currentTime = Number(fade.currentTime ?? 0) + elapsed;
+    if (Number(fade.currentTime) < STILL_LEAD_IN_MS) requestAnimationFrame(step);
+    else fade.finish();
+  };
+  requestAnimationFrame(step);
+}
 
 /**
  * Moves the frame from one state to another. Separate animations, so the
@@ -279,6 +424,9 @@ export default function ProjectModal({
   const tileStill = useRef<HTMLDivElement>(null);
   const tileGround = useRef<HTMLDivElement>(null);
   const tileStillImage = useRef<HTMLImageElement>(null);
+  const tileMount = useRef<HTMLDivElement>(null);
+  const tileBackdrop = useRef<HTMLDivElement>(null);
+  const tileBackdropImage = useRef<HTMLCanvasElement>(null);
   const tileClipFrame = useRef<HTMLCanvasElement>(null);
   const clip = useRef<HTMLVideoElement>(null);
   const scroller = useRef<HTMLElement>(null);
@@ -291,6 +439,19 @@ export default function ProjectModal({
   // Decided once, as it opens: a tile off-screen when pressed (a keyboard open
   // after scrolling away) or reduced motion fades the frame with the rest instead.
   const [travels] = useState(() => !reduceMotion && source?.onScreen === true);
+  // Decided once, as it opens: a travelling contained thumbnail is carried as
+  // its tile draws it, over its blurred copy with its edges soft, so the frame
+  // leaves and lands on the very picture the tile shows (see the frame's still).
+  // Only one that has loaded: its blurred copy is drawn from it (see drawThumbnailBackdrop).
+  const [carriesThumbnail] = useState(
+    () =>
+      travels &&
+      source?.media instanceof HTMLImageElement &&
+      source.media.complete &&
+      source.media.naturalWidth > 0 &&
+      Boolean(source.poster) &&
+      thumbnailBackdrop(source) !== null
+  );
   // The frame stands in its place (at once when it doesn't travel). Until then
   // it keeps the tile's still, so the picture never changes mid-travel; the
   // demo's own frame takes over only once it has landed, and gives way to the
@@ -344,9 +505,13 @@ export default function ProjectModal({
       width: body.style.width,
       paddingRight: body.style.paddingRight,
     };
-    const scrollbarWidth = window.innerWidth - root.clientWidth;
-
+    // The room a classic scrollbar gives back as it goes, padded out of the
+    // page so it doesn't widen. The root's scrollbar-gutter keeps that room
+    // where it is supported, so only an engine without it (Safari before 18.2)
+    // gives any back.
+    const width = root.offsetWidth;
     root.style.overflow = "hidden";
+    const scrollbarWidth = root.offsetWidth - width;
     body.style.overflow = "hidden";
     body.style.position = "fixed";
     body.style.top = `-${scrollPosition}px`;
@@ -391,16 +556,25 @@ export default function ProjectModal({
   // the panel; a click or key press flushes both before the first paint. Web
   // Animations: the frame is held over the tile until the next frame, then
   // the move runs on the compositor, and they leave no styles behind once
-  // they end. A travel cut short by a close never lands.
+  // they end. A travel cut short by a close never lands. A contained
+  // thumbnail's copy, drawn and laid over the tile with the frame, stands over
+  // all of the frame's own picture until it has landed.
   useEffect(() => {
     const preview = frame.current;
     const layer = picture.current;
     const tile = travels && source ? measureTile(source) : null;
-    const from = preview && layer && tile ? frameOverTile(preview, tile, pictureStrength(layer, tileStill.current)) : null;
-    if (!preview || !layer || !from) {
+    // A thumbnail's copy draws the tile's strength itself (see layThumbnail),
+    // so the picture layer starts at full.
+    const from =
+      preview && layer && tile ? frameOverTile(preview, tile, carriesThumbnail ? tile.strength : pictureStrength(layer, tileStill.current)) : null;
+    if (!preview || !layer || !source || !tile || !from) {
       // Meant to travel but can't (the tile has gone): it stands in its place already.
       if (travels) queueMicrotask(() => setLanded(true));
       return;
+    }
+    if (carriesThumbnail) {
+      drawThumbnailBackdrop(tile, source.media, tileBackdropImage.current);
+      layThumbnail(preview, tile, { mount: tileMount.current, backdrop: tileBackdrop.current, image: tileStillImage.current });
     }
     const animations = travel(preview, layer, from, frameHome(preview));
     // Held on the tile until the next frame: WebKit starts the clock at once,
@@ -408,14 +582,24 @@ export default function ProjectModal({
     animations.forEach((animation) => animation.pause());
     const start = requestAnimationFrame(() => animations.forEach((animation) => animation.play()));
     Promise.all(animations.map((animation) => animation.finished)).then(
-      () => setLanded(true),
+      () => {
+        // The thumbnail's copy gives way to the dialog's own picture as the
+        // frame lands: the close's lead-in, the other way round, at most a
+        // frame's worth at a time (see playFrameByFrame).
+        const handover = carriesThumbnail ? tileStill.current?.animate([{ opacity: 1 }, { opacity: 0 }], STILL_FADE) : undefined;
+        if (handover) {
+          handover.pause();
+          playFrameByFrame(handover);
+        }
+        setLanded(true);
+      },
       () => undefined
     );
     return () => {
       cancelAnimationFrame(start);
       animations.forEach((animation) => animation.cancel());
     };
-  }, [source, travels]);
+  }, [carriesThumbnail, source, travels]);
 
   // A clip held under the tile's still starts once the frame has landed:
   // autoplay acts only as the clip first becomes playable, which may have passed.
@@ -445,7 +629,8 @@ export default function ProjectModal({
   // clip) during the lead-in (see close). Drawn whole, it lands at the tile's
   // own strength, whatever the frame's own picture rests at or the pointer
   // hovers on the way, over the tile's own ground, which comes in under it as
-  // it fades back. A tile now off-screen fades the frame where it is instead.
+  // it fades back. A thumbnail's copy is laid over the tile as it now stands.
+  // A tile now off-screen fades the frame where it is instead.
   // AnimatePresence keeps the dialog until the frame has landed.
   const closing = useRef(false);
   useEffect(() => {
@@ -476,18 +661,24 @@ export default function ProjectModal({
       [...preview.getAnimations(), ...layer.getAnimations()].forEach((animation) => animation.cancel());
       const still = tileStill.current;
       const ground = tileGround.current;
-      const to = frameOverTile(preview, tile, still ? 1 : pictureStrength(layer, null));
+      // A thumbnail's copy draws the tile's strength itself (see layThumbnail).
+      const to = frameOverTile(preview, tile, carriesThumbnail ? tile.strength : still ? 1 : pictureStrength(layer, null));
       if (to) {
         const fades: Animation[] = [];
         if (still) {
           drawClipFrame(source.media, tileClipFrame.current);
-          fades.push(still.animate([{ opacity: 0 }, { opacity: 1 }], STILL_RETURN));
+          if (carriesThumbnail) layThumbnail(preview, tile, { mount: tileMount.current, backdrop: tileBackdrop.current, image: tileStillImage.current });
+          // From where it stands: a thumbnail's copy still shows on a frame
+          // caught on its way in, or part way through giving way as it landed.
+          const shown = getComputedStyle(still).opacity;
+          still.getAnimations().forEach((animation) => animation.cancel());
+          fades.push(still.animate([{ opacity: shown }, { opacity: 1 }], STILL_FADE));
           // The tile shows its still over its own ground, not black: dimmed to
           // the tile's strength over the frame's black, the picture would land
           // a shade darker than the tile and lift as the dialog goes.
           if (ground) {
             ground.style.backgroundColor = groundOf(source);
-            fades.push(ground.animate([{ opacity: 0 }, { opacity: 1 }], STILL_RETURN));
+            fades.push(ground.animate([{ opacity: 0 }, { opacity: 1 }], STILL_FADE));
           }
         }
         animations = travel(preview, layer, from, to, "both", stillLeadIn);
@@ -509,7 +700,7 @@ export default function ProjectModal({
     }
     const done = () => safeToRemove?.();
     Promise.all(animations.map((animation) => animation.finished)).then(done, done);
-  }, [isPresent, safeToRemove, source, stillLeadIn, travels]);
+  }, [carriesThumbnail, isPresent, safeToRemove, source, stillLeadIn, travels]);
 
   return (
     // No opacity on the dialog itself: it would cut the backdrop's blur off
@@ -644,8 +835,11 @@ export default function ProjectModal({
                 {travels && source?.poster && <div ref={tileGround} aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-0" />}
                 {/* The picture's own layer: the travel takes its strength from the
                     tile's still to the frame's own, over the frame's opaque black
-                    (on the way home, over the tile's ground). */}
-                <div ref={picture} className="relative h-full w-full">
+                    (on the way home, over the tile's ground). Covered whole by a
+                    thumbnail's copy on the way in, it is left undrawn under it until
+                    the frame has landed: WebKit and Firefox would otherwise draw an
+                    SVG thumbnail twice over on every frame of the travel. */}
+                <div ref={picture} className={`relative h-full w-full ${carriesThumbnail && !landed ? "invisible" : ""}`}>
                   {hasProjectDemo ? (
                     <LiteYouTube
                       src={project.video}
@@ -677,13 +871,37 @@ export default function ProjectModal({
                       and its play button, the clip), clear until the frame goes home:
                       then it comes back over them and is the one picture the frame
                       carries (see the close effect). A clip the tile has played shows
-                      the frame it is paused on, drawn in as it closes, not its poster. */}
+                      the frame it is paused on, drawn in as it closes, not its poster.
+                      A contained thumbnail comes as its tile draws it, opaque on its
+                      mount (laid over the tile by the effects above), and shows on the
+                      way in too, until the frame has landed. */}
                   {travels && source?.poster && (
-                    <div ref={tileStill} aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img ref={tileStillImage} src={source.poster} alt="" className="h-full w-full object-cover" />
-                      {source.media instanceof HTMLVideoElement && (
-                        <canvas ref={tileClipFrame} className="absolute inset-0 h-full w-full object-cover" />
+                    <div
+                      ref={tileStill}
+                      aria-hidden="true"
+                      className={`pointer-events-none absolute inset-0 ${carriesThumbnail ? `visible ${THUMBNAIL_MOUNT_CLASS}` : ""} ${carriesThumbnail && !landed ? "" : "opacity-0"}`}
+                    >
+                      {carriesThumbnail ? (
+                        <>
+                          {/* The tile's mount, in the tile's own px, its blurred copy drawn
+                              from the tile's thumbnail (see drawThumbnailBackdrop). */}
+                          <div ref={tileMount} className="absolute left-0 top-0 origin-top-left">
+                            <div ref={tileBackdrop} className="absolute inset-0">
+                              <canvas ref={tileBackdropImage} className={THUMBNAIL_BACKDROP_CLASS} />
+                            </div>
+                            <div className={THUMBNAIL_VEIL_CLASS} />
+                          </div>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img ref={tileStillImage} src={source.poster} alt="" className="absolute max-w-none" style={THUMBNAIL_EDGE_STYLE} />
+                        </>
+                      ) : (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img ref={tileStillImage} src={source.poster} alt="" className="h-full w-full object-cover" />
+                          {source.media instanceof HTMLVideoElement && (
+                            <canvas ref={tileClipFrame} className="absolute inset-0 h-full w-full object-cover" />
+                          )}
+                        </>
                       )}
                     </div>
                   )}

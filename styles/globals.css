@@ -23,6 +23,16 @@ body {
   overflow-x: hidden;
 }
 
+/* A classic scrollbar (Windows, Linux, macOS set to always show them) keeps
+   its room on every page, shown or not. A lift fixes the page layers, so the
+   window stops scrolling and its scrollbar goes; without the gutter the pages
+   would widen under it for the lift, and Skills, whose height follows its
+   width, would land shorter than it was left. Overlay scrollbars take no
+   room, so nothing changes where they are used. */
+html {
+  scrollbar-gutter: stable;
+}
+
 * {
   box-sizing: border-box;
 }
