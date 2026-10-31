@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion, type Variants } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { useReveal } from "@hooks/useReveal";
@@ -298,6 +298,10 @@ export default function SkillsPage() {
     placed: false,
   });
   const reduceMotion = useReducedMotion();
+  // Leaving in a lift, the page is fixed in its layer and the window's scroll
+  // goes; the disc's layout, measured against the window, would read that as
+  // a move and fly in from the offset the page was left at. It stays put.
+  const leaving = !useIsPresent();
   // lg+ windows the pinned switcher fits: their scroll steps it through every
   // area. The server renders the click-driven switcher; the client measures
   // and steps it up once it is laid out.
@@ -621,7 +625,7 @@ export default function SkillsPage() {
                             <motion.span
                               aria-hidden="true"
                               layoutId="skills-active"
-                              transition={reduceMotion || selection.placed ? { duration: 0 } : DISC_SPRING}
+                              transition={reduceMotion || selection.placed || leaving ? { duration: 0 } : DISC_SPRING}
                               className="absolute inset-0 z-[1] rounded-full bg-accent"
                             />
                           )}
