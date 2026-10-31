@@ -11,7 +11,7 @@ import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import DepthPortrait from "@components/DepthPortrait";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
-import { gestureGate, isTransitionLocked } from "@components/transition/transitionStore";
+import { gestureGate, isTransitionLocked, wasClickDropped } from "@components/transition/transitionStore";
 import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
 
 const isAtPageBottom = () =>
@@ -38,8 +38,8 @@ const About = () => {
   const { navigate } = usePageTransition();
   const scrollIntent = useRef(0);
   const lastWheelAt = useRef(0);
-  const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
-  const [playConfirm] = useSfx("confirm", { volume: 0.25 });
+  const [playTick, { stop: stopTick }] = useSfx("tick");
+  const [playPress] = useSfx("press");
   // Reached by a lift, the copy settles with it line by line instead of arriving as one block.
   const copy = useRef<HTMLDivElement>(null);
   useLiftEntrance(copy);
@@ -161,8 +161,8 @@ const About = () => {
                   href="/docs/Suvraneel_Bhuin_Resume.pdf"
                   target="_blank"
                   rel="noreferrer"
-                  onMouseEnter={() => playSnap()}
-                  onMouseLeave={() => stopSnap()}
+                  onMouseEnter={() => playTick()}
+                  onMouseLeave={() => stopTick()}
                   onClick={() => {
                     gtag.event({
                       action: "resume_download_opened",
@@ -170,12 +170,21 @@ const About = () => {
                       label: "about",
                       value: 1,
                     });
-                    playConfirm();
+                    playPress();
                   }}
                 >
                   Download resume
                 </LiquidMetalButton>
-                <PillButton href="/contact">Get in touch</PillButton>
+                <PillButton
+                  href="/contact"
+                  onMouseEnter={() => playTick()}
+                  onMouseLeave={() => stopTick()}
+                  onClick={(event) => {
+                    if (!wasClickDropped(event.nativeEvent)) playPress();
+                  }}
+                >
+                  Get in touch
+                </PillButton>
               </div>
             </div>
           </section>

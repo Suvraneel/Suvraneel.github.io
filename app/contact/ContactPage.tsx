@@ -101,12 +101,21 @@ export default function ContactPage() {
   const [showScheduler, setShowScheduler] = useState(false);
   /** The Book button's centre, where the scheduler grows from and shrinks back to. */
   const [schedulerOrigin, setSchedulerOrigin] = useState<ModalOrigin | null>(null);
+  const [playClose] = useSfx("close");
+  // Escape can reach the scheduler twice (its key listener and the dialog's cancel): one whoosh.
+  const schedulerShown = useRef(false);
   // Stable, so a re-render while the scheduler is open does not re-run its open effect (and refocus it).
-  const closeScheduler = useCallback(() => setShowScheduler(false), []);
+  const closeScheduler = useCallback(() => {
+    setShowScheduler(false);
+    if (!schedulerShown.current) return;
+    schedulerShown.current = false;
+    playClose();
+  }, [playClose]);
   const [submissionState, setSubmissionState] = useState<SubmissionState>("idle");
   const reduceMotion = useReducedMotion();
-  const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
-  const [playConfirm] = useSfx("confirm", { volume: 0.25 });
+  const [playTick, { stop: stopTick }] = useSfx("tick");
+  const [playOpen] = useSfx("open");
+  const [playConfirm] = useSfx("confirm");
   const [emailCopied, setEmailCopied] = useState(false);
   const [sendHovered, setSendHovered] = useState(false);
   const [bookHovered, setBookHovered] = useState(false);
@@ -226,6 +235,8 @@ export default function ContactPage() {
                 <button
                   type="button"
                   onClick={copyEmail}
+                  onMouseEnter={() => playTick()}
+                  onMouseLeave={() => stopTick()}
                   aria-label={`Copy email address ${EMAIL}`}
                   className="group flex min-w-0 flex-1 items-center gap-4 py-4 text-left text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
                 >
@@ -271,15 +282,16 @@ export default function ContactPage() {
                   const rect = event.currentTarget.getBoundingClientRect();
                   setSchedulerOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
                   setShowScheduler(true);
-                  playConfirm();
+                  schedulerShown.current = true;
+                  playOpen();
                 }}
                 onMouseEnter={() => {
                   setBookHovered(true);
-                  playSnap();
+                  playTick();
                 }}
                 onMouseLeave={() => {
                   setBookHovered(false);
-                  stopSnap();
+                  stopTick();
                 }}
                 icon={<CalendarDaysIcon aria-hidden="true" size={16} animate={bookHovered} className="text-white/55" />}
                 className="mt-7 w-full sm:w-auto"
@@ -359,11 +371,11 @@ export default function ContactPage() {
                   disabled={submissionState === "sending"}
                   onMouseEnter={() => {
                     setSendHovered(true);
-                    playSnap();
+                    playTick();
                   }}
                   onMouseLeave={() => {
                     setSendHovered(false);
-                    stopSnap();
+                    stopTick();
                   }}
                   className="min-w-[11rem] w-full sm:w-auto"
                 >

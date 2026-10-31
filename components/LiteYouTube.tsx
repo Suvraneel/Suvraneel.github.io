@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from "react";
 import LiquidMetalButton from "@components/LiquidMetalButton";
+import { stopMusic } from "@hooks/useMusic";
 import { PlayIcon } from "@components/animate-ui/icons/play";
 import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
 import { EASE_FADE, FADE_MS, cssEase } from "@lib/pageTransition";
@@ -173,7 +174,10 @@ export default function LiteYouTube({
 
   if (!id) return null;
   const play = () => {
-    if (stage === "poster") setStage("loading");
+    if (stage !== "poster") return;
+    setStage("loading");
+    // The demo has its own sound: the rail's music fades out rather than playing over it.
+    stopMusic();
   };
   const started = stage === "loading" || stage === "shown" || stage === "player";
   const revealed = stage === "shown" || stage === "player";

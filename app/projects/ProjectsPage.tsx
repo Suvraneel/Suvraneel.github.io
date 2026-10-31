@@ -93,15 +93,15 @@ export default function ProjectsPage() {
 
   useReveal(gallery);
   useLiftEntrance(gallery);
-  const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.35 });
-  const [playPop] = useSfx("pop", { volume: 0.45 });
+  const [playTick, { stop: stopTick }] = useSfx("tick");
+  const [playOpen] = useSfx("open");
 
   const openProject = (project: Project, time: number, source: ModalSource) => {
     setSelectedProject(project);
     setPreviewTime(time);
     setOpenedFrom(source);
     setDialogPresent(true);
-    playPop();
+    playOpen();
   };
 
   return (
@@ -132,8 +132,8 @@ export default function ProjectsPage() {
                   scrollY={scrollY}
                   holdDepth={dialogPresent}
                   onOpen={(time, source) => openProject(project, time, source)}
-                  onHoverStart={playSnap}
-                  onHoverEnd={stopSnap}
+                  onHoverStart={playTick}
+                  onHoverEnd={stopTick}
                 />
               </div>
             ))}
@@ -471,7 +471,7 @@ function ProjectTile({
     onHoverEnd();
   };
 
-  // Keyboard focus previews the tile silently; the snap sound is for pointer hover.
+  // Keyboard focus previews the tile silently; the tick is for pointer hover.
   // Pointer focus (a click, or focus handed back by a closed modal) leaves it to hover.
   const startFocusPreview = (event: FocusEvent<HTMLElement>) => {
     if (event.currentTarget.matches(":focus-visible")) playPreview();

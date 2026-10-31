@@ -17,20 +17,20 @@ type AnimatedSocialLinkProps = {
 function AnimatedSocialLink({ name, href, brandColor, icon: Icon }: AnimatedSocialLinkProps) {
   const [isHovered, setIsHovered] = useState(false);
   const iconRef = useRef<AnimatedIconHandle>(null);
-  const [playSnap, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
-  const [playConfirm] = useSfx("confirm", { volume: 0.25 });
+  const [playTick, { stop: stopTick }] = useSfx("tick");
+  const [playPress] = useSfx("press");
 
   // Sound is a pointer-hover flourish; keyboard focus stays silent.
   const startInteraction = (withSound = true) => {
     setIsHovered(true);
-    stopSnap();
-    if (withSound) playSnap();
+    stopTick();
+    if (withSound) playTick();
     iconRef.current?.startAnimation();
   };
 
   const endInteraction = () => {
     setIsHovered(false);
-    stopSnap();
+    stopTick();
     iconRef.current?.stopAnimation();
   };
 
@@ -47,7 +47,7 @@ function AnimatedSocialLink({ name, href, brandColor, icon: Icon }: AnimatedSoci
       onMouseLeave={endInteraction}
       onFocus={() => startInteraction(false)}
       onBlur={endInteraction}
-      onClick={playConfirm}
+      onClick={playPress}
       className="rounded-md transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
       style={{ color: isHovered ? brandColor : "white" }}
     >

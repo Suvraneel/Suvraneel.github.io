@@ -12,7 +12,8 @@ import { motion, scrollInfo, useMotionValue, useReducedMotion, type MotionValue 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ElementType } from "react";
-import { isSfxMuted, subscribeSfxMuted, toggleSfxMuted, useSfx, useSfxMuted } from "@hooks/useSfx";
+import { toggleMusic, useMusicPlaying } from "@hooks/useMusic";
+import { toggleSfxMuted, useSfx, useSfxMuted } from "@hooks/useSfx";
 import { cssEase, type PageTransition } from "@lib/pageTransition";
 import {
   getTransition,
@@ -131,64 +132,30 @@ function useRailProgress(reduceMotion: boolean | null) {
 export default function Navbar() {
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const musicRef = useRef<HTMLAudioElement>(null);
+  const isPlaying = useMusicPlaying();
   const progress = useRailProgress(reduceMotion);
-  const [playSnapSfx, { stop: stopSnap }] = useSfx("snap", { volume: 0.25 });
-  const [playConfirm] = useSfx("confirm", { volume: 0.25 });
+  const [playTickSfx, { stop: stopTick }] = useSfx("tick");
+  const [playPress] = useSfx("press");
+  const [playConfirm] = useSfx("confirm");
 
-  const playSnap = () => {
-    stopSnap();
-    playSnapSfx();
+  const playTick = () => {
+    stopTick();
+    playTickSfx();
   };
-
-  const toggleMusic = async () => {
-    const music = musicRef.current;
-    if (!music) return;
-
-    if (isPlaying) {
-      music.pause();
-      music.currentTime = 0;
-      setIsPlaying(false);
-      return;
-    }
-
-    try {
-      await music.play();
-      setIsPlaying(true);
-    } catch {
-      setIsPlaying(false);
-    }
-  };
-
-  // Turning sounds off (here or in the phone drawer) stops the music too.
-  // Playing it stays its own choice: muted sounds don't block it.
-  useEffect(
-    () =>
-      subscribeSfxMuted(() => {
-        const music = musicRef.current;
-        if (!isSfxMuted() || !music || music.paused) return;
-        music.pause();
-        music.currentTime = 0;
-        setIsPlaying(false);
-      }),
-    []
-  );
 
   return (
     <nav className="sidebar-container portfolio-rail" aria-label="Primary navigation">
-      <audio ref={musicRef} preload="none" src="/sounds/RoadsideFlowers.mp3" onEnded={() => setIsPlaying(false)} />
       <button
         type="button"
         // A mouse press leaves no focus here: a later scroll key would turn it
         // into keyboard focus and hold the rail open over the page.
         onMouseDown={(event) => event.preventDefault()}
         onClick={() => {
-          playConfirm();
-          void toggleMusic();
+          playPress();
+          toggleMusic();
         }}
-        onMouseEnter={playSnap}
-        onMouseLeave={stopSnap}
+        onMouseEnter={playTick}
+        onMouseLeave={stopTick}
         className="rail-music"
         aria-label={isPlaying ? "Stop music" : "Play music"}
       >
@@ -205,9 +172,9 @@ export default function Navbar() {
             item={item}
             active={pathname === item.href}
             reduceMotion={reduceMotion}
-            onSnap={playSnap}
-            onStopSnap={stopSnap}
-            onConfirm={playConfirm}
+            onTick={playTick}
+            onStopTick={stopTick}
+            onPress={playPress}
           />
         ))}
       </div>
@@ -217,7 +184,7 @@ export default function Navbar() {
         {/* Below the socials, whose row keeps its space while hidden in the
             closed rail: nothing in the footer moves as the rail opens, so the
             toggle holds still under the pointer. */}
-        <RailSoundToggle reduceMotion={reduceMotion} onSnap={playSnap} onStopSnap={stopSnap} onConfirm={playConfirm} />
+        <RailSoundToggle reduceMotion={reduceMotion} onTick={playTick} onStopTick={stopTick} onConfirm={playConfirm} />
         <small className="rail-copyright">
           <span className="rail-label rail-copyright-text">
             <span>Suvraneel Bhuin</span>
@@ -281,16 +248,16 @@ function RailLink({
   item,
   active,
   reduceMotion,
-  onSnap,
-  onStopSnap,
-  onConfirm,
+  onTick,
+  onStopTick,
+  onPress,
 }: {
   item: RailItem;
   active: boolean;
   reduceMotion: boolean | null;
-  onSnap: () => void;
-  onStopSnap: () => void;
-  onConfirm: () => void;
+  onTick: () => void;
+  onStopTick: () => void;
+  onPress: () => void;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const Icon = item.icon;
@@ -304,11 +271,11 @@ function RailLink({
       onMouseDown={(event) => event.preventDefault()}
       onMouseEnter={() => {
         setIsHovered(true);
-        onSnap();
+        onTick();
       }}
       onMouseLeave={() => {
         setIsHovered(false);
-        onStopSnap();
+        onStopTick();
       }}
       onFocus={() => {
         // Keyboard focus animates the icon but stays silent.
@@ -317,9 +284,10 @@ function RailLink({
       onBlur={() => {
         setIsHovered(false);
       }}
-      // A click the transition turns away (one is in flight) gets no confirm sound.
+      // Silent when nothing happens: the current page's item, or a click the
+      // transition turns away (one is in flight).
       onClick={(event) => {
-        if (!wasClickDropped(event.nativeEvent)) onConfirm();
+        if (!active && !wasClickDropped(event.nativeEvent)) onPress();
       }}
     >
       <span className="rail-icon transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-105 motion-reduce:transition-none">
@@ -333,13 +301,13 @@ function RailLink({
 /** Sounds on/off for the whole site. Its confirm sound plays only when it turns them back on. */
 function RailSoundToggle({
   reduceMotion,
-  onSnap,
-  onStopSnap,
+  onTick,
+  onStopTick,
   onConfirm,
 }: {
   reduceMotion: boolean | null;
-  onSnap: () => void;
-  onStopSnap: () => void;
+  onTick: () => void;
+  onStopTick: () => void;
   onConfirm: () => void;
 }) {
   const muted = useSfxMuted();
@@ -356,11 +324,11 @@ function RailSoundToggle({
       }}
       onMouseEnter={() => {
         setIsHovered(true);
-        onSnap();
+        onTick();
       }}
       onMouseLeave={() => {
         setIsHovered(false);
-        onStopSnap();
+        onStopTick();
       }}
       // Keyboard focus animates the icon but stays silent, as on the links.
       onFocus={() => setIsHovered(true)}
