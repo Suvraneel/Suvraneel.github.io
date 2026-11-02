@@ -19,6 +19,7 @@ import {
   PHOTO_FADE_LEFT,
   PHOTO_FADE_TOP,
   PHOTO_POSITION,
+  PORTRAIT_COLUMN_MEDIA,
   PORTRAIT_MEDIA,
   PORTRAIT_SRC,
 } from "@lib/portrait";
@@ -26,7 +27,7 @@ import {
 const isAtPageBottom = () =>
   window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
 
-/** What the <img> holds below lg: a 1x1 transparent GIF, inline, so phones and tablets fetch nothing. */
+/** What the <img> holds where no portrait shows: a 1x1 transparent GIF, inline, so phones fetch nothing. */
 const NO_PHOTO = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 /**
  * The photo's frame, in its overscanned layer: a little short of it so the
@@ -34,12 +35,15 @@ const NO_PHOTO = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAA
  * width, so the cover crop never cuts into the face. Bottom-anchored, unless
  * the width cap leaves it short of the column (a tall, narrow window): then it
  * hangs from just below the column's top, the face high in the screen, and
- * fades out at its foot instead of sinking to the bottom.
+ * fades out at its foot instead of sinking to the bottom. The split layout
+ * (upright tablets) sets its own height and side and foot fades through the
+ * variables (see the frame's `split:` classes).
  */
+const FRAME_HEIGHT = "var(--photo-height, min(95%, 222cqw))";
 const PHOTO_FRAME: CSSProperties = {
-  height: "min(95%, 222cqw)",
-  top: "min(calc(100% - min(95%, 222cqw)), 9%)",
-  maskImage: `${PHOTO_FADE_LEFT}, ${PHOTO_FADE_TOP}, ${PHOTO_FADE_BOTTOM}`,
+  height: FRAME_HEIGHT,
+  top: `min(calc(100% - ${FRAME_HEIGHT}), 9%)`,
+  maskImage: `var(--photo-fade-side, ${PHOTO_FADE_LEFT}), ${PHOTO_FADE_TOP}, var(--photo-fade-foot, ${PHOTO_FADE_BOTTOM})`,
   maskComposite: "intersect",
 };
 
@@ -98,7 +102,7 @@ const About = () => {
     // visitor reads this page, so the return flip is not preceded by a cold load.
     router.prefetch("/");
     // The photo the way home closes back into the dashboard's avatar, decoded ahead.
-    if (window.matchMedia(PORTRAIT_MEDIA).matches) warmPortrait();
+    if (window.matchMedia(PORTRAIT_COLUMN_MEDIA).matches) warmPortrait();
   }, [router]);
 
   useEffect(() => {
@@ -179,20 +183,24 @@ const About = () => {
       // Clip, not hidden: a hidden overflow is a scroll container, and the
       // portrait's sticky column would stick to it instead of the window.
       <main className="relative min-h-[100dvh] overflow-clip bg-black text-white">
-        <div className="relative z-10 grid min-h-[100dvh] grid-cols-1 lg:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.82fr)]">
+        {/* Split (upright tablets, short windows below lg): the copy keeps the left
+            60% and the portrait spans the whole row under it, its faded side behind
+            the copy and its face clear of it. */}
+        <div className="relative z-10 grid min-h-[100dvh] grid-cols-1 split:grid-cols-[60%_40%] lg:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.82fr)]">
           {/* Phones: the bottom padding keeps the CTAs clear of the "Pull for" pill.
               Tablets: the text starts past the 50px nav rail (shown from 769px wide and
               521px tall, as in globals.css), as .nav-gap does on the other pages. */}
-          <section className="flex min-h-[100dvh] items-start px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-16 sm:pt-20 min-[769px]:max-lg:[@media(min-height:521px)]:pl-[calc(50px+2.5rem)] lg:items-center lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
+          <section className="flex min-h-[100dvh] items-start px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-16 sm:pt-20 min-[769px]:max-lg:[@media(min-height:521px)]:pl-[calc(50px+2.5rem)] split:relative split:z-10 split:col-start-1 split:row-start-1 split:items-center split:!pr-0 lg:items-center lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
             {/* The column itself is the sheet's depth layer, so the entrance goes on its children. */}
             <div ref={copy} className="max-w-2xl">
               <p data-reveal className={`mb-3 text-xs font-medium uppercase tracking-[0.2em] text-accent/70 ${tasaOrbiter.className}`}>
                 Profile
               </p>
-              <LiftHeading data-reveal className={`max-w-xl text-4xl leading-none tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
+              <LiftHeading data-reveal className={`max-w-xl text-4xl leading-none tracking-[-0.045em] sm:text-6xl split:!text-5xl ${spaceBoards.className}`}>
                 About Me
               </LiftHeading>
-              <div className="mt-8 max-w-2xl space-y-5">
+              {/* In the split layout the copy's spacing tightens, leaving the portrait room. */}
+              <div className="mt-8 max-w-2xl space-y-5 split:mt-6 split:space-y-4">
                 <p data-reveal className={`text-xl font-medium leading-8 tracking-[-0.025em] text-white sm:text-2xl/8 ${tasaOrbiter.className}`}>
                   I like building things that are useful, not just impressive.
                 </p>
@@ -248,12 +256,24 @@ const About = () => {
             ref={portraitColumn}
             aria-label="Portrait of Suvraneel Bhuin"
             data-portrait=""
-            className="sticky top-0 hidden h-[100dvh] self-start overflow-hidden lg:block"
+            className="sticky top-0 hidden h-[100dvh] self-start overflow-hidden split:col-span-2 split:col-start-1 split:row-start-1 split:block lg:block"
           >
             <div data-depth="photo" className="pointer-events-none absolute inset-x-0 -inset-y-[6%] [container-type:inline-size]">
               {/* PHOTO_FRAME places it. The fades mask the photo and its relief
-                  together, so the cross-fade between them never doubles the faded edges. */}
-              <div data-portrait-photo="" className="absolute left-0 w-full" style={PHOTO_FRAME}>
+                  together, so the cross-fade between them never doubles the faded edges.
+                  Split: right-aligned and cover-fit from its left, the photo (side
+                  --photo-d) placed by the face (0.308-0.61 of its width): the frame is
+                  as wide as puts the face 24px right of the copy's 60%, so the photo
+                  runs as far under the copy as the face allows. Its side fades in under
+                  the copy and is opaque by the face; its foot fades out, as it may hang
+                  short of the screen's bottom. The photo is a screen tall or, where the
+                  window is narrow for that, no taller than leaves the face 3% of it
+                  short of the screen's edge: (0.4 x width - 24px) / 0.332. */}
+              <div
+                data-portrait-photo=""
+                className="absolute left-0 w-full split:left-auto split:right-0 split:w-[calc(40cqw_-_24px_+_0.308_*_var(--photo-d))] split:[--photo-d:min(106.4dvh,calc(120.48cqw_-_72.3px))] split:[--photo-fade-foot:linear-gradient(to_top,transparent,#000_15%)] split:[--photo-fade-side:linear-gradient(to_right,transparent_0,rgba(0,0,0,.08)_calc(var(--photo-d)*.179),rgba(0,0,0,.5)_calc(var(--photo-d)*.262),rgba(0,0,0,.85)_calc(var(--photo-d)*.301),#000_calc(var(--photo-d)*.346))] split:[--photo-height:var(--photo-d)]"
+                style={PHOTO_FRAME}
+              >
                 <picture>
                   <source media={PORTRAIT_MEDIA} srcSet={PORTRAIT_SRC} />
                   {/* Under the relief it turns transparent rather than hidden, so its alt text stays readable. */}
@@ -263,14 +283,14 @@ const About = () => {
                     width={1456}
                     height={1456}
                     decoding="async"
-                    className={`absolute inset-0 h-full w-full object-cover object-[40%_100%] grayscale ${relief ? "opacity-0 transition-opacity delay-700 duration-0" : ""}`}
+                    className={`absolute inset-0 h-full w-full object-cover object-[40%_100%] grayscale split:object-[0%_100%] ${relief ? "opacity-0 transition-opacity delay-700 duration-0" : ""}`}
                   />
                 </picture>
                 {/* The same photo in relief, turning a few degrees toward the pointer. */}
                 <DepthPortrait
                   src={PORTRAIT_SRC}
                   depthSrc="/images/Suvraneel_DP-depth.webp"
-                  media={PORTRAIT_MEDIA}
+                  media={PORTRAIT_COLUMN_MEDIA}
                   position={PHOTO_POSITION}
                   onReady={setRelief}
                   className="absolute inset-0"

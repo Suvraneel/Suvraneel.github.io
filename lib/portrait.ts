@@ -2,8 +2,19 @@
 // transition that carries it in from the dashboard's avatar (the same photo).
 
 export const PORTRAIT_SRC = "/images/Suvraneel_DP.jpeg";
-/** Where the portrait's column shows (lg, as on its <aside>); only there is the photo fetched. */
-export const PORTRAIT_MEDIA = "(min-width: 1024px)";
+/**
+ * The desktop layout (lg): the portrait in a column of its own. Only here does
+ * it turn in relief, or does the dashboard's avatar open into it.
+ */
+export const PORTRAIT_COLUMN_MEDIA = "(min-width: 1024px)";
+/**
+ * Upright tablets and short windows below lg: the copy keeps the left and runs
+ * over the portrait's faded side, clear of the face. Mirrored by the `split`
+ * variant in tailwind.config.js, which styles it.
+ */
+export const PORTRAIT_SPLIT_MEDIA = "(min-width: 744px) and (max-width: 1023.98px) and (min-height: 600px)";
+/** Wherever the portrait shows; only there is the photo fetched. */
+export const PORTRAIT_MEDIA = `${PORTRAIT_COLUMN_MEDIA}, ${PORTRAIT_SPLIT_MEDIA}`;
 /**
  * The studio backdrop is near black, not the page's #000: the photo's edges
  * fade into the page so its frame never reads as a rectangle. Left: along the

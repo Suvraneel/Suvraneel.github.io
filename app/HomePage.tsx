@@ -17,7 +17,7 @@ import {
 } from "@components/transition/transitionStore";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
-import { PORTRAIT_MEDIA } from "@lib/portrait";
+import { PORTRAIT_COLUMN_MEDIA } from "@lib/portrait";
 
 /** Wheel intent (px of deltaY) that turns the dashboard over to About. */
 const FLIP_INTENT = 80;
@@ -121,7 +121,7 @@ const Home = () => {
   // or has given way to the static hero, so a first flip to About never shows
   // the photo arriving partway through (the avatar opens into it).
   useEffect(() => {
-    if (!(isReady || sceneFailed) || !window.matchMedia(PORTRAIT_MEDIA).matches) return;
+    if (!(isReady || sceneFailed) || !window.matchMedia(PORTRAIT_COLUMN_MEDIA).matches) return;
     warmPortrait();
   }, [isReady, sceneFailed]);
 

@@ -46,7 +46,7 @@ import {
   type PageTransition,
   type TransitionSource,
 } from "@lib/pageTransition";
-import { PORTRAIT_MEDIA } from "@lib/portrait";
+import { PORTRAIT_COLUMN_MEDIA } from "@lib/portrait";
 import { cubicBezier } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -174,7 +174,7 @@ const PORTRAIT_SELECTOR = "[data-portrait]";
  */
 function startAvatar(kind: "flip" | "unflip", scene: Scene): AvatarTraveller | null {
   const photo = decodedPortrait();
-  if (!photo || !window.matchMedia(PORTRAIT_MEDIA).matches) return null;
+  if (!photo || !window.matchMedia(PORTRAIT_COLUMN_MEDIA).matches) return null;
   if (kind === "flip") {
     const avatar = scene.measureAvatar();
     return avatar && isAvatarInView(avatar) ? new AvatarTraveller(avatar, photo) : null;

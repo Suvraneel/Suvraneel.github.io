@@ -1,3 +1,5 @@
+const plugin = require("tailwindcss/plugin");
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -32,5 +34,15 @@ module.exports = {
       }
 		},
   },
-  plugins: [],
+  plugins: [
+    // `split:` — upright tablets and short windows below lg, where About's copy
+    // runs over its portrait's faded side (PORTRAIT_SPLIT_MEDIA in lib/portrait.ts).
+    // A variant, not a screen: a screen given as an object switches off the
+    // min-[...] and max-* variants everywhere. Its rules come before the
+    // screens' (sm: and up), so where one sets what an sm: class does, mark it
+    // important (split:!pr-0).
+    plugin(({ addVariant }) => {
+      addVariant("split", "@media (min-width: 744px) and (max-width: 1023.98px) and (min-height: 600px)");
+    }),
+  ],
 }
