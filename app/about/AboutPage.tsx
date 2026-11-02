@@ -190,9 +190,16 @@ const About = () => {
           {/* Phones: the bottom padding keeps the CTAs clear of the "Pull for" pill.
               Tablets: the text starts past the 50px nav rail (shown from 769px wide and
               521px tall, as in globals.css), as .nav-gap does on the other pages. */}
-          <section className="flex min-h-[100dvh] items-start px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-16 sm:pt-20 min-[769px]:max-lg:[@media(min-height:521px)]:pl-[calc(50px+2.5rem)] split:relative split:z-10 split:col-start-1 split:row-start-1 split:items-center split:!pr-0 lg:items-center lg:pl-28 lg:pr-14 xl:pl-36 xl:pr-20">
+          {/* Short landscape screens (short:, up to 820px tall) tighten the copy's
+              vertical rhythm so the buttons stay above the fold, and on desktop let
+              it run past its column over the portrait's faded side, up to 24px short
+              of the face (--copy-overlap: the column's right padding, plus where the
+              face starts in the portrait's column, 0.4 x its 41vw width less 0.092 x
+              the photo's height, less 24px), up to 44rem (about 66 characters a line).
+              Taller desktops keep the copy to its column. */}
+          <section className="flex min-h-[100dvh] items-start px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-16 sm:pt-20 min-[769px]:max-lg:[@media(min-height:521px)]:pl-[calc(50px+2.5rem)] split:relative split:z-10 split:col-start-1 split:row-start-1 split:items-center split:!pr-0 short:!pb-8 short:!pt-10 lg:relative lg:z-10 lg:items-center lg:pl-28 lg:pr-14 lg:[--copy-overlap:calc(3.5rem_+_16.4vw_-_min(9.79dvh,8.374vw)_-_24px)] xl:pl-36 xl:pr-20 xl:[--copy-overlap:calc(5rem_+_16.4vw_-_min(9.79dvh,8.374vw)_-_24px)]">
             {/* The column itself is the sheet's depth layer, so the entrance goes on its children. */}
-            <div ref={copy} className="max-w-2xl">
+            <div ref={copy} className="max-w-2xl short:lg:w-[min(44rem,calc(100%_+_var(--copy-overlap)))] short:lg:max-w-none short:lg:shrink-0">
               <p data-reveal className={`mb-3 text-xs font-medium uppercase tracking-[0.2em] text-accent/70 ${tasaOrbiter.className}`}>
                 Profile
               </p>
@@ -201,22 +208,22 @@ const About = () => {
               </LiftHeading>
               {/* The type scales with the window (text-lead, text-body); in the split
                   layout the copy's spacing tightens to match it and leave the portrait room. */}
-              <div className="mt-8 max-w-2xl space-y-5 split:mt-6 split:space-y-4">
+              <div className="mt-8 max-w-2xl space-y-5 split:mt-6 split:space-y-4 short:!mt-5 short:!space-y-[0.9rem]">
                 <p data-reveal className={`text-lead font-medium leading-[1.35] tracking-[-0.025em] text-white ${tasaOrbiter.className}`}>
                   I like building things that are useful, not just impressive.
                 </p>
-                <p data-reveal className={`text-body leading-[1.75] text-white/75 ${tasaOrbiter.className}`}>
+                <p data-reveal className={`text-body leading-[1.75] short:!leading-[1.6] text-white/75 ${tasaOrbiter.className}`}>
                   I&apos;m Suvraneel Bhuin, an Advanced Application Engineering Senior Analyst at Accenture. I build dependable backend services, integrations, and workflows for enterprise-scale products.
                 </p>
-                <p data-reveal className={`text-body leading-[1.75] text-white/60 ${tasaOrbiter.className}`}>
+                <p data-reveal className={`text-body leading-[1.75] short:!leading-[1.6] text-white/60 ${tasaOrbiter.className}`}>
                   I studied Computer Science &amp; Engineering at the University of Calcutta. Open-source programmes and Web3 communities taught me to pair technical depth with clear ownership, useful documentation, and thoughtful collaboration.
                 </p>
-                <p data-reveal className={`text-body leading-[1.75] text-white/60 ${tasaOrbiter.className}`}>
+                <p data-reveal className={`text-body leading-[1.75] short:!leading-[1.6] text-white/60 ${tasaOrbiter.className}`}>
                   I like turning ambiguous requirements into clear, maintainable systems and working closely with the people who rely on them.
                 </p>
               </div>
               {/* On the row, so the buttons' own press and magnetic transforms stay theirs. */}
-              <div data-reveal className="mt-9 flex flex-wrap gap-3">
+              <div data-reveal className="mt-9 flex flex-wrap gap-3 short:!mt-6">
                 <LiquidMetalButton
                   href="/docs/Suvraneel_Bhuin_Resume.pdf"
                   target="_blank"
@@ -269,10 +276,13 @@ const About = () => {
                   the copy and is opaque by the face; its foot fades out, as it may hang
                   short of the screen's bottom. The photo is a screen tall or, where the
                   window is narrow for that, no taller than leaves the face 3% of it
-                  short of the screen's edge: (0.4 x width - 24px) / 0.332. */}
+                  short of the screen's edge: (0.4 x width - 24px) / 0.332.
+                  Short desktops: the copy may run over the column's left, so its side
+                  fade runs to the face (--face-x: 0.4 x the column's width less 0.092 x
+                  the photo's height), dark under the copy and opaque by the face. */}
               <div
                 data-portrait-photo=""
-                className="absolute left-0 w-full split:left-auto split:right-0 split:w-[calc(40cqw_-_24px_+_0.308_*_var(--photo-d))] split:[--photo-d:min(106.4dvh,calc(120.48cqw_-_72.3px))] split:[--photo-fade-foot:linear-gradient(to_top,transparent,#000_15%)] split:[--photo-fade-side:linear-gradient(to_right,transparent_0,rgba(0,0,0,.08)_calc(var(--photo-d)*.179),rgba(0,0,0,.5)_calc(var(--photo-d)*.262),rgba(0,0,0,.85)_calc(var(--photo-d)*.301),#000_calc(var(--photo-d)*.346))] split:[--photo-height:var(--photo-d)]"
+                className="absolute left-0 w-full split:left-auto split:right-0 split:w-[calc(40cqw_-_24px_+_0.308_*_var(--photo-d))] split:[--photo-d:min(106.4dvh,calc(120.48cqw_-_72.3px))] split:[--photo-fade-foot:linear-gradient(to_top,transparent,#000_15%)] split:[--photo-fade-side:linear-gradient(to_right,transparent_0,rgba(0,0,0,.08)_calc(var(--photo-d)*.179),rgba(0,0,0,.5)_calc(var(--photo-d)*.262),rgba(0,0,0,.85)_calc(var(--photo-d)*.301),#000_calc(var(--photo-d)*.346))] split:[--photo-height:var(--photo-d)] lg:[--face-x:calc(40cqw_-_0.092_*_min(106.4dvh,222cqw))] short:lg:[--photo-fade-side:linear-gradient(to_right,transparent_0,rgba(0,0,0,.05)_calc(var(--face-x)*.6),rgba(0,0,0,.35)_calc(var(--face-x)*.85),rgba(0,0,0,.8)_var(--face-x),#000_max(4.5rem,calc(var(--face-x)*1.12)))]"
                 style={PHOTO_FRAME}
               >
                 <picture>

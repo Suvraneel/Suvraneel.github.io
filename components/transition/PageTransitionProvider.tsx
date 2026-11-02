@@ -319,7 +319,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       const traveller = avatarTraveller.current;
       if (traveller && t.to === "/about") {
         const photo = document.querySelector<HTMLImageElement>(`[data-page="/about"] [data-portrait-photo] img`);
-        traveller.removeWhen(photo ? photo.decode() : Promise.resolve());
+        traveller.removeWhen(photo ? photo.decode() : Promise.resolve(), AVATAR_HANDOFF_MS * timeScale());
       } else if (traveller) {
         sceneRef.current.afterSceneFrame(() => traveller.fadeOut(AVATAR_HANDOFF_MS * timeScale()));
       }

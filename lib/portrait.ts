@@ -13,6 +13,12 @@ export const PORTRAIT_COLUMN_MEDIA = "(min-width: 1024px)";
  * variant in tailwind.config.js, which styles it.
  */
 export const PORTRAIT_SPLIT_MEDIA = "(min-width: 744px) and (max-width: 1023.98px) and (min-height: 600px)";
+/**
+ * Short landscape screens (up to 820px tall): the copy's rhythm tightens, and
+ * on desktop it runs over the portrait's faded side, whose fade then reaches
+ * to the face. Mirrored by the `short` variant in tailwind.config.js.
+ */
+export const PORTRAIT_SHORT_MEDIA = "(min-width: 744px) and (max-height: 820px)";
 /** Wherever the portrait shows; only there is the photo fetched. */
 export const PORTRAIT_MEDIA = `${PORTRAIT_COLUMN_MEDIA}, ${PORTRAIT_SPLIT_MEDIA}`;
 /**

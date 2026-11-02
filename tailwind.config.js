@@ -53,6 +53,11 @@ module.exports = {
     // important (split:!pr-0).
     plugin(({ addVariant }) => {
       addVariant("split", "@media (min-width: 744px) and (max-width: 1023.98px) and (min-height: 600px)");
+      // `short:` — short landscape screens (most laptops with browser chrome,
+      // landscape tablets, small windows), where About tightens its vertical
+      // rhythm and, on desktop, runs its copy over the portrait's faded side,
+      // so its buttons stay above the fold (PORTRAIT_SHORT_MEDIA in lib/portrait.ts).
+      addVariant("short", "@media (min-width: 744px) and (max-height: 820px)");
     }),
   ],
 }

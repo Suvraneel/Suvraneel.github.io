@@ -4,6 +4,7 @@ import {
   PHOTO_FADE_LEFT,
   PHOTO_FADE_TOP_SHARE,
   PHOTO_POSITION,
+  PORTRAIT_SHORT_MEDIA,
   PORTRAIT_SRC,
 } from "@lib/portrait";
 
@@ -40,6 +41,8 @@ const OCTAGON_CENTRE: Point = { x: 0.4878, y: 0.4274 };
 const OCTAGON_WIDTH = 1 / 0.967;
 /** Between the eyes, in the photo's own units: the point the photo grows about. */
 const EYES: Point = { x: 742 / 1456, y: 344 / 1456 };
+/** Where the face (its ear) starts, across the photo: About's copy stays clear of it. */
+const FACE_LEFT = 449 / 1456;
 /** The avatar's outline (violet top left, cyan bottom right), in hundredths of the octagon's width. */
 const OUTLINE_WIDTH = 1.5;
 /** The outline fades over this share of the travel, at the avatar's end. */
@@ -128,6 +131,7 @@ export class AvatarTraveller {
   private readonly avatar: AvatarPlacement;
   private rest!: Rest;
   private removed = false;
+  private fading = false;
 
   constructor(avatar: AvatarPlacement, photo: HTMLImageElement) {
     this.avatar = avatar;
@@ -258,13 +262,20 @@ export class AvatarTraveller {
     // The frame's foot fade, from its bottom edge up (it runs past the screen's unless the frame falls short).
     const foot = visible.top + visible.height - (frame.top + frame.height);
     const footFade = `linear-gradient(to top, transparent ${foot}px, #000 ${foot + PHOTO_FADE_BOTTOM_SHARE * frame.height}px)`;
+    // Its side fade: on short screens, where the copy runs over the photo, dark
+    // under the copy and opaque by the face (--photo-fade-side on About's frame).
+    const faceX = left + FACE_LEFT * size - visible.left;
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const sideFade = window.matchMedia(PORTRAIT_SHORT_MEDIA).matches
+      ? `linear-gradient(to right, transparent 0, rgba(0,0,0,.05) ${0.6 * faceX}px, rgba(0,0,0,.35) ${0.85 * faceX}px, rgba(0,0,0,.8) ${faceX}px, #000 ${Math.max(4.5 * rem, 1.12 * faceX)}px)`
+      : PHOTO_FADE_LEFT;
     this.place({
       photo: { left, top, size },
       octagon: { x: centre.x, y: centre.y, size: Math.max(2 * apothem + 4, OCTAGON_WIDTH * size) },
       column: visible,
       columnMask: fadeOnScreen
-        ? `${PHOTO_FADE_LEFT}, linear-gradient(to bottom, transparent ${frame.top - visible.top}px, #000 ${fadeEnd - visible.top}px), ${footFade}`
-        : `${PHOTO_FADE_LEFT}, ${footFade}`,
+        ? `${sideFade}, linear-gradient(to bottom, transparent ${frame.top - visible.top}px, #000 ${fadeEnd - visible.top}px), ${footFade}`
+        : `${sideFade}, ${footFade}`,
       photoMask: fadeOnScreen
         ? "none"
         : `linear-gradient(to bottom, transparent ${fadeFrom * 100}%, #000 ${fadeTo * 100}%)`,
@@ -319,19 +330,24 @@ export class AvatarTraveller {
     ];
   }
 
-  /** Leaves once `ready` settles (the real photo can draw), or after `timeout` ms at most. */
-  removeWhen(ready: Promise<unknown>, timeout = 500) {
-    const timer = window.setTimeout(() => this.remove(), timeout);
+  /**
+   * Leaves once `ready` settles (the real photo can draw), or after `timeout`
+   * ms at most, fading over `fade` ms: the copy runs over the faded side of
+   * the photo under it, so text there brightens rather than pops.
+   */
+  removeWhen(ready: Promise<unknown>, fade: number, timeout = 500) {
+    const timer = window.setTimeout(() => this.fadeOut(fade), timeout);
     const done = () => {
       window.clearTimeout(timer);
-      this.remove();
+      this.fadeOut(fade);
     };
     ready.then(done, done);
   }
 
   /** Fades out over what now stands under it (the avatar drawn again), then leaves. */
   fadeOut(duration: number) {
-    if (this.removed) return;
+    if (this.removed || this.fading) return;
+    this.fading = true;
     const fade = this.root.animate([{ opacity: 1 }, { opacity: 0 }], { duration, fill: "forwards" });
     fade.finished.then(
       () => this.remove(),
