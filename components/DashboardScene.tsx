@@ -2,6 +2,7 @@
 
 import SplineObj, { subscribeRuntimeDisposals } from "@components/SplineObject";
 import StairsPreloader, { PRELOADER_FAILSAFE_MS, type PreloaderStatus } from "@components/StairsPreloader";
+import type { AvatarPlacement } from "@components/transition/avatarPortrait";
 import { isInFlight, useTransitionState } from "@components/transition/transitionStore";
 import { SHEET_SHADOW } from "@lib/pageTransition";
 import { hasHardwareRenderer } from "@lib/gpu";
@@ -26,6 +27,8 @@ import {
 const DASHBOARD_SCENE = "/spline/sceneDACCORD_NEW.splinecode";
 const FLIP_RIG = "Dashboard Flip Rig";
 const BLOB = "Blob | Primary";
+/** The profile avatar on the dashboard: About's photo in an octagon, on the rig. */
+const AVATAR = "DP";
 /** Pulled all the way in, the blob is this small, and hidden (a zero scale would leave it a singular matrix). */
 const BLOB_PULLED_SCALE = 0.02;
 // SplineObj skips rendering at or below this width.
@@ -65,6 +68,18 @@ type DashboardSceneContextValue = {
   setBlobPull: (amount: number) => void;
   /** HomePage reports whether its static hero is on screen. */
   setHeroShown: (shown: boolean) => void;
+  /**
+   * The dashboard's avatar on screen, as drawn now, or with the rig turned to
+   * `rotation` (radians) for the measure only. Null if it cannot be read.
+   */
+  measureAvatar: (rotation?: number) => AvatarPlacement | null;
+  /**
+   * Hides the avatar while a copy of it travels to or from About's portrait.
+   * Only while the scene plays: play() wires hover and click to shown objects only.
+   */
+  setAvatarShown: (shown: boolean) => void;
+  /** Runs `callback` once the scene has drawn its next frame (or shortly, if it draws none). */
+  afterSceneFrame: (callback: () => void) => void;
 };
 
 const noop = () => undefined;
@@ -80,6 +95,9 @@ const DashboardSceneContext = createContext<DashboardSceneContextValue>({
   setFlip: noop,
   setBlobPull: noop,
   setHeroShown: noop,
+  measureAvatar: () => null,
+  setAvatarShown: noop,
+  afterSceneFrame: (callback) => callback(),
 });
 
 export const useDashboardScene = () => useContext(DashboardSceneContext);
@@ -108,7 +126,8 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     transition.homeVisualIsScene &&
     transition.kind !== "instant" &&
     !(transition.kind === "fade" && transition.to === "/");
-  const sceneShadow = sceneOnTop && transition.kind !== "fade";
+  // The avatar flip fades the scene in place: it is never a moving edge.
+  const sceneShadow = sceneOnTop && transition.kind !== "fade" && !transition.avatar;
   // While Home shows its static hero instead of the scene, the hero rides the
   // sheet over the scene's fallback: at the sheet's own z-index the container
   // paints first and Home's transparent layer, which carries the hero, paints over it.
@@ -276,6 +295,35 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
 
   const setBlobPull = useCallback((amount: number) => pullBlob(appRef.current, amount), []);
 
+  const measureAvatar = useCallback(
+    (rotation?: number) => projectAvatar(appRef.current, rotation === undefined ? null : getRig(), rotation),
+    [getRig]
+  );
+
+  const setAvatarShown = useCallback((shown: boolean) => {
+    const app = appRef.current;
+    const avatar = app?.findObjectByName?.(AVATAR);
+    if (!avatar) return;
+    if (shown) avatar.show?.();
+    else avatar.hide?.();
+    requestSceneFrame(app);
+  }, []);
+
+  const afterSceneFrame = useCallback((callback: () => void) => {
+    const canvas: HTMLCanvasElement | undefined = appRef.current?.canvas;
+    let done = false;
+    const run = () => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(timer);
+      canvas?.removeEventListener("rendered", run);
+      callback();
+    };
+    // The runtime dispatches "rendered" on its canvas after every frame it draws.
+    canvas?.addEventListener("rendered", run);
+    const timer = window.setTimeout(run, 150);
+  }, []);
+
   // A lift that has settled away from Home leaves the hidden scene at its last
   // keyframe; drop that before it can be shown again.
   useLayoutEffect(() => {
@@ -284,6 +332,7 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     if (!container) return;
     container.getAnimations().forEach((animation) => animation.cancel());
     container.style.transform = "";
+    container.style.opacity = "";
   }, [isVisible]);
 
   const preloaderActive = isInitialLoad && isSplineViewport;
@@ -347,8 +396,23 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
       setFlip,
       setBlobPull,
       setHeroShown,
+      measureAvatar,
+      setAvatarShown,
+      afterSceneFrame,
     }),
-    [app, getRig, hasSceneError, isReady, isSplineViewport, preloaderActive, setFlip, setBlobPull]
+    [
+      afterSceneFrame,
+      app,
+      getRig,
+      hasSceneError,
+      isReady,
+      isSplineViewport,
+      measureAvatar,
+      preloaderActive,
+      setAvatarShown,
+      setFlip,
+      setBlobPull,
+    ]
   );
 
   // Off the first visit, an unready scene shows the static dashboard as its
@@ -787,6 +851,68 @@ function pullBlob(app: any, amount: number) {
   pull.amount = Math.min(1, amount);
   // A scene held still draws only on request; a stopped one is hidden and draws the pull once it plays.
   requestSceneFrame(app);
+}
+
+// ---------------------------------------------------------------------------
+// Where the avatar is drawn: its mesh's origin and local axes projected
+// through the scene's (orthographic) camera onto the canvas. The plate is
+// turned in depth, so on screen its axes are neither square nor level: the
+// octagon is a regular one in the mesh's own plane, centred on its origin and
+// AVATAR_OCTAGON units across, and reaches the screen through those axes.
+// Calibrated on screenshots (its outline traced back into the plane); the
+// camera, hover state and rig rotation are all taken as they are.
+//
+// The runtime exposes no camera or world matrices: this reads its scene and
+// camera (three.js objects), as holdSceneStill reads its controls. Same pinned
+// version; on any other shape it measures nothing and the old flip plays.
+// ---------------------------------------------------------------------------
+
+/** The avatar's octagon, outline included, across its mesh's own plane (local units). */
+const AVATAR_OCTAGON = 85.3;
+
+type Projectable = { applyMatrix4: (matrix: unknown) => Projectable; project: (camera: unknown) => Projectable; x: number; y: number };
+
+function projectAvatar(app: any, rig: any, rotation?: number): AvatarPlacement | null {
+  const mesh = app?._scene?.getObjectByName?.(AVATAR);
+  const camera = app?._scene?.activeCamera ?? app?._camera;
+  const canvas: HTMLCanvasElement | undefined = app?.canvas;
+  const Vector = mesh?.position?.constructor as (new (x: number, y: number, z: number) => Projectable) | undefined;
+  if (!mesh?.matrixWorld || typeof mesh.updateWorldMatrix !== "function" || !camera || !canvas || !Vector) return null;
+  const held = rig ? Number(rig.rotation.x) : 0;
+  try {
+    // Spline objects keep their local matrices current but not their world
+    // ones (matrixAutoUpdate is off); a rig write updates its local matrix.
+    if (rig && rotation !== undefined) rig.rotation.x = rotation;
+    mesh.updateWorldMatrix(true, false);
+    camera.updateMatrixWorld?.();
+    const rect = canvas.getBoundingClientRect();
+    const at = (x: number, y: number) => {
+      const point = new Vector(x, y, 0).applyMatrix4(mesh.matrixWorld).project(camera);
+      return { x: rect.left + ((point.x + 1) / 2) * rect.width, y: rect.top + ((1 - point.y) / 2) * rect.height };
+    };
+    const centre = at(0, 0);
+    const left = at(-50, 0);
+    const right = at(50, 0);
+    // The plane's up is the screen's down.
+    const top = at(0, 50);
+    const bottom = at(0, -50);
+    const across = AVATAR_OCTAGON / 100;
+    const placement: AvatarPlacement = {
+      x: centre.x,
+      y: centre.y,
+      across: [(right.x - left.x) * across, (right.y - left.y) * across],
+      down: [(bottom.x - top.x) * across, (bottom.y - top.y) * across],
+    };
+    const values = [placement.x, placement.y, ...placement.across, ...placement.down];
+    return values.every(Number.isFinite) && rect.width > 0 ? placement : null;
+  } catch {
+    return null;
+  } finally {
+    if (rig && rotation !== undefined) {
+      rig.rotation.x = held;
+      mesh.updateWorldMatrix(true, false);
+    }
+  }
 }
 
 

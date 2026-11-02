@@ -7,6 +7,7 @@ import { SPLINE_MIN_WIDTH, useDashboardScene } from "@components/DashboardScene"
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
+import { warmPortrait } from "@components/transition/avatarPortrait";
 import {
   gestureGate,
   getTransition,
@@ -16,6 +17,7 @@ import {
 } from "@components/transition/transitionStore";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
+import { PORTRAIT_MEDIA } from "@lib/portrait";
 
 /** Wheel intent (px of deltaY) that turns the dashboard over to About. */
 const FLIP_INTENT = 80;
@@ -38,12 +40,6 @@ const readReducedMotionOnServer = () => false;
  * it). Kept outside the component so a Home remounted by a navigation still knows.
  */
 let homeSeenNarrow = false;
-
-/**
- * About's desktop portrait, warmed from Home. Held for the session: an
- * unreferenced Image can be collected, and About would fetch the photo again.
- */
-let aboutPortrait: HTMLImageElement | null = null;
 
 /** A flip or unflip in flight drives the rig itself. */
 const flipOwnsRig = () => {
@@ -121,13 +117,12 @@ const Home = () => {
     preloaderActiveRef.current = preloaderActive;
   }, [preloaderActive]);
 
-  // About's portrait (desktop only) is warmed once the scene is up, or has given
-  // way to the static hero, so a first flip to About never shows the photo
-  // arriving partway through.
+  // About's portrait (desktop only) is warmed and decoded once the scene is up,
+  // or has given way to the static hero, so a first flip to About never shows
+  // the photo arriving partway through (the avatar opens into it).
   useEffect(() => {
-    if (aboutPortrait || !(isReady || sceneFailed) || !window.matchMedia("(min-width: 1024px)").matches) return;
-    aboutPortrait = new window.Image();
-    aboutPortrait.src = "/images/Suvraneel_DP.jpeg";
+    if (!(isReady || sceneFailed) || !window.matchMedia(PORTRAIT_MEDIA).matches) return;
+    warmPortrait();
   }, [isReady, sceneFailed]);
 
   // Under reduced motion the flip is a fade, so the rig is never turned partway.

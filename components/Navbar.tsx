@@ -225,7 +225,7 @@ function RailIndicator({ progress }: { progress: MotionValue<number> }) {
         // The style already holds the arriving item; the track is dropped on settle.
         track.add(
           indicator.animate([{ transform: from }, { transform: to }], {
-            duration: t.duration,
+            duration: track.duration,
             easing: cssEase(t.ease),
             fill: "both",
           })

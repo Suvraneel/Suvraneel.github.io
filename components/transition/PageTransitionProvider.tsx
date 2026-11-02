@@ -3,12 +3,21 @@
 import { useDashboardScene } from "@components/DashboardScene";
 import * as gtag from "@lib/gtag";
 import {
+  AVATAR_HANDIN,
+  AVATAR_HANDOFF_MS,
+  AVATAR_SCENE_IN,
+  AVATAR_SCENE_OUT,
+  AVATAR_TEXT_AT,
+  AVATAR_TEXT_OUT,
+  AVATAR_TEXT_SPAN,
+  AVATAR_TURN,
   COMMIT_WATCHDOG_MS,
   CONTENT_LEAD,
   DEPTH_SELECTORS,
   EASE_FADE,
   EASE_FLIP,
   EASE_LIFT,
+  EASE_SCENE_FADE,
   EASE_THROW,
   FADE_MS,
   FLIP_LEAD_MS,
@@ -37,6 +46,7 @@ import {
   type PageTransition,
   type TransitionSource,
 } from "@lib/pageTransition";
+import { PORTRAIT_MEDIA } from "@lib/portrait";
 import { cubicBezier } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -49,6 +59,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { AvatarTraveller, decodedPortrait, isAvatarInView, measurePortrait } from "./avatarPortrait";
 import { adoptHistoryEntry, rememberScroll, savedScrollFor } from "./historyScroll";
 import { TransitionTimeline } from "./timeline";
 import {
@@ -65,6 +76,7 @@ import {
   setTransition,
   setTransitionLocked,
   useTransitionState,
+  type ArrivalTrack,
 } from "./transitionStore";
 
 export type NavigateOptions = {
@@ -149,6 +161,34 @@ const easePull = cubicBezier(EASE_FLIP[0], EASE_FLIP[1], EASE_FLIP[2], EASE_FLIP
 const pullAt = (progress: number) => easePull(Math.max(0, Math.min(1, progress / BLOB_PULL_SPAN)));
 const returnPullAt = (progress: number) => pullAt(1 - progress);
 
+type Scene = ReturnType<typeof useDashboardScene>;
+
+/** About's portrait column: hidden under the avatar's copy while it travels. */
+const PORTRAIT_SELECTOR = "[data-portrait]";
+
+/**
+ * The avatar's copy for a flip (resting on the avatar) or an unflip (resting
+ * on About's portrait, bound for the avatar on the upright dashboard), where
+ * that choreography applies: About's portrait column shows at this width, the
+ * photo is decoded and the avatar is wholly in view. Null: the sheet lifts.
+ */
+function startAvatar(kind: "flip" | "unflip", scene: Scene): AvatarTraveller | null {
+  const photo = decodedPortrait();
+  if (!photo || !window.matchMedia(PORTRAIT_MEDIA).matches) return null;
+  if (kind === "flip") {
+    const avatar = scene.measureAvatar();
+    return avatar && isAvatarInView(avatar) ? new AvatarTraveller(avatar, photo) : null;
+  }
+  const portrait = measurePortrait(layerRegistry.get("/about")?.el);
+  const avatar = scene.measureAvatar(0);
+  if (!portrait || !avatar || !isAvatarInView(avatar)) return null;
+  const traveller = new AvatarTraveller(avatar, photo);
+  traveller.arrive(portrait);
+  traveller.show(1);
+  traveller.conceal();
+  return traveller;
+}
+
 type DevWindow = Window & {
   __pageTransitionSeek?: (p: number) => void;
   __pageTransitionResume?: () => void;
@@ -173,6 +213,11 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
   const pendingArrival = useRef<{ path: PagePath; y: number } | null>(null);
   // Dev only: a seek requested while nothing is in flight pauses the next transition.
   const armedSeek = useRef<number | null>(null);
+  // The avatar's copy of the latest avatar flip (it may stay a moment past
+  // settle, until what it hands over to is drawn), and what an unflip hid
+  // before its route committed.
+  const avatarTraveller = useRef<AvatarTraveller | null>(null);
+  const avatarRestore = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     sceneRef.current = scene;
@@ -262,6 +307,23 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
     stopFlip(true);
     timeline.current?.finish();
     timeline.current = null;
+
+    // The avatar's copy has landed: it hands over to the real photo once that
+    // can draw (the same pixels), or fades into the avatar drawn again.
+    if (t.avatar) {
+      // Cut short before its route committed (a history step), the page it
+      // was leaving stays: it gets back what the transition hid on it.
+      if (t.commitAt === null) avatarRestore.current?.();
+      avatarRestore.current = null;
+      sceneRef.current.setAvatarShown(true);
+      const traveller = avatarTraveller.current;
+      if (traveller && t.to === "/about") {
+        const photo = document.querySelector<HTMLImageElement>(`[data-page="/about"] [data-portrait-photo] img`);
+        traveller.removeWhen(photo ? photo.decode() : Promise.resolve());
+      } else if (traveller) {
+        sceneRef.current.afterSceneFrame(() => traveller.fadeOut(AVATAR_HANDOFF_MS * timeScale()));
+      }
+    }
 
     // Nothing may have scrolled the arriving page in flight, but a top arrival
     // is put back at its top regardless, so it never lands part way down.
@@ -439,6 +501,12 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       });
       const direction = directionOf(from, to);
       const homeVisualIsScene = currentScene.sceneViewport && (from === "/" || to === "/");
+      // Home ↔ About with the portrait's column showing: the avatar opens into
+      // the portrait, or closes back into it. A copy still handing over from
+      // the last one goes now (they share the photo).
+      avatarTraveller.current?.remove();
+      avatarTraveller.current = kind === "flip" || kind === "unflip" ? startAvatar(kind, currentScene) : null;
+      const avatar = avatarTraveller.current !== null;
       // The earlier page is always the sheet; reduced motion fades the outgoing one.
       const sheet: PagePath =
         kind === "fade" || kind === "instant" ? from : direction > 0 ? from : to;
@@ -488,6 +556,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
         ease: thrown ? EASE_THROW : EASE_LIFT,
         flipDuration: FLIP_MS * liftScale * scale,
         homeVisualIsScene,
+        avatar,
         popScrollY: framedScrollY ?? (options.source === "pop" ? window.scrollY : undefined),
         settled: false,
       };
@@ -502,17 +571,34 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       lock(options);
       markStarted(window.performance.now());
 
-      // Home's scene waits one viewport up, ready to come down as Home's sheet.
-      if (homeVisualIsScene && to === "/" && isLiftKind(t)) {
-        const container = currentScene.containerRef.current;
-        if (container) container.style.transform = translateY(-window.innerHeight);
+      // A transition cut short by a history step settles in the same task as
+      // this one starts, so the scene is never hidden in between to drop what
+      // the last one left held on it (a flip's fade or lift): drop it here.
+      const container = currentScene.containerRef.current;
+      container?.getAnimations().forEach((animation) => animation.cancel());
+
+      if (avatar && kind === "unflip") {
+        // The scene, shown in this render, waits invisible to fade in over
+        // About. The copy waits invisible too, over About's portrait, until
+        // the route commits and it fades in over it.
+        if (container) container.style.opacity = "0";
+        avatarRestore.current = () => {
+          if (container) container.style.opacity = "";
+        };
+      } else if (homeVisualIsScene && to === "/" && isLiftKind(t) && container) {
+        // Home's scene waits one viewport up, ready to come down as Home's sheet.
+        container.style.transform = translateY(-window.innerHeight);
       }
 
       // 4. Publish: layers take their stacking order and the scene is shown
       //    (above the page underneath when it is Home's sheet) in one render.
       setTransition(t);
 
-      // 5–6. Drive the dashboard rig.
+      // 5–6. Drive the dashboard rig. With the avatar's copy on top, the
+      // avatar itself is hidden, and the card only tips back as far as edge-on.
+      // (Not yet on the way home: the scene starts playing in the render above,
+      // and the runtime wires hover and click only to objects shown then.)
+      if (avatar && kind === "flip") currentScene.setAvatarShown(false);
       if (kind === "flip") {
         const rig = currentScene.getRig();
         const flip = startFlip(track, {
@@ -520,7 +606,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
           duration: t.flipDuration,
           ease: EASE_FLIP,
           from: Number(rig?.rotation.x ?? 0),
-          to: -Math.PI,
+          to: avatar ? AVATAR_TURN : -Math.PI,
           pull: pullAt,
         });
         flip.finished.then(
@@ -535,7 +621,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
         );
       } else if (kind === "unflip") {
         // Starts turning back with the lift, once the route has committed.
-        currentScene.setFlip(-Math.PI);
+        currentScene.setFlip(avatar ? AVATAR_TURN : -Math.PI);
         currentScene.setBlobPull(1);
       } else if (to === "/") {
         // Off screen (or underneath) until it lands, so this never shows as a rotation.
@@ -571,6 +657,12 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
         sceneRef.current.setBlobPull(0);
         const container = sceneRef.current.containerRef.current;
         if (container) container.style.transform = "";
+        if (current.avatar) {
+          avatarTraveller.current?.remove();
+          avatarRestore.current?.();
+          avatarRestore.current = null;
+          sceneRef.current.setAvatarShown(true);
+        }
         releaseLocks();
         setTransition(null);
       }, COMMIT_WATCHDOG_MS);
@@ -660,7 +752,86 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       { transform: translateY(toPx) },
     ];
 
-    if (lift) {
+    // The arriving page's entrance on this timeline (set per choreography below).
+    let arrivalTrack: ArrivalTrack | null = lift
+      ? { add: (animation) => track.add(animation, offset, true), duration: t.duration }
+      : null;
+    /** About's portrait column, waiting under the avatar's copy until it lands. */
+    let portraitHeld: HTMLElement | null = null;
+    const traveller = t.avatar ? avatarTraveller.current : null;
+
+    if (lift && traveller) {
+      // The avatar opens into About's portrait (or closes back into it) in a
+      // fixed layer above everything, while the scene, with the black backing
+      // that covers the page underneath, fades in place: no sheet moves.
+      const sceneFade = (span: readonly [number, number]): KeyframeAnimationOptions => ({
+        delay: span[0] * t.duration,
+        duration: (span[1] - span[0]) * t.duration,
+        easing: cssEase(EASE_SCENE_FADE),
+        fill: "both",
+      });
+      if (forward) {
+        // The card has been tipping back since the start; these keep its time.
+        const since = Math.max(0, committedAt - track.origin);
+        const portrait = measurePortrait(incoming?.el);
+        if (portrait) {
+          traveller.arrive(portrait);
+          traveller.show(0);
+          for (const animation of traveller.animate(1, t.duration, t.ease)) track.add(animation, since, false);
+          portraitHeld = incoming?.el?.querySelector<HTMLElement>(PORTRAIT_SELECTOR) ?? null;
+        } else {
+          // About lost its portrait column on the way (the window narrowed): the card keeps its avatar.
+          traveller.remove();
+          sceneRef.current.setAvatarShown(true);
+        }
+        // On the card's time, but never before About is there to fade onto:
+        // a late commit starts it then, rather than part way through.
+        if (container) {
+          const fade = container.animate([{ opacity: 1 }, { opacity: 0 }], sceneFade(AVATAR_SCENE_OUT));
+          track.add(fade, Math.max(0, since - AVATAR_SCENE_OUT[0] * t.duration), false);
+        }
+        // The copy enters once the card is all but gone, from nothing.
+        const textAt = Math.max(since, AVATAR_TEXT_AT * t.duration);
+        arrivalTrack = {
+          add: (animation) => track.add(animation, textAt, true),
+          duration: AVATAR_TEXT_SPAN * t.duration,
+          fromOpacity: 0,
+        };
+      } else {
+        // About's copy goes, the scene comes back over the page, and the card
+        // turns up from edge-on as the copy closes into its avatar.
+        const cells = Array.from(exiting?.el?.querySelectorAll<HTMLElement>("[data-reveal]") ?? []);
+        for (const cell of cells) {
+          play(cell, [{ opacity: 1, transform: translateY(0) }, { opacity: 0, transform: translateY(-12) }], false, {
+            duration: AVATAR_TEXT_OUT * t.duration,
+            easing: cssEase(EASE_FADE),
+            fill: "both",
+          });
+        }
+        if (container) {
+          play(container, [{ opacity: 0 }, { opacity: 1 }], true, sceneFade(AVATAR_SCENE_IN));
+          container.style.opacity = "";
+        }
+        avatarRestore.current = null;
+        // The scene has been playing (invisible) since the transition started,
+        // its avatar wired for hover and click; it hides only now, before the
+        // scene fades in, so it comes back to Home still answering the pointer.
+        sceneRef.current.setAvatarShown(false);
+        startFlip(track, { offset, duration: t.duration, ease: t.ease, from: AVATAR_TURN, to: 0, pull: returnPullAt });
+        // The copy (the flat photo) fades in over the live portrait, which may
+        // be its relief turned toward the pointer, before it sets off and the
+        // portrait goes from under it.
+        const handIn = AVATAR_HANDIN * t.duration;
+        track.add(traveller.fadeIn(handIn), offset, false);
+        const portrait = exiting?.el?.querySelector<HTMLElement>(PORTRAIT_SELECTOR);
+        if (portrait) {
+          play(portrait, [{ opacity: 0 }, { opacity: 0 }], false, { delay: handIn, duration: 1, fill: "forwards" });
+        }
+        for (const animation of traveller.animate(-1, t.duration - handIn, t.ease)) {
+          track.add(animation, offset + handIn, false);
+        }
+      }
+    } else if (lift) {
       const sheet = forward ? exiting : incoming;
       const under = forward ? incoming : exiting;
       // Forward tracks on the exiting page hold their last frame until it is
@@ -737,12 +908,12 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
 
     // The arriving page is placed: let it measure its arrival view and, on a
     // lift, tie its own entrance to this timeline.
-    notifyArrival(
-      t,
-      lift
-        ? { add: (animation) => track.add(animation, offset, true), duration: t.duration }
-        : null
-    );
+    notifyArrival(t, arrivalTrack);
+
+    // Held for the whole flight, which every track above now spans.
+    if (portraitHeld) {
+      track.add(portraitHeld.animate([{ opacity: 0 }, { opacity: 0 }], { duration: track.duration, fill: "both" }), 0, true);
+    }
 
     if (track.duration > 0) armSettle(t, track);
     else window.requestAnimationFrame(() => settle());

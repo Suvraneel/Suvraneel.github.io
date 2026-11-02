@@ -38,8 +38,8 @@ export default function LiftHeading({ children, className = "", rootRef, ...prop
       if (arrivalView(rootRef?.current ?? null, t).side(heading) !== 0) return;
       track.add(
         text.animate([{ transform: "translate3d(0px, 100%, 0px)" }, { transform: "translate3d(0px, 0px, 0px)" }], {
-          delay: RISE_START * t.duration,
-          duration: (1 - RISE_START) * t.duration,
+          delay: RISE_START * track.duration,
+          duration: (1 - RISE_START) * track.duration,
           easing: cssEase(t.ease ?? EASE_LIFT),
           fill: "both",
         })

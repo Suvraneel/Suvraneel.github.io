@@ -12,26 +12,19 @@ import PillButton from "@components/PillButton";
 import DepthPortrait from "@components/DepthPortrait";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
 import { gestureGate, isTransitionLocked, wasClickDropped } from "@components/transition/transitionStore";
+import { warmPortrait } from "@components/transition/avatarPortrait";
 import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
+import { PHOTO_FADE_LEFT, PHOTO_FADE_TOP, PHOTO_POSITION, PORTRAIT_MEDIA, PORTRAIT_SRC } from "@lib/portrait";
 
 const isAtPageBottom = () =>
   window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
 
-/** Where the portrait's column shows (lg, as on its <aside>); only there is the photo fetched. */
-const PORTRAIT_MEDIA = "(min-width: 1024px)";
 /** What the <img> holds below lg: a 1x1 transparent GIF, inline, so phones and tablets fetch nothing. */
 const NO_PHOTO = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-/**
- * The studio backdrop is near black, not the page's #000: its left and top
- * edges fade into the page so the frame never reads as a rectangle (the right
- * and bottom edges are the viewport's).
- */
 const PHOTO_FADE: CSSProperties = {
-  maskImage: "linear-gradient(to right, transparent, #000 4.5rem), linear-gradient(to bottom, transparent, #000 10%)",
+  maskImage: `${PHOTO_FADE_LEFT}, ${PHOTO_FADE_TOP}`,
   maskComposite: "intersect",
 };
-/** The photo's object-position (object-[40%_100%]), for the relief that replaces it. */
-const PHOTO_POSITION: [number, number] = [0.4, 1];
 
 const About = () => {
   const router = useRouter();
@@ -50,6 +43,8 @@ const About = () => {
     // Keep the next route and its remote scene in the browser cache while the
     // visitor reads this page, so the return flip is not preceded by a cold load.
     router.prefetch("/");
+    // The photo the way home closes back into the dashboard's avatar, decoded ahead.
+    if (window.matchMedia(PORTRAIT_MEDIA).matches) warmPortrait();
   }, [router]);
 
   useEffect(() => {
@@ -191,16 +186,20 @@ const About = () => {
           {/* The aside is the photo's frame: it moves with the sheet and clips the
               photo layer, overscanned 6% above and below so it can trail the sheet
               in a lift (LAG_SELECTOR in lib/pageTransition) without an edge showing. */}
-          <aside aria-label="Portrait of Suvraneel Bhuin" className="relative hidden min-h-[100dvh] overflow-hidden lg:block">
+          <aside
+            aria-label="Portrait of Suvraneel Bhuin"
+            data-portrait=""
+            className="relative hidden min-h-[100dvh] overflow-hidden lg:block"
+          >
             <div data-depth="photo" className="pointer-events-none absolute inset-x-0 -inset-y-[6%] [container-type:inline-size]">
               {/* Bottom-anchored, a little short of the layer so the hair keeps some
                   headroom under the top fade and, in a tall narrow frame, no taller
                   than 2.22x its width, so the cover crop never cuts into the face.
                   The fade masks the photo and its relief together, so the cross-fade
                   between them never doubles the faded edges. */}
-              <div className="absolute bottom-0 left-0 h-[95%] max-h-[222cqw] w-full" style={PHOTO_FADE}>
+              <div data-portrait-photo="" className="absolute bottom-0 left-0 h-[95%] max-h-[222cqw] w-full" style={PHOTO_FADE}>
                 <picture>
-                  <source media={PORTRAIT_MEDIA} srcSet="/images/Suvraneel_DP.jpeg" />
+                  <source media={PORTRAIT_MEDIA} srcSet={PORTRAIT_SRC} />
                   {/* Under the relief it turns transparent rather than hidden, so its alt text stays readable. */}
                   <img
                     src={NO_PHOTO}
@@ -213,7 +212,7 @@ const About = () => {
                 </picture>
                 {/* The same photo in relief, turning a few degrees toward the pointer. */}
                 <DepthPortrait
-                  src="/images/Suvraneel_DP.jpeg"
+                  src={PORTRAIT_SRC}
                   depthSrc="/images/Suvraneel_DP-depth.webp"
                   media={PORTRAIT_MEDIA}
                   position={PHOTO_POSITION}
