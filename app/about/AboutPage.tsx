@@ -1,7 +1,7 @@
 "use client";
 
 import { spaceBoards, tasaOrbiter } from "@font";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import * as gtag from "@lib/gtag";
 import { useLiftEntrance } from "@hooks/useLiftEntrance";
@@ -14,15 +14,32 @@ import { usePageTransition } from "@components/transition/PageTransitionProvider
 import { gestureGate, isTransitionLocked, wasClickDropped } from "@components/transition/transitionStore";
 import { warmPortrait } from "@components/transition/avatarPortrait";
 import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
-import { PHOTO_FADE_LEFT, PHOTO_FADE_TOP, PHOTO_POSITION, PORTRAIT_MEDIA, PORTRAIT_SRC } from "@lib/portrait";
+import {
+  PHOTO_FADE_BOTTOM,
+  PHOTO_FADE_LEFT,
+  PHOTO_FADE_TOP,
+  PHOTO_POSITION,
+  PORTRAIT_MEDIA,
+  PORTRAIT_SRC,
+} from "@lib/portrait";
 
 const isAtPageBottom = () =>
   window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
 
 /** What the <img> holds below lg: a 1x1 transparent GIF, inline, so phones and tablets fetch nothing. */
 const NO_PHOTO = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-const PHOTO_FADE: CSSProperties = {
-  maskImage: `${PHOTO_FADE_LEFT}, ${PHOTO_FADE_TOP}`,
+/**
+ * The photo's frame, in its overscanned layer: a little short of it so the
+ * hair keeps some headroom under the top fade, and no taller than 2.22x its
+ * width, so the cover crop never cuts into the face. Bottom-anchored, unless
+ * the width cap leaves it short of the column (a tall, narrow window): then it
+ * hangs from just below the column's top, the face high in the screen, and
+ * fades out at its foot instead of sinking to the bottom.
+ */
+const PHOTO_FRAME: CSSProperties = {
+  height: "min(95%, 222cqw)",
+  top: "min(calc(100% - min(95%, 222cqw)), 9%)",
+  maskImage: `${PHOTO_FADE_LEFT}, ${PHOTO_FADE_TOP}, ${PHOTO_FADE_BOTTOM}`,
   maskComposite: "intersect",
 };
 
@@ -38,6 +55,43 @@ const About = () => {
   useLiftEntrance(copy);
   // Once the relief draws, the flat photo under it steps aside (after the fade).
   const [relief, setRelief] = useState(false);
+  const portraitColumn = useRef<HTMLElement>(null);
+
+  // The portrait's column is pinned to the screen while the copy scrolls by.
+  // A lift clips the page in its layer and frames it at an offset (leaving,
+  // or arriving as the sheet), so sticky would measure against the layer
+  // instead of the window and drop the column back to the page's top. While
+  // the layer clips, the column is held where the window had it pinned (as
+  // Skills holds its switcher).
+  useLayoutEffect(() => {
+    const column = portraitColumn.current;
+    const layer = column?.closest<HTMLElement>("[data-page]");
+    const freeze = column?.closest<HTMLElement>("[data-freeze]");
+    if (!column || !layer || !freeze) return;
+
+    const release = () => {
+      column.style.position = "";
+      column.style.top = "";
+    };
+    const hold = () => {
+      release();
+      if (column.offsetParent === null || getComputedStyle(layer).overflowY === "visible") return;
+      const framedAt = freeze.style.transform ? -new DOMMatrixReadOnly(freeze.style.transform).m42 : 0;
+      const travel = (column.parentElement?.offsetHeight ?? 0) - column.offsetHeight;
+      column.style.position = "relative";
+      column.style.top = `${Math.min(travel, Math.max(0, framedAt))}px`;
+    };
+
+    // Mutations are delivered before the frame is painted, so the held column never shows a frame out of place.
+    const observer = new MutationObserver(hold);
+    observer.observe(layer, { attributes: true, attributeFilter: ["class", "style"] });
+    observer.observe(freeze, { attributes: true, attributeFilter: ["style"] });
+    hold();
+    return () => {
+      observer.disconnect();
+      release();
+    };
+  }, []);
 
   useEffect(() => {
     // Keep the next route and its remote scene in the browser cache while the
@@ -122,7 +176,9 @@ const About = () => {
   }, [navigate]);
 
   return (
-      <main className="relative min-h-[100dvh] overflow-hidden bg-black text-white">
+      // Clip, not hidden: a hidden overflow is a scroll container, and the
+      // portrait's sticky column would stick to it instead of the window.
+      <main className="relative min-h-[100dvh] overflow-clip bg-black text-white">
         <div className="relative z-10 grid min-h-[100dvh] grid-cols-1 lg:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.82fr)]">
           {/* Phones: the bottom padding keeps the CTAs clear of the "Pull for" pill.
               Tablets: the text starts past the 50px nav rail (shown from 769px wide and
@@ -183,21 +239,21 @@ const About = () => {
               </div>
             </div>
           </section>
-          {/* The aside is the photo's frame: it moves with the sheet and clips the
-              photo layer, overscanned 6% above and below so it can trail the sheet
-              in a lift (LAG_SELECTOR in lib/pageTransition) without an edge showing. */}
+          {/* The aside is the photo's frame: one screen tall and pinned to it while
+              the copy scrolls by, so the photo is framed to the screen however long
+              the copy runs. It moves with the sheet and clips the photo layer,
+              overscanned 6% above and below so it can trail the sheet in a lift
+              (LAG_SELECTOR in lib/pageTransition) without an edge showing. */}
           <aside
+            ref={portraitColumn}
             aria-label="Portrait of Suvraneel Bhuin"
             data-portrait=""
-            className="relative hidden min-h-[100dvh] overflow-hidden lg:block"
+            className="sticky top-0 hidden h-[100dvh] self-start overflow-hidden lg:block"
           >
             <div data-depth="photo" className="pointer-events-none absolute inset-x-0 -inset-y-[6%] [container-type:inline-size]">
-              {/* Bottom-anchored, a little short of the layer so the hair keeps some
-                  headroom under the top fade and, in a tall narrow frame, no taller
-                  than 2.22x its width, so the cover crop never cuts into the face.
-                  The fade masks the photo and its relief together, so the cross-fade
-                  between them never doubles the faded edges. */}
-              <div data-portrait-photo="" className="absolute bottom-0 left-0 h-[95%] max-h-[222cqw] w-full" style={PHOTO_FADE}>
+              {/* PHOTO_FRAME places it. The fades mask the photo and its relief
+                  together, so the cross-fade between them never doubles the faded edges. */}
+              <div data-portrait-photo="" className="absolute left-0 w-full" style={PHOTO_FRAME}>
                 <picture>
                   <source media={PORTRAIT_MEDIA} srcSet={PORTRAIT_SRC} />
                   {/* Under the relief it turns transparent rather than hidden, so its alt text stays readable. */}

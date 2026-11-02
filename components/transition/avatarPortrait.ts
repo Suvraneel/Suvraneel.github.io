@@ -1,5 +1,11 @@
 import { cubicBezier } from "motion/react";
-import { PHOTO_FADE_LEFT, PHOTO_POSITION, PORTRAIT_SRC } from "@lib/portrait";
+import {
+  PHOTO_FADE_BOTTOM_SHARE,
+  PHOTO_FADE_LEFT,
+  PHOTO_FADE_TOP_SHARE,
+  PHOTO_POSITION,
+  PORTRAIT_SRC,
+} from "@lib/portrait";
 
 // ---------------------------------------------------------------------------
 // Home ↔ About on a desktop showing About's portrait column: the dashboard's
@@ -244,18 +250,21 @@ export class AvatarTraveller {
     // it stays on the screen with the column's left fade and never touches the
     // copy while it is small; otherwise it rides on the photo, the frame's top
     // being the photo's own unless the frame crops it.
-    const fadeEnd = frame.top + 0.1 * frame.height;
+    const fadeEnd = frame.top + PHOTO_FADE_TOP_SHARE * frame.height;
     const avatarTop = this.avatar.y - (Math.abs(this.avatar.across[1]) + Math.abs(this.avatar.down[1])) / 2;
     const fadeOnScreen = avatarTop >= fadeEnd;
     const fadeFrom = (frame.top - top) / size;
-    const fadeTo = fadeFrom + (0.1 * frame.height) / size;
+    const fadeTo = fadeFrom + (PHOTO_FADE_TOP_SHARE * frame.height) / size;
+    // The frame's foot fade, from its bottom edge up (it runs past the screen's unless the frame falls short).
+    const foot = visible.top + visible.height - (frame.top + frame.height);
+    const footFade = `linear-gradient(to top, transparent ${foot}px, #000 ${foot + PHOTO_FADE_BOTTOM_SHARE * frame.height}px)`;
     this.place({
       photo: { left, top, size },
       octagon: { x: centre.x, y: centre.y, size: Math.max(2 * apothem + 4, OCTAGON_WIDTH * size) },
       column: visible,
       columnMask: fadeOnScreen
-        ? `${PHOTO_FADE_LEFT}, linear-gradient(to bottom, transparent ${frame.top - visible.top}px, #000 ${fadeEnd - visible.top}px)`
-        : PHOTO_FADE_LEFT,
+        ? `${PHOTO_FADE_LEFT}, linear-gradient(to bottom, transparent ${frame.top - visible.top}px, #000 ${fadeEnd - visible.top}px), ${footFade}`
+        : `${PHOTO_FADE_LEFT}, ${footFade}`,
       photoMask: fadeOnScreen
         ? "none"
         : `linear-gradient(to bottom, transparent ${fadeFrom * 100}%, #000 ${fadeTo * 100}%)`,
