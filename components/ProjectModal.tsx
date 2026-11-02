@@ -932,7 +932,7 @@ export default function ProjectModal({
             className="px-5 pb-8 pt-6 sm:px-7 sm:pt-8 min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:px-8 min-[1200px]:[grid-area:2/2/5/3]"
             variants={fade}
           >
-            <h2 id="project-dialog-title" className={`text-balance text-[1.9rem] leading-[1.02] text-white sm:text-[2.2rem] ${spaceBoards.className}`}>
+            <h2 id="project-dialog-title" className={`text-balance text-title leading-[1.02] text-white ${spaceBoards.className}`}>
               {project.name}
             </h2>
 

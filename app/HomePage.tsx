@@ -251,10 +251,10 @@ const Home = () => {
           <h1 className={`text-[1.5rem] leading-[1.05] tracking-normal min-[320px]:text-[1.8rem] min-[360px]:text-[2.1rem] min-[390px]:text-[2.4rem] min-[480px]:text-[2.6rem] ${spaceBoards.className}`}>
             Suvraneel Bhuin
           </h1>
-          <h2 className={`mt-2 max-w-[28ch] text-lg font-bold leading-7 text-white ${tasaOrbiter.className}`}>
+          <h2 className={`mt-2 max-w-[28ch] text-lead font-bold leading-[1.4] text-white ${tasaOrbiter.className}`}>
             I build products, systems, and the things in between.
           </h2>
-          <p className={`max-w-[32ch] text-base leading-7 text-white/70 ${tasaOrbiter.className}`}>
+          <p className={`max-w-[32ch] text-body leading-[1.65] text-white/70 ${tasaOrbiter.className}`}>
             <span className="block">Software engineer by profession. <br/>Product builder by instinct.</span>
             <span className="mt-3 block">I like simplifying complex problems and building from interface to system.</span>
           </p>

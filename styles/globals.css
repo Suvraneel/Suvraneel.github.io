@@ -9,6 +9,28 @@
   --rail-w-open: 140px;
   /* #1BFCD7: the wordmark texture's cyan end (seed-46867.png), for every small accent. */
   --accent: 27 252 215;
+
+  /* The type scale for content text, one size per role across every page
+     (text-display, text-body, ...; tailwind.config.js). Each grows in a
+     straight line from its phone size at a 375px window to its desktop size at
+     1440px, and holds outside that: no step at a breakpoint, so a small tablet
+     or a narrow window never jumps to desktop type. 1rem = 18px (html). In px:
+       display   38 -> 67.5   page titles (Space Boards)
+       headline  30 -> 54     Skills' area statements
+       title     28 -> 40.5   section headings, the project dialog's title
+       subtitle  22.5 -> 33.75 role titles on Work, Skills' area intro
+       lead      20 -> 27     lead lines, card and subsection titles
+       body      17 -> 20.25  paragraphs (17px on phones, as iOS sets body text)
+       body-sm   15.3 -> 18   secondary paragraphs
+     Small UI text (labels, chips, eyebrows, buttons) reads the same everywhere
+     and keeps its fixed sizes. */
+  --text-display: clamp(2.111rem, 1.534rem + 2.77vw, 3.75rem);
+  --text-headline: clamp(1.667rem, 1.197rem + 2.254vw, 3rem);
+  --text-title: clamp(1.556rem, 1.311rem + 1.174vw, 2.25rem);
+  --text-subtitle: clamp(1.25rem, 1.03rem + 1.056vw, 1.875rem);
+  --text-lead: clamp(1.111rem, 0.974rem + 0.657vw, 1.5rem);
+  --text-body: clamp(0.944rem, 0.881rem + 0.305vw, 1.125rem);
+  --text-body-sm: clamp(0.85rem, 0.797rem + 0.254vw, 1rem);
 }
 
 html,

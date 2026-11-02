@@ -196,21 +196,22 @@ const About = () => {
               <p data-reveal className={`mb-3 text-xs font-medium uppercase tracking-[0.2em] text-accent/70 ${tasaOrbiter.className}`}>
                 Profile
               </p>
-              <LiftHeading data-reveal className={`max-w-xl text-4xl leading-none tracking-[-0.045em] sm:text-6xl split:!text-5xl ${spaceBoards.className}`}>
+              <LiftHeading data-reveal className={`max-w-xl text-display leading-none tracking-[-0.045em] ${spaceBoards.className}`}>
                 About Me
               </LiftHeading>
-              {/* In the split layout the copy's spacing tightens, leaving the portrait room. */}
+              {/* The type scales with the window (text-lead, text-body); in the split
+                  layout the copy's spacing tightens to match it and leave the portrait room. */}
               <div className="mt-8 max-w-2xl space-y-5 split:mt-6 split:space-y-4">
-                <p data-reveal className={`text-xl font-medium leading-8 tracking-[-0.025em] text-white sm:text-2xl/8 ${tasaOrbiter.className}`}>
+                <p data-reveal className={`text-lead font-medium leading-[1.35] tracking-[-0.025em] text-white ${tasaOrbiter.className}`}>
                   I like building things that are useful, not just impressive.
                 </p>
-                <p data-reveal className={`text-base leading-7 text-white/75 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
+                <p data-reveal className={`text-body leading-[1.75] text-white/75 ${tasaOrbiter.className}`}>
                   I&apos;m Suvraneel Bhuin, an Advanced Application Engineering Senior Analyst at Accenture. I build dependable backend services, integrations, and workflows for enterprise-scale products.
                 </p>
-                <p data-reveal className={`text-base leading-7 text-white/60 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
+                <p data-reveal className={`text-body leading-[1.75] text-white/60 ${tasaOrbiter.className}`}>
                   I studied Computer Science &amp; Engineering at the University of Calcutta. Open-source programmes and Web3 communities taught me to pair technical depth with clear ownership, useful documentation, and thoughtful collaboration.
                 </p>
-                <p data-reveal className={`text-base leading-7 text-white/60 sm:text-lg sm:leading-8 ${tasaOrbiter.className}`}>
+                <p data-reveal className={`text-body leading-[1.75] text-white/60 ${tasaOrbiter.className}`}>
                   I like turning ambiguous requirements into clear, maintainable systems and working closely with the people who rely on them.
                 </p>
               </div>

@@ -27,6 +27,16 @@ module.exports = {
 				primary: ['var(--font-spaceBoards)', "sans-serif"],
 				secondary: ['var(--font-TASAOrb)', "sans-serif"],
 			},
+      // The fluid type scale for content text (sizes and roles in globals.css :root).
+      fontSize: {
+        display: "var(--text-display)",
+        headline: "var(--text-headline)",
+        title: "var(--text-title)",
+        subtitle: "var(--text-subtitle)",
+        lead: "var(--text-lead)",
+        body: "var(--text-body)",
+        "body-sm": "var(--text-body-sm)",
+      },
       colors: {
         // Solid cyan for small accents, sampled from the wordmark texture's cyan
         // end (public/images/seed-46867.png). Defined once as --accent in globals.css.
