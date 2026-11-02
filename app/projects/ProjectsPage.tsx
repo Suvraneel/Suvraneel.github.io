@@ -108,10 +108,10 @@ export default function ProjectsPage() {
     <main className="nav-gap min-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[#07090d] text-white">
       <div className="mx-auto max-w-[1500px] px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-24 sm:pt-14 lg:px-14 lg:pt-16">
         <header className="max-w-3xl">
-          <LiftHeading className={`text-4xl leading-[0.95] tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
+          <LiftHeading className={`text-display leading-[0.95] tracking-[-0.045em] ${spaceBoards.className}`}>
             Projects
           </LiftHeading>
-          <p className={`mt-5 max-w-xl text-base leading-7 text-white/65 sm:text-lg/7 ${tasaOrbiter.className}`}>
+          <p className={`mt-5 max-w-xl text-body leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>
             A selection of web products, open-source tools, and experiments across engineering, community, and Web3.
           </p>
         </header>
@@ -579,7 +579,7 @@ function ProjectTile({
         {/* Smaller tiles (see .tile-title-lift in globals.css): the title lifts and one compact row fades in under it. */}
         {/* A span, not a heading: a button may hold only phrasing content. Hidden from
             assistive tech because the button's aria-label already reads "Open <name>". */}
-        <span aria-hidden="true" className="tile-title-lift block max-w-[22ch] text-xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-2xl/tight">
+        <span aria-hidden="true" className="tile-title-lift block max-w-[22ch] text-lead font-semibold leading-tight tracking-[-0.025em] text-white">
           {project.name}
         </span>
         <div aria-hidden="true" className="tile-brief-meta absolute inset-x-5 bottom-5 hidden items-center gap-1.5 sm:inset-x-6 sm:bottom-6">

@@ -1,3 +1,5 @@
+const plugin = require("tailwindcss/plugin");
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -25,6 +27,16 @@ module.exports = {
 				primary: ['var(--font-spaceBoards)', "sans-serif"],
 				secondary: ['var(--font-TASAOrb)', "sans-serif"],
 			},
+      // The fluid type scale for content text (sizes and roles in globals.css :root).
+      fontSize: {
+        display: "var(--text-display)",
+        headline: "var(--text-headline)",
+        title: "var(--text-title)",
+        subtitle: "var(--text-subtitle)",
+        lead: "var(--text-lead)",
+        body: "var(--text-body)",
+        "body-sm": "var(--text-body-sm)",
+      },
       colors: {
         // Solid cyan for small accents, sampled from the wordmark texture's cyan
         // end (public/images/seed-46867.png). Defined once as --accent in globals.css.
@@ -32,5 +44,20 @@ module.exports = {
       }
 		},
   },
-  plugins: [],
+  plugins: [
+    // `split:` — upright tablets and short windows below lg, where About's copy
+    // runs over its portrait's faded side (PORTRAIT_SPLIT_MEDIA in lib/portrait.ts).
+    // A variant, not a screen: a screen given as an object switches off the
+    // min-[...] and max-* variants everywhere. Its rules come before the
+    // screens' (sm: and up), so where one sets what an sm: class does, mark it
+    // important (split:!pr-0).
+    plugin(({ addVariant }) => {
+      addVariant("split", "@media (min-width: 744px) and (max-width: 1023.98px) and (min-height: 600px)");
+      // `short:` — short landscape screens (most laptops with browser chrome,
+      // landscape tablets, small windows), where About tightens its vertical
+      // rhythm and, on desktop, runs its copy over the portrait's faded side,
+      // so its buttons stay above the fold (PORTRAIT_SHORT_MEDIA in lib/portrait.ts).
+      addVariant("short", "@media (min-width: 744px) and (max-height: 820px)");
+    }),
+  ],
 }

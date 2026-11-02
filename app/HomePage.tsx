@@ -7,6 +7,7 @@ import { SPLINE_MIN_WIDTH, useDashboardScene } from "@components/DashboardScene"
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
+import { warmPortrait } from "@components/transition/avatarPortrait";
 import {
   gestureGate,
   getTransition,
@@ -16,6 +17,7 @@ import {
 } from "@components/transition/transitionStore";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
+import { PORTRAIT_COLUMN_MEDIA } from "@lib/portrait";
 
 /** Wheel intent (px of deltaY) that turns the dashboard over to About. */
 const FLIP_INTENT = 80;
@@ -38,12 +40,6 @@ const readReducedMotionOnServer = () => false;
  * it). Kept outside the component so a Home remounted by a navigation still knows.
  */
 let homeSeenNarrow = false;
-
-/**
- * About's desktop portrait, warmed from Home. Held for the session: an
- * unreferenced Image can be collected, and About would fetch the photo again.
- */
-let aboutPortrait: HTMLImageElement | null = null;
 
 /** A flip or unflip in flight drives the rig itself. */
 const flipOwnsRig = () => {
@@ -121,13 +117,12 @@ const Home = () => {
     preloaderActiveRef.current = preloaderActive;
   }, [preloaderActive]);
 
-  // About's portrait (desktop only) is warmed once the scene is up, or has given
-  // way to the static hero, so a first flip to About never shows the photo
-  // arriving partway through.
+  // About's portrait (desktop only) is warmed and decoded once the scene is up,
+  // or has given way to the static hero, so a first flip to About never shows
+  // the photo arriving partway through (the avatar opens into it).
   useEffect(() => {
-    if (aboutPortrait || !(isReady || sceneFailed) || !window.matchMedia("(min-width: 1024px)").matches) return;
-    aboutPortrait = new window.Image();
-    aboutPortrait.src = "/images/Suvraneel_DP.jpeg";
+    if (!(isReady || sceneFailed) || !window.matchMedia(PORTRAIT_COLUMN_MEDIA).matches) return;
+    warmPortrait();
   }, [isReady, sceneFailed]);
 
   // Under reduced motion the flip is a fade, so the rig is never turned partway.
@@ -256,10 +251,10 @@ const Home = () => {
           <h1 className={`text-[1.5rem] leading-[1.05] tracking-normal min-[320px]:text-[1.8rem] min-[360px]:text-[2.1rem] min-[390px]:text-[2.4rem] min-[480px]:text-[2.6rem] ${spaceBoards.className}`}>
             Suvraneel Bhuin
           </h1>
-          <h2 className={`mt-2 max-w-[28ch] text-lg font-bold leading-7 text-white ${tasaOrbiter.className}`}>
+          <h2 className={`mt-2 max-w-[28ch] text-lead font-bold leading-[1.4] text-white ${tasaOrbiter.className}`}>
             I build products, systems, and the things in between.
           </h2>
-          <p className={`max-w-[32ch] text-base leading-7 text-white/70 ${tasaOrbiter.className}`}>
+          <p className={`max-w-[32ch] text-body leading-[1.65] text-white/70 ${tasaOrbiter.className}`}>
             <span className="block">Software engineer by profession. <br/>Product builder by instinct.</span>
             <span className="mt-3 block">I like simplifying complex problems and building from interface to system.</span>
           </p>

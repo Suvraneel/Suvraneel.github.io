@@ -54,10 +54,19 @@ export const isInFlight = (t: PageTransition | null): t is PageTransition => Boo
 // ---------------------------------------------------------------------------
 
 export type ArrivalTrack = {
-  /** Adds an animation to the lift's timeline, starting with the lift; it is dropped on settle. */
+  /**
+   * Adds an animation to the lift's timeline, starting with the arrival (with
+   * the lift, or later where the choreography says so); it is dropped on settle.
+   */
   add: (animation: Animation) => void;
-  /** The lift's length in ms (already time-scaled). */
+  /** How long the arrival has, from its start, in ms (already time-scaled): size entrances by this. */
   duration: number;
+  /**
+   * How faint revealed copy starts. Unset: never invisible (a sheet lifting
+   * off it shows it at once). The avatar flip covers it with the dashboard
+   * until it enters, so there it starts at 0.
+   */
+  fromOpacity?: number;
 };
 
 /** `track` is null for arrivals without a lift (reduced-motion fade, browser history swipe). */

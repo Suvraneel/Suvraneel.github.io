@@ -221,10 +221,10 @@ export default function ContactPage() {
         <div className="grid gap-12 lg:grid-cols-[minmax(17rem,0.95fr)_minmax(0,1.05fr)] lg:gap-0 min-[1440px]:grid-cols-[minmax(17rem,0.72fr)_minmax(0,1.28fr)]">
           <div className="min-w-0 lg:pr-8 min-[1440px]:pr-12">
             <header className="max-w-4xl">
-              <LiftHeading className={`w-max text-4xl leading-none tracking-[-0.04em] sm:text-6xl lg:text-5xl min-[1440px]:text-6xl ${spaceBoards.className}`}>
+              <LiftHeading className={`w-max text-display leading-none tracking-[-0.04em] lg:text-[length:min(var(--text-display),3rem)] min-[1440px]:text-display ${spaceBoards.className}`}>
                 Contact
               </LiftHeading>
-              <p className={`mt-5 max-w-2xl text-base leading-7 text-white/65 sm:text-lg/7 ${tasaOrbiter.className}`}>
+              <p className={`mt-5 max-w-2xl text-body leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>
                 Let&apos;s make something useful. I&apos;m open to thoughtful product work, dependable engineering problems, and collaborations with people who care about the details.
               </p>
             </header>
@@ -305,7 +305,7 @@ export default function ContactPage() {
 
           <section className="min-w-0 lg:flex lg:flex-col lg:border-l lg:border-white/15 lg:pl-8 min-[1440px]:pl-12" aria-labelledby="message-heading">
             <div className="border-b border-white/15 pb-5">
-              <h2 id="message-heading" className={`text-xl font-semibold tracking-[-0.025em] text-white sm:text-2xl ${tasaOrbiter.className}`}>
+              <h2 id="message-heading" className={`text-lead font-semibold tracking-[-0.025em] text-white ${tasaOrbiter.className}`}>
                 Start with the context.
               </h2>
             </div>
@@ -330,7 +330,7 @@ export default function ContactPage() {
                 <motion.span variants={reduceMotion ? sentFade : sentRing} className="grid size-12 place-items-center rounded-full border border-accent/40 text-accent">
                   <SendIcon aria-hidden="true" size={20} animate />
                 </motion.span>
-                <motion.p variants={reduceMotion ? sentFade : sentItem} ref={sentHeading} tabIndex={-1} className="text-xl font-semibold tracking-[-0.02em] text-white outline-none sm:text-2xl">Message sent.</motion.p>
+                <motion.p variants={reduceMotion ? sentFade : sentItem} ref={sentHeading} tabIndex={-1} className="text-lead font-semibold tracking-[-0.02em] text-white outline-none">Message sent.</motion.p>
                 <motion.p variants={reduceMotion ? sentFade : sentItem} className="text-base leading-7 text-white/70">I&apos;ll get back to you soon.</motion.p>
                 <motion.button
                   variants={reduceMotion ? sentFade : sentItem}

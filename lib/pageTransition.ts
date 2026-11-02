@@ -81,6 +81,29 @@ export const FLIP_LEAD_MS = 200;
  */
 export const BLOB_PULL_SPAN = 0.45;
 
+/*
+ * Home ↔ About where About's portrait column shows (lg) and the dashboard's
+ * avatar is in view: the avatar opens into the portrait (components/
+ * transition/avatarPortrait.ts) instead of Home lifting away as a sheet.
+ * Shares are of the lift's duration, from the transition's start.
+ */
+/** The card tips back to here, edge-on (past it, its back would show), and comes up from it. */
+export const AVATAR_TURN = -1.92;
+/** Flip: the scene (card and its black backing) dims away over this span, as the card tips back. */
+export const AVATAR_SCENE_OUT = [0.14, 0.55] as const;
+/** Flip: About's copy enters from here, over AVATAR_TEXT_SPAN, once the card is all but gone. */
+export const AVATAR_TEXT_AT = 0.35;
+export const AVATAR_TEXT_SPAN = 0.75;
+/** Unflip: About's copy goes over this span, then the scene comes back over the next. */
+export const AVATAR_TEXT_OUT = 0.3;
+export const AVATAR_SCENE_IN = [0.2, 0.6] as const;
+/** Unflip: the travelling photo fades in over the live portrait (maybe its turned relief) first. */
+export const AVATAR_HANDIN = 0.1;
+/** Unflip: the landed copy fades into the avatar drawn again under it. */
+export const AVATAR_HANDOFF_MS = 120;
+/** The scene's fades: an even in-out, so the card neither drops out nor lingers. */
+export const EASE_SCENE_FADE = [0.37, 0, 0.63, 1] as const;
+
 export const FADE_MS = 200;
 export const EASE_FADE = [0.32, 0.72, 0, 1] as const;
 
@@ -195,6 +218,11 @@ export type PageTransition = {
   flipDuration: number;
   /** Home's desktop visual is the fixed 3D scene, so it rides on Home's sheet. */
   homeVisualIsScene: boolean;
+  /**
+   * A flip or unflip where the dashboard's avatar opens into About's portrait
+   * (or closes back into it): no sheet lifts, the scene fades instead.
+   */
+  avatar: boolean;
   /** Scroll offset captured at popstate, before the router swaps the page. */
   popScrollY?: number;
   /** Window scroll the arriving sheet is framed at; applied once it settles. */
