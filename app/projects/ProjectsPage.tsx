@@ -35,7 +35,7 @@ import ProjectModal, {
 } from "@components/ProjectModal";
 import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
 import { layerPathOf, layoutTop, whenPlaced, whenSettled } from "@components/transition/arrival";
-import { getTransition, isInFlight, subscribeTransition } from "@components/transition/transitionStore";
+import { getTransition, isInFlight } from "@components/transition/transitionStore";
 import projectsData from "@data/projectsDat";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { useLiftEntrance } from "@hooks/useLiftEntrance";
@@ -192,11 +192,13 @@ export default function ProjectsPage() {
   // on a phone, inside the tap that opens the first project. Asked once the
   // page has settled and gone idle instead, the answer (kept for the page's
   // life) is ready by then; not during a lift, which a long task would cost
-  // frames. Reduced motion never runs the shader, so it never asks.
+  // frames. Reduced motion never runs the shader, so it never asks. A page a
+  // newer transition is already taking away again never asks either.
   useEffect(() => {
-    if (prefersReducedMotion()) return;
+    const container = gallery.current;
+    if (prefersReducedMotion() || !container) return;
     let cancel = () => {};
-    const schedule = () => {
+    const stop = whenSettled(container, () => {
       const warm = () => void hasFastWebGL2();
       if ("requestIdleCallback" in window) {
         const idle = window.requestIdleCallback(warm, { timeout: 2000 });
@@ -212,18 +214,9 @@ export default function ProjectsPage() {
         cancelAnimationFrame(frame);
         window.clearTimeout(timer);
       };
-    };
-    if (!isInFlight(getTransition())) {
-      schedule();
-      return () => cancel();
-    }
-    const unsubscribe = subscribeTransition(() => {
-      if (isInFlight(getTransition())) return;
-      unsubscribe();
-      schedule();
     });
     return () => {
-      unsubscribe();
+      stop();
       cancel();
     };
   }, []);
