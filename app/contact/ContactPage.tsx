@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react";
-import { FormEvent, Suspense, SyntheticEvent, lazy, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, SyntheticEvent, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { preconnect, prefetchDNS } from "react-dom";
 import { useSfx, warmSfx } from "@hooks/useSfx";
 import { spaceBoards, tasaOrbiter } from "@font";
@@ -64,6 +64,7 @@ function warmScheduler() {
 type SubmissionState = "idle" | "sending" | "success" | "error";
 type FieldName = "user_name" | "user_email" | "message";
 type FieldErrors = Partial<Record<FieldName, string>>;
+type Draft = Record<FieldName, string>;
 
 const FIELD_ORDER: FieldName[] = ["user_name", "user_email", "message"];
 // Hidden bait field: people never see it, form bots fill every input. Its name
@@ -88,13 +89,83 @@ function validateForm(formElement: HTMLFormElement): FieldErrors {
   if (!value("user_name")) errors.user_name = "Add your name.";
   const email = value("user_email");
   const emailInput = formElement.elements.namedItem("user_email") as HTMLInputElement | null;
+  // type=email accepts a dotless domain ("name@gmail"), which no reply can
+  // reach: a missing ".com" is the usual slip, so the domain needs a dot too.
+  const domain = email.slice(email.lastIndexOf("@") + 1);
   if (!email) errors.user_email = "Add your email address.";
-  else if (emailInput?.validity.typeMismatch) errors.user_email = "That email address looks incomplete.";
+  else if (emailInput?.validity.typeMismatch || !domain.includes(".")) errors.user_email = "That email address looks incomplete.";
   if (!value("message")) errors.message = "Tell me a little about what you're working on.";
   return errors;
 }
 
 const EMAIL = "bsuvraneel@gmail.com";
+
+/*
+ * The draft: what the visitor has typed, kept for the tab (sessionStorage)
+ * from each keystroke until the message is sent. The form is uncontrolled,
+ * so without it the text lived only in the DOM, and any way off the page (a
+ * stray pull at the top, the drawer, a reload) came back to an empty form.
+ * Storage can throw (blocked site data, private modes, a full quota): every
+ * read and write is guarded, and the form then works as it did without it.
+ */
+const DRAFT_KEY = "contact:draft";
+
+const draftOf = (formElement: HTMLFormElement): Draft => {
+  const data = new FormData(formElement);
+  return {
+    user_name: String(data.get("user_name") ?? ""),
+    user_email: String(data.get("user_email") ?? ""),
+    message: String(data.get("message") ?? ""),
+  };
+};
+
+/** Saves the fields as typed; fields with nothing but whitespace leave nothing to keep. */
+function saveDraft(draft: Draft) {
+  try {
+    if (FIELD_ORDER.some((name) => draft[name].trim())) window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    else window.sessionStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // No storage: the draft lives in the form alone.
+  }
+}
+
+function loadDraft(): Partial<Draft> | null {
+  try {
+    const saved: unknown = JSON.parse(window.sessionStorage.getItem(DRAFT_KEY) ?? "null");
+    if (!saved || typeof saved !== "object") return null;
+    const draft: Partial<Draft> = {};
+    for (const name of FIELD_ORDER) {
+      const value = (saved as Record<string, unknown>)[name];
+      if (typeof value === "string") draft[name] = value;
+    }
+    return draft;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft() {
+  try {
+    window.sessionStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // Nothing was stored.
+  }
+}
+
+/**
+ * The failed send's way on: a new email to me in the visitor's own mail app,
+ * their name in the subject and their message as the body, so nothing typed
+ * is lost to a blocked or failing EmailJS. RFC 6068 spells line breaks as
+ * CRLF in a mailto: body.
+ */
+const mailtoFor = ({ user_name, message }: Draft) => {
+  const name = user_name.trim();
+  const params = [
+    name && `subject=${encodeURIComponent(`Message from ${name}`)}`,
+    message.trim() && `body=${encodeURIComponent(message.trim().replace(/\r?\n/g, "\r\n"))}`,
+  ].filter(Boolean);
+  return `mailto:${EMAIL}${params.length ? `?${params.join("&")}` : ""}`;
+};
 
 export default function ContactPage() {
   const form = useRef<HTMLFormElement>(null);
@@ -121,6 +192,8 @@ export default function ContactPage() {
   const [bookHovered, setBookHovered] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [attempted, setAttempted] = useState(false);
+  /** The send error's mailto: link, kept in step with the form while the error shows. */
+  const [errorMailto, setErrorMailto] = useState(`mailto:${EMAIL}`);
   const copiedTimer = useRef<number | null>(null);
   const schedulerOpener = useRef<HTMLElement | null>(null);
   const sentHeading = useRef<HTMLParagraphElement>(null);
@@ -135,6 +208,22 @@ export default function ContactPage() {
 
   useEffect(() => () => {
     if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
+  }, []);
+
+  // The draft comes back before the first paint, so a page arriving on a lift
+  // shows it from the start. Only into empty fields: anything already there
+  // (a browser's own form restore) is newer.
+  useLayoutEffect(() => {
+    const formElement = form.current;
+    const draft = formElement && loadDraft();
+    if (!formElement || !draft) return;
+    for (const name of FIELD_ORDER) {
+      const field = formElement.elements.namedItem(name);
+      const value = draft[name];
+      if ((field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) && !field.value && value) field.value = value;
+    }
+    const message = formElement.elements.namedItem("message");
+    if (message instanceof HTMLTextAreaElement) growToFit(message);
   }, []);
 
   // The modal dialog leaves focus on <body> when it closes, so hand it back to
@@ -206,10 +295,12 @@ export default function ContactPage() {
         await withTimeout(delivery, SEND_TIMEOUT_MS);
       }
       formElement.reset();
+      clearDraft();
       setAttempted(false);
       setSubmissionState("success");
       playConfirm();
     } catch {
+      setErrorMailto(mailtoFor(draftOf(formElement)));
       setSubmissionState("error");
     }
   };
@@ -230,6 +321,13 @@ export default function ContactPage() {
             </header>
 
             <section className="mt-12 min-w-0 border-t border-white/15 pt-8 sm:mt-14 sm:pt-10 lg:mt-10 lg:pt-6" aria-label="Direct contact options">
+              {/* The address row and its trailing icon trade roles by input. With a
+                  pointer that hovers, the row copies the address and the icon opens
+                  the mail app. On touch screens (touch:) the row opens a new email,
+                  one tap to a compose screen, and the icon copies: copying there means
+                  leaving the browser, opening the mail app and pasting. Both pairs are
+                  rendered and CSS shows one, so the server HTML is right for either
+                  with no swap after hydration. */}
               <div className="flex min-h-16 items-center gap-2 border-b border-white/20 transition-[border-color] duration-300 hover:border-accent/70">
                 <AnimateIcon animateOnHover asChild>
                 <button
@@ -238,7 +336,7 @@ export default function ContactPage() {
                   onMouseEnter={() => playTick()}
                   onMouseLeave={() => stopTick()}
                   aria-label={`Copy email address ${EMAIL}`}
-                  className="group flex min-w-0 flex-1 items-center gap-4 py-4 text-left text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                  className="group flex min-w-0 flex-1 items-center gap-4 py-4 text-left text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent touch:hidden"
                 >
                   <span className="min-w-0 break-all text-base font-medium">{EMAIL}</span>
                   <span
@@ -251,15 +349,35 @@ export default function ContactPage() {
                   </span>
                 </button>
                 </AnimateIcon>
+                <a
+                  href={`mailto:${EMAIL}`}
+                  className="hidden min-w-0 flex-1 items-center gap-4 py-4 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent touch:flex"
+                >
+                  <span className="min-w-0 break-all text-base font-medium">{EMAIL}</span>
+                  {/* Accent at rest: on touch, a new email is the main action. */}
+                  <span aria-hidden="true" className="ml-auto flex size-10 shrink-0 items-center justify-end text-accent">
+                    <SquareArrowOutUpRightIcon size={16} />
+                  </span>
+                </a>
                 <AnimateIcon animateOnHover asChild>
                 <a
                   href={`mailto:${EMAIL}`}
                   aria-label="Open in your mail app"
-                  className="group flex size-10 shrink-0 items-center justify-end rounded-full text-white/45 transition-colors duration-300 hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="group flex size-10 shrink-0 items-center justify-end rounded-full text-white/45 transition-colors duration-300 hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent touch:hidden"
                 >
                   <SquareArrowOutUpRightIcon aria-hidden="true" size={16} />
                 </a>
                 </AnimateIcon>
+                <button
+                  type="button"
+                  onClick={copyEmail}
+                  aria-label={`Copy email address ${EMAIL}`}
+                  className={`hidden size-10 shrink-0 items-center justify-end rounded-full transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent touch:flex ${
+                    emailCopied ? "text-accent" : "text-white/45"
+                  }`}
+                >
+                  {emailCopied ? <CheckIcon aria-hidden="true" size={16} animate /> : <CopyIcon aria-hidden="true" size={16} />}
+                </button>
                 <span className="sr-only" aria-live="polite">{emailCopied ? "Email address copied" : ""}</span>
               </div>
               <AnimateIcon animateOnHover asChild>
@@ -354,7 +472,12 @@ export default function ContactPage() {
               // Backstop for a visitor quicker than the warm-up above.
               onFocus={warmSfx}
               onInput={() => {
-                if (attempted && form.current) setErrors(validateForm(form.current));
+                const formElement = form.current;
+                if (!formElement) return;
+                const draft = draftOf(formElement);
+                saveDraft(draft);
+                if (attempted) setErrors(validateForm(formElement));
+                if (submissionState === "error") setErrorMailto(mailtoFor(draft));
               }}
               className={`mt-7 space-y-6 lg:flex lg:flex-1 lg:flex-col ${tasaOrbiter.className}`}
               aria-label="Send a message"
@@ -388,7 +511,18 @@ export default function ContactPage() {
                 <p className={`max-w-xs text-sm leading-5 text-white/60 ${tasaOrbiter.className}`}>A short note is enough. I&apos;ll reply by email.</p>
               </div>
 
-              {submissionState === "error" && <p className={`border-l border-[#d58d8d] pl-3 text-sm leading-6 text-[#f0b6b6] ${tasaOrbiter.className}`} role="alert">Your message could not be sent. Please email me directly instead.</p>}
+              {submissionState === "error" && (
+                <p className={`border-l border-[#d58d8d] pl-3 text-sm leading-6 text-[#f0b6b6] ${tasaOrbiter.className}`} role="alert">
+                  Your message could not be sent. Please{" "}
+                  <a
+                    href={errorMailto}
+                    className="underline decoration-[#f0b6b6]/60 underline-offset-[3px] transition-colors duration-300 hover:text-white hover:decoration-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  >
+                    email me directly
+                  </a>{" "}
+                  instead.
+                </p>
+              )}
 
               {/* Last child so the space-y gaps above stay as they were. Off-screen rather than display:none, which bots skip. */}
               <div className="sr-only" aria-hidden="true">
@@ -412,6 +546,16 @@ export default function ContactPage() {
       </AnimatePresence>
     </main>
   );
+}
+
+// Grow with the message instead of exposing the browser's resize grip, up to
+// the max-h cap, then scroll inside. The cap is applied here because CSS lets
+// a min-height above max-height win, so an uncapped one grows without limit.
+// Also run for a restored draft, which arrives without an input event.
+function growToFit(field: HTMLTextAreaElement) {
+  field.style.minHeight = "";
+  const cap = Number.parseFloat(getComputedStyle(field).maxHeight) || Infinity;
+  field.style.minHeight = `${Math.min(cap, Math.max(field.clientHeight, field.scrollHeight))}px`;
 }
 
 function Field({
@@ -440,19 +584,10 @@ function Field({
   // whenever Tailwind emits them earlier in the stylesheet.
   const fieldClassName = "mt-1 w-full rounded-none border-0 border-b border-white/40 bg-transparent px-0 py-2 text-base text-white outline-none transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] placeholder:text-white/50 hover:border-white/50 focus:border-accent focus:shadow-[0_1px_0_0_rgb(var(--accent))] aria-[invalid=true]:border-[#f0b6b6]/70 aria-[invalid=true]:hover:border-[#f0b6b6] aria-[invalid=true]:focus:border-[#f0b6b6] aria-[invalid=true]:focus:shadow-[0_1px_0_0_#f0b6b6]";
 
-  // Grow with the message instead of exposing the browser's resize grip, up to
-  // the max-h cap, then scroll inside. The cap is applied here because CSS lets
-  // a min-height above max-height win, so an uncapped one grows without limit.
-  const autoGrow = (event: FormEvent<HTMLTextAreaElement>) => {
-    const field = event.currentTarget;
-    field.style.minHeight = "";
-    const cap = Number.parseFloat(getComputedStyle(field).maxHeight) || Infinity;
-    field.style.minHeight = `${Math.min(cap, Math.max(field.clientHeight, field.scrollHeight))}px`;
-  };
-
   const errorId = `${name}-error`;
   const invalid = Boolean(error);
   const a11y = { "aria-invalid": invalid || undefined, "aria-describedby": invalid ? errorId : undefined };
+  // data-draft: typed text here holds the page sequence's steps (isFormDirty).
 
   return (
     <label className={`block text-sm font-medium text-white/75 ${wrapperClassName}`}>
@@ -461,9 +596,9 @@ function Field({
         // overflow-y-auto spelled out: Firefox computes a textarea's overflow as
         // visible, so the page-sequence wheel handler would not see the capped box
         // as a scroller and would spend an upward wheel on leaving the page.
-        <textarea name={name} required rows={3} maxLength={maxLength} onInput={autoGrow} {...a11y} className={`${fieldClassName} max-h-[40vh] resize-none overflow-y-auto lg:flex-1`} placeholder="A few lines about the problem, scope, or idea…" />
+        <textarea name={name} required rows={3} maxLength={maxLength} onInput={(event) => growToFit(event.currentTarget)} data-draft {...a11y} className={`${fieldClassName} max-h-[40vh] resize-none overflow-y-auto lg:flex-1`} placeholder="A few lines about the problem, scope, or idea…" />
       ) : (
-        <input name={name} type={type} required autoComplete={autoComplete} maxLength={maxLength} {...a11y} className={fieldClassName} />
+        <input name={name} type={type} required autoComplete={autoComplete} maxLength={maxLength} data-draft {...a11y} className={fieldClassName} />
       )}
       {/* Always mounted at one line's fixed height, so an error fills it without moving anything below.
           A rare wrapped second line (long email error near 1024px) spills into the gap under the field. */}

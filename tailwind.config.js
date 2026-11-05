@@ -58,6 +58,11 @@ module.exports = {
       // rhythm and, on desktop, runs its copy over the portrait's faded side,
       // so its buttons stay above the fold (PORTRAIT_SHORT_MEDIA in lib/portrait.ts).
       addVariant("short", "@media (min-width: 744px) and (max-height: 820px)");
+      // `touch:` — touch screens, read as globals.css and ProjectsPage's
+      // TOUCH_TILT_QUERY read them: no hover, a coarse pointer. Contact swaps
+      // its address row's actions there (the row opens a new email, the icon
+      // copies). Like split:, its rules come before the screens'.
+      addVariant("touch", "@media (hover: none) and (pointer: coarse)");
     }),
   ],
 }

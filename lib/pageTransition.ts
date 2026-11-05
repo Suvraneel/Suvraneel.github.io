@@ -36,6 +36,21 @@ export const isDialogOpen = () =>
   Boolean(document.querySelector("dialog[open], [role='dialog'][aria-modal='true']"));
 
 /**
+ * A field marked data-draft (Contact's name, email and message) holds typed
+ * text. The page sequence's own steps (pull, wheel, keys) hold back while it
+ * does: a phone's rubber-band overscroll at the top of the form is enough to
+ * pull the visitor to Skills, and a drafted message is the costliest thing on
+ * the site to lose. Links, the drawer and browser history still go, as a
+ * deliberate choice; ContactPage keeps a copy of the draft for the tab, so it
+ * is there again on the way back. Whitespace alone is not a draft.
+ */
+export const isFormDirty = () =>
+  typeof document !== "undefined" &&
+  Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[data-draft]")).some(
+    (field) => field.value.trim() !== ""
+  );
+
+/**
  * Browser history (or a page link) leaving a page with a modal <dialog> open:
  * the dialog goes at once, as it would if its page unmounted, instead of
  * covering the whole transition from the top layer. Its owner is told through

@@ -13,6 +13,7 @@ import {
   COMMIT_WATCHDOG_MS,
   isDialogOpen,
   isDrawerOpen,
+  isFormDirty,
   isPagePath,
   pageOrder,
   prefersReducedMotion,
@@ -59,6 +60,8 @@ const axisLockAfter = 10;
 const sidewaysRatio = 2;
 /** Share of the wheel's intent threshold from which the hint starts to show. */
 const wheelHintFrom = 0.15;
+/** How long the pill explains a key step held back (isFormDirty), with no gesture to end it. */
+const heldKeyHintMs = 1600;
 /** The rail's collapsed width (--rail-w, globals.css); the content column starts past it. */
 const railWidth = () =>
   Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--rail-w")) || 50;
@@ -181,7 +184,7 @@ const PageSequenceScroll = () => {
   const cooldownSpringShownFor = useRef<number | null>(null);
   const lastWheelAt = useRef(0);
   const isNavigating = useRef(false);
-  // The touch pull's hint, as the wheel shows it (set up with the hint below).
+  // The touch pull's hint, as the wheel (and a key held back) shows it (set up with the hint below).
   const wheelHint = useRef<((direction: 1 | -1, distance: number) => void) | null>(null);
 
   useEffect(() => {
@@ -309,6 +312,13 @@ const PageSequenceScroll = () => {
         return;
       }
 
+      // A message typed into Contact's form holds the page: the intent still
+      // builds, so the pill keeps saying why (showHint), but it never commits.
+      if (isFormDirty()) {
+        paintHint(direction, scrollIntent.current);
+        return;
+      }
+
       // Forward arrivals show the next page's top, backward ones its bottom.
       if (offSequence ? loadOffSequence(nextPath) : navigate(nextPath, { source: "sequence", input: "wheel" })) {
         isNavigating.current = true;
@@ -344,6 +354,7 @@ const PageSequenceScroll = () => {
     // page, so the scroll a step makes is never taken for one of the browser's.
     let scrolledAt = Number.NEGATIVE_INFINITY;
     let stepLanding: { scroller: Element; top: number } | null = null;
+    let heldHintTimer = 0;
     const noteScroll = (event: Event) => {
       const element = event.target instanceof Element ? event.target : document.scrollingElement;
       if (stepLanding && element === stepLanding.scroller && element.scrollTop === stepLanding.top) {
@@ -409,6 +420,16 @@ const PageSequenceScroll = () => {
         return;
       }
 
+      // A message typed into Contact's form holds the page (isFormDirty). A
+      // press has no gesture to show the pill on, so it says why for a moment
+      // (the wheel's pill, full), then goes.
+      if (isFormDirty()) {
+        window.clearTimeout(heldHintTimer);
+        wheelHint.current?.(direction, pullThreshold);
+        heldHintTimer = window.setTimeout(() => wheelHint.current?.(direction, 0), heldKeyHintMs);
+        return;
+      }
+
       if (
         offSequence
           ? loadOffSequence(nextPath)
@@ -426,6 +447,7 @@ const PageSequenceScroll = () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("scroll", noteScroll, true);
       pendingSteps.forEach((cancel) => cancel());
+      window.clearTimeout(heldHintTimer);
     };
   }, [navigate, pathname]);
 
@@ -436,7 +458,9 @@ const PageSequenceScroll = () => {
   // and a pill at the edge reads "Pull for <next>", the next page's name set
   // as its wordmark, with a progress fill, then "Release for <next>" once far
   // enough. The wheel above shows the same pill at an edge, the wordmark and
-  // the fill only.
+  // the fill only. A step held back (isFormDirty: a message typed on Contact)
+  // shows the pill with why instead, and the page resists as at the
+  // sequence's end.
   useEffect(() => {
     const offSequence = !isPagePath(pathname);
 
@@ -474,7 +498,13 @@ const PageSequenceScroll = () => {
     // composites) would restyle and repaint it on every frame all the while; in
     // the second or two the pill shows, the drift would barely move anyway.
     hintTitle.style.animation = "none";
-    hint.append(hintFill, hintAction, hintTitle);
+    // In place of both while a step is held back. Its own span, not a third
+    // label in the grid, which would size every pill to it.
+    const heldLabel = document.createElement("span");
+    heldLabel.className = "relative text-sm font-medium text-white/85";
+    heldLabel.textContent = "Finish your message first";
+    heldLabel.style.display = "none";
+    hint.append(hintFill, hintAction, hintTitle, heldLabel);
     document.body.append(hint);
 
     type Pull = {
@@ -567,12 +597,16 @@ const PageSequenceScroll = () => {
       }
 
       const forward = direction === 1;
-      const ready = distance >= pullThreshold;
-      hintAction.style.display = wheel ? "none" : "";
+      // Held: the pill says why, with nothing to fill towards or release for.
+      const held = isFormDirty();
+      const ready = !held && distance >= pullThreshold;
+      hintAction.style.display = wheel || held ? "none" : "";
+      hintTitle.style.display = held ? "none" : "";
+      heldLabel.style.display = held ? "" : "none";
       pullLabel.style.opacity = ready ? "0" : "1";
       releaseLabel.style.opacity = ready ? "1" : "0";
       hintTitle.textContent = pageLabels[nextPath];
-      hintFill.style.transform = `scaleX(${Math.min(1, distance / pullThreshold)})`;
+      hintFill.style.transform = `scaleX(${held ? 0 : Math.min(1, distance / pullThreshold)})`;
 
       // At the edge being pulled. Going forward: the bottom, over the page's
       // bottom padding. Going back: in the top bar's row, beside the menu
@@ -765,7 +799,7 @@ const PageSequenceScroll = () => {
         pull.edgeFromStall = !atEdge;
         // A stretch caught mid spring-back carries on from where it was, if this
         // pull goes the same way (offsets are opposite to the pull's direction).
-        const follow = stepFrom(pathname, moving) ? pullFollow : pullFollowAtEnd;
+        const follow = stepFrom(pathname, moving) && !isFormDirty() ? pullFollow : pullFollowAtEnd;
         const carried = travelFor(Math.abs(pull.carry), follow);
         if (pull.carry && Math.sign(pull.carry) === -moving && Number.isFinite(carried)) {
           pull.edgeY = y + moving * carried;
@@ -783,9 +817,14 @@ const PageSequenceScroll = () => {
         return;
       }
       const hasNext = Boolean(stepFrom(pathname, direction));
-      const offset = prefersReducedMotion() ? 0 : -direction * rubberband(pull.distance, hasNext ? pullFollow : pullFollowAtEnd);
+      // A step held back resists as the sequence's end does, and never ticks:
+      // its pill says why (showHint), with nothing to release for.
+      const held = hasNext && isFormDirty();
+      const offset = prefersReducedMotion()
+        ? 0
+        : -direction * rubberband(pull.distance, hasNext && !held ? pullFollow : pullFollowAtEnd);
       const distance = hasNext ? pull.distance : 0;
-      tick(distance >= pullThreshold);
+      tick(!held && distance >= pullThreshold);
 
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
@@ -805,7 +844,8 @@ const PageSequenceScroll = () => {
         !isNavigating.current &&
         !isTransitionLocked() &&
         window.performance.now() >= cooldownUntil() &&
-        !isDialogOpen();
+        !isDialogOpen() &&
+        !isFormDirty();
 
       if (ended && nextPath && qualifies) {
         // Decide before cleaning up: a page that goes keeps its stretch and
