@@ -3,6 +3,7 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { hasFastWebGL2 } from "@lib/gpu";
 import { getTransition, isInFlight, subscribeTransition } from "@components/transition/transitionStore";
+import { createTiltTracker, screenTilt, subscribeTilt } from "@lib/tilt";
 
 const DEG = Math.PI / 180;
 /** Most the portrait turns toward the pointer: enough to read plainly as depth, not as a spinning card. */
@@ -37,6 +38,8 @@ const FRAME_MS = 1000 / 60;
 /** Longest a page transition may hold back the build. */
 const TRANSITION_WAIT_MS = 3000;
 const ANISOTROPY = 4;
+/** Smallest change of tilt target that turns the portrait: below it, sensor noise would keep the loop drawing. */
+const TILT_STEP = 0.012;
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 // Plain WebGL2 rather than three.js: one grid, two textures and one shader don't need a
@@ -173,15 +176,17 @@ type DepthPortraitProps = {
   style?: CSSProperties;
   /** Called with true once the first frame is drawn, and false if the scene is lost. */
   onReady?: (ready: boolean) => void;
+  /** Turn with the device's tilt too (phones: lib/tilt.ts), as it turns toward the pointer. */
+  tilt?: boolean;
 };
 
 /**
  * The portrait as a relief: the photo laid over a mesh pushed out by its depth
  * map (Depth Anything V2, precomputed into public/images), turning a few
- * degrees toward the pointer. Without a GPU, with reduced motion, or outside
+ * degrees toward the pointer (and, with `tilt`, with the phone). Without a GPU, with reduced motion, or outside
  * `media` nothing is built and the flat photo underneath stays.
  */
-export default function DepthPortrait({ src, depthSrc, media, position, className = "", style, onReady }: DepthPortraitProps) {
+export default function DepthPortrait({ src, depthSrc, media, position, className = "", style, onReady, tilt = false }: DepthPortraitProps) {
   const host = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState(false);
   const readyRef = useRef(onReady);
@@ -408,8 +413,34 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         target.y = 0;
         wake();
       };
+      // A finger lifted is a pointer gone: the turn eases back rather than holding where it lifted.
+      const handlePointerEnd = (event: PointerEvent) => {
+        if (event.pointerType === "touch") handleLeave();
+      };
       window.addEventListener("pointermove", handlePointer, { passive: true });
+      window.addEventListener("pointerup", handlePointerEnd, { passive: true });
+      window.addEventListener("pointercancel", handlePointerEnd, { passive: true });
       document.documentElement.addEventListener("pointerleave", handleLeave);
+
+      // The device's tilt sets the target as the pointer does, in steps of TILT_STEP, so a phone
+      // held still lets the loop settle and sleep as a resting pointer does.
+      const followTilt = createTiltTracker();
+      const handleOrientation = (event: DeviceOrientationEvent) => {
+        const reading = screenTilt(event, window.screen.orientation?.angle ?? 0);
+        if (!reading) return;
+        const next = followTilt(reading, performance.now());
+        if (Math.abs(next.x - target.x) < TILT_STEP && Math.abs(next.y - target.y) < TILT_STEP) return;
+        target.x = next.x;
+        target.y = next.y;
+        pointerAt = performance.now();
+        wake();
+      };
+      const listenToTilt = () => {
+        window.removeEventListener("deviceorientation", handleOrientation);
+        window.addEventListener("deviceorientation", handleOrientation);
+      };
+      const unsubscribeTilt = tilt ? subscribeTilt(listenToTilt) : null;
+      if (tilt) listenToTilt();
       const viewer = new IntersectionObserver(([entry]) => {
         visible = entry.isIntersecting;
         if (visible) wake();
@@ -469,6 +500,10 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         resizer.disconnect();
         density?.removeEventListener("change", handleDensity);
         window.removeEventListener("pointermove", handlePointer);
+        window.removeEventListener("pointerup", handlePointerEnd);
+        window.removeEventListener("pointercancel", handlePointerEnd);
+        window.removeEventListener("deviceorientation", handleOrientation);
+        unsubscribeTilt?.();
         document.documentElement.removeEventListener("pointerleave", handleLeave);
         canvas.removeEventListener("webglcontextlost", handleContextLost);
         if (!gl.isContextLost()) {
@@ -500,7 +535,7 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
       reducedMotion.removeEventListener("change", update);
       teardown?.();
     };
-  }, [src, depthSrc, media, position]);
+  }, [src, depthSrc, media, position, tilt]);
 
   return (
     <div

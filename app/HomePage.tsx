@@ -4,6 +4,7 @@ import Image from "next/image";
 import { motion, useSpring } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { SPLINE_MIN_WIDTH, useDashboardScene } from "@components/DashboardScene";
+import DepthPortrait from "@components/DepthPortrait";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
@@ -18,6 +19,7 @@ import {
 import { spaceBoards, tasaOrbiter } from "@font";
 import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
 import { PORTRAIT_COLUMN_MEDIA } from "@lib/portrait";
+import { needsTiltPermission, requestTilt, subscribeTiltState } from "@lib/tilt";
 
 /** Wheel intent (px of deltaY) that turns the dashboard over to About. */
 const FLIP_INTENT = 80;
@@ -34,12 +36,20 @@ const subscribeReducedMotion = (onChange: () => void) => {
 };
 const readReducedMotion = () => window.matchMedia(REDUCED_MOTION_QUERY).matches;
 const readReducedMotionOnServer = () => false;
+const readNeedsTiltOnServer = () => false;
 
 /**
  * Home has been seen at phone width this session (then widened or rotated past
  * it). Kept outside the component so a Home remounted by a navigation still knows.
  */
 let homeSeenNarrow = false;
+
+/** The phone hero's photo; its relief samples the same file, so it is fetched once. */
+const HERO_PHOTO = "/images/Suvraneel_DP-540.webp";
+/** Phones: where the hero is the landing view (the 3D dashboard never loads). */
+const HERO_RELIEF_MEDIA = `(max-width: ${SPLINE_MIN_WIDTH}px)`;
+/** The square photo fills its square frame, centred. */
+const HERO_PHOTO_POSITION: [number, number] = [0.5, 0.5];
 
 /** A flip or unflip in flight drives the rig itself. */
 const flipOwnsRig = () => {
@@ -69,6 +79,17 @@ const Home = () => {
   const preTilting = useRef(false);
   const preTiltIdle = useRef(0);
   const canPreTiltRef = useRef(false);
+  // The hero photo turns in relief on phones with a GPU (DepthPortrait). On iOS it follows the
+  // phone's tilt only once a tap on the chip has asked for it; until then it drifts and follows touch.
+  const [relief, setRelief] = useState(false);
+  const needsTilt = useSyncExternalStore(subscribeTiltState, needsTiltPermission, readNeedsTiltOnServer);
+  // Hidden once tapped, whatever the answer: a refusal is not asked again.
+  const [tiltAsked, setTiltAsked] = useState(false);
+  const showTiltChip = relief && needsTilt && !tiltAsked;
+  const askForTilt = useCallback(() => {
+    setTiltAsked(true);
+    void requestTilt();
+  }, []);
   /** Home has been seen at phone width (homeSeenNarrow). */
   const [wasNarrow, setWasNarrow] = useState(
     () => homeSeenNarrow || (typeof window !== "undefined" && window.innerWidth <= SPLINE_MIN_WIDTH)
@@ -233,7 +254,7 @@ const Home = () => {
               covers 3x screens, and the export has no image optimizer), fetched ahead
               of the scripts. */}
           <Image
-            src="/images/Suvraneel_DP-540.webp"
+            src={HERO_PHOTO}
             alt="Black-and-white portrait of Suvraneel Bhuin"
             fill
             loading="eager"
@@ -241,6 +262,32 @@ const Home = () => {
             sizes="180px"
             className="object-cover grayscale"
           />
+          <DepthPortrait
+            src={HERO_PHOTO}
+            depthSrc="/images/Suvraneel_DP-depth.webp"
+            media={HERO_RELIEF_MEDIA}
+            position={HERO_PHOTO_POSITION}
+            onReady={setRelief}
+            tilt
+            className="absolute inset-0"
+          />
+          {showTiltChip && (
+            <motion.button
+              type="button"
+              onClick={askForTilt}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              // The chip is small; its tap area reaches past it to 44px.
+              className={`absolute bottom-2 left-2 inline-flex h-7 items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-2.5 text-[11px] leading-none text-white/85 backdrop-blur-md before:absolute before:-inset-2 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] ${tasaOrbiter.className}`}
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 -rotate-12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="6" y="2" width="12" height="20" rx="2.5" />
+                <path d="M11 18h2" />
+              </svg>
+              Tilt to look around
+            </motion.button>
+          )}
         </motion.div>
         <motion.div
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
