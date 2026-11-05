@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useMotionValue, useScroll, useSpring, type MotionValue } from "motion/react";
+import { motion, useMotionValue, useScroll, useSpring, useTransform, type MotionValue } from "motion/react";
 import type { Application } from "@splinetool/runtime";
 import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 import ChronoCard from "@components/ChronoCard";
+import FrameSequence from "@components/FrameSequence";
 import TimelineSpine from "@components/TimelineSpine";
 import TimelineDate from "@components/TimelineDate";
 import LiftHeading from "@components/LiftHeading";
@@ -31,6 +32,18 @@ const PLANT_FADE_REDUCED_MS = 200;
  */
 const PLANT_GLOW =
   "radial-gradient(ellipse 25dvh 6.3dvh at 50% 63%, rgb(74 47 200), rgb(74 47 200 / 0.7) 32%, rgb(74 47 200 / 0.46) 48%, rgb(74 47 200 / 0.3) 64%, rgb(74 47 200 / 0.165) 80%, rgb(74 47 200 / 0.065) 96%, transparent)";
+
+/**
+ * Phones get the plant as frames recorded from the scene (61, one per step of its
+ * scroll event; public/images/work-plant), scrubbed by the same progress. Each
+ * frame is the scene's middle, 400 x 360 CSS px of a 720px square view at 2x.
+ */
+const PHONE_PLANT_MEDIA = "(max-width: 767.98px)";
+const PLANT_FRAME_COUNT = 61;
+const PLANT_FRAME_ASPECT = 400 / 360;
+const plantFrame = (index: number) => `/images/work-plant/${String(index).padStart(2, "0")}.webp`;
+/** Scrolled this far (px), the phone plant has dimmed to sit behind the entries. */
+const PHONE_PLANT_DIM_BY = 360;
 
 /** An entry's dot lights once it has passed this share of the view. */
 const DOT_LIGHT_AT = 0.5;
@@ -142,6 +155,8 @@ const Work = () => {
   // Its column is display:none below md; an invisible canvas would still load
   // a Spline runtime. Mounted again later, the plant syncs on load (scrubPlant).
   const plantShown = useSyncExternalStore(subscribePlantQuery, isPlantShown, isPlantShownOnServer);
+  // Full under the intro; dimmed once the entries scroll over it, so they read first.
+  const phonePlantOpacity = useTransform(scrollY, [0, PHONE_PLANT_DIM_BY], [1, 0.36]);
 
   useReveal(entriesRef, { rootRef: mainRef });
   useTimelineDots(mainRef, scrollY);
@@ -213,6 +228,23 @@ const Work = () => {
         onBlur={(event) => event.currentTarget.removeAttribute("data-tab-focus")}
         className="page-scroller relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50 outline-none data-[tab-focus]:focus-visible:outline data-[tab-focus]:focus-visible:outline-2 data-[tab-focus]:focus-visible:-outline-offset-2 data-[tab-focus]:focus-visible:outline-accent"
       >
+        {/* Phones: the plant, recorded, held at the foot of the screen behind the page as it scrolls
+            (taking no room: the stage's negative margin gives its height back). Painted under the
+            grid, which is positioned. */}
+        <motion.div
+          aria-hidden="true"
+          style={{ opacity: phonePlantOpacity }}
+          className="pointer-events-none sticky top-0 -mb-[100dvh] h-[100dvh] overflow-hidden md:hidden"
+        >
+          <FrameSequence
+            frame={plantFrame}
+            count={PLANT_FRAME_COUNT}
+            progress={plantProgress}
+            media={PHONE_PLANT_MEDIA}
+            aspect={PLANT_FRAME_ASPECT}
+            className="phone-plant absolute bottom-[calc(0.25rem+env(safe-area-inset-bottom))] left-1/2 aspect-[10/9] w-[min(96vw,28rem)] -translate-x-1/2"
+          />
+        </motion.div>
         <div className="min-h-[100dvh] grid md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)] gap-0">
           <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-[100dvh] self-start md:block">
             {/* The plant centres in the space you can see (right of the nav rail). */}
@@ -244,6 +276,8 @@ const Work = () => {
               Enterprise engineering, open-source leadership, and the communities that shaped how I build.
             </p>
            </header>
+           {/* Phones: room for the plant under the intro, so the first screen is title, intro and plant. */}
+           <div aria-hidden="true" className="h-[max(0px,calc(100svh-21rem))] md:hidden" />
 
            {/* Positioned for the one spine that runs through every section's dots. */}
            <div ref={entriesRef} className="relative">

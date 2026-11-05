@@ -695,3 +695,9 @@ a:focus-visible > .link-draw::after {
     animation: none;
   }
 }
+
+/* Work's phone plant: its recorded frames' edges fade out, so the frame never reads as a box. */
+.phone-plant {
+  -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent);
+  mask-image: radial-gradient(closest-side, #000 72%, transparent);
+}
