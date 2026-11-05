@@ -153,6 +153,12 @@ export default function ProjectsPage() {
   const [openedFrom, setOpenedFrom] = useState<ModalSource | null>(null);
   // Where the dialog hands focus back on close, for a dialog the page opened itself (see showProject).
   const [returnFocus, setReturnFocus] = useState<HTMLElement | null>(null);
+  // Counts the opens, so each mounts a dialog of its own. A project opened
+  // again as its last dialog finishes leaving (a press or a step queued behind
+  // it, see onDialogGone) would otherwise come back under the same key, and
+  // AnimatePresence would keep that dialog, already closed and hidden, rather
+  // than mount a new one.
+  const [opens, setOpens] = useState(0);
   // The dialog is up, open or still leaving: from the press until its exit has
   // finished and it has unlocked the page.
   const [dialogPresent, setDialogPresent] = useState(false);
@@ -242,6 +248,7 @@ export default function ProjectsPage() {
     setOpenedFrom(source);
     setReturnFocus(returnTo);
     setDialogPresent(true);
+    setOpens((count) => count + 1);
   };
 
   // A tap, a click or a key on a tile. A dialog closed from outside (a back
@@ -489,7 +496,7 @@ export default function ProjectsPage() {
         {selectedProject && (
           <ProjectModal
             ref={modal}
-            key={("id" in selectedProject && selectedProject.id) || selectedProject.name}
+            key={`${("id" in selectedProject && selectedProject.id) || selectedProject.name}:${opens}`}
             project={selectedProject}
             startAt={previewTime}
             source={openedFrom}
