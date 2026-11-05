@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { motion, useSpring } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { SPLINE_MIN_WIDTH, useDashboardScene } from "@components/DashboardScene";
+import DepthPortrait from "@components/DepthPortrait";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
@@ -18,6 +18,7 @@ import {
 import { spaceBoards, tasaOrbiter } from "@font";
 import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
 import { PORTRAIT_COLUMN_MEDIA } from "@lib/portrait";
+import { needsTiltPermission, requestTilt, subscribeTiltState } from "@lib/tilt";
 
 /** Wheel intent (px of deltaY) that turns the dashboard over to About. */
 const FLIP_INTENT = 80;
@@ -34,12 +35,26 @@ const subscribeReducedMotion = (onChange: () => void) => {
 };
 const readReducedMotion = () => window.matchMedia(REDUCED_MOTION_QUERY).matches;
 const readReducedMotionOnServer = () => false;
+const readNeedsTiltOnServer = () => false;
 
 /**
  * Home has been seen at phone width this session (then widened or rotated past
  * it). Kept outside the component so a Home remounted by a navigation still knows.
  */
 let homeSeenNarrow = false;
+
+/** The phone hero's photo; its relief samples the same file, so it is fetched once. */
+const HERO_PHOTO = "/images/Suvraneel_DP-1200.webp";
+/** Wider screens' copy, for the 288px framed square at 2x: there the hero is mostly hidden (sr-only) behind the scene. */
+const HERO_PHOTO_FRAMED = "/images/Suvraneel_DP-600.webp";
+/** The hero's arrival: a long, heavy settle. */
+const HERO_EASE = [0.16, 1, 0.3, 1] as const;
+/** The portrait's scale-in (s); the relief is built once it is over. */
+const HERO_PORTRAIT_S = 1.4;
+/** Phones: where the hero is the landing view (the 3D dashboard never loads). */
+const HERO_RELIEF_MEDIA = `(max-width: ${SPLINE_MIN_WIDTH}px)`;
+/** object-[60%_50%]: the face a third in from the left, the dark backdrop on its right. */
+const HERO_PHOTO_POSITION: [number, number] = [0.6, 0.5];
 
 /** A flip or unflip in flight drives the rig itself. */
 const flipOwnsRig = () => {
@@ -69,6 +84,23 @@ const Home = () => {
   const preTilting = useRef(false);
   const preTiltIdle = useRef(0);
   const canPreTiltRef = useRef(false);
+  // The hero photo turns in relief on phones with a GPU (DepthPortrait). On iOS it follows the
+  // phone's tilt only once a tap on the chip has asked for it; until then it drifts and follows touch.
+  const [relief, setRelief] = useState(false);
+  // The relief is built once the portrait has settled from its scale-in: it measures its frame
+  // (WebKit through getBoundingClientRect, which a transform skews) and must land on the still photo.
+  // A timer, not onAnimationComplete: a Home mounted under a page transition may never report one.
+  const [portraitSettled, setPortraitSettled] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setPortraitSettled(true), HERO_PORTRAIT_S * 1000);
+    return () => window.clearTimeout(timer);
+  }, []);
+  const needsTilt = useSyncExternalStore(subscribeTiltState, needsTiltPermission, readNeedsTiltOnServer);
+  // Asked once per tab (lib/tilt.ts): the chip goes as it is tapped, whatever the answer.
+  const showTiltChip = relief && needsTilt;
+  const askForTilt = useCallback(() => {
+    void requestTilt();
+  }, []);
   /** Home has been seen at phone width (homeSeenNarrow). */
   const [wasNarrow, setWasNarrow] = useState(
     () => homeSeenNarrow || (typeof window !== "undefined" && window.innerWidth <= SPLINE_MIN_WIDTH)
@@ -216,58 +248,120 @@ const Home = () => {
     <main
       className={`min-h-[100dvh] max-[550px]:relative max-[550px]:z-10 ${heroOnScreen ? "relative z-10" : ""}`}
     >
-      {/* Phones never load the 3D dashboard, so this hero is their landing view. */}
+      {/* Phones never load the 3D dashboard, so this hero is their landing view: the portrait
+          full-bleed, turning in relief with the phone, the name rising out of its fade. */}
       <section
         aria-label="Portfolio introduction"
-        className={`flex min-h-[100dvh] flex-col justify-start px-5 pb-10 pt-8 text-white ${
+        className={`relative flex min-h-[100dvh] flex-col justify-start pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-white min-[551px]:px-5 min-[551px]:pt-8 ${
           heroOnScreen ? "nav-gap" : "min-[551px]:sr-only"
         }`}
       >
         <motion.div
-          initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="relative aspect-square w-40 max-w-full overflow-hidden rounded-2xl"
+          initial={prefersReducedMotion ? false : { opacity: 0, scale: 1.06 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: HERO_PORTRAIT_S, ease: HERO_EASE }}
+          // Phones: edge to edge and as tall as the copy and actions below leave room for, its lower
+          // half fading into the page so the name can sit in it.
+          // Wider (a hero standing in for a failed scene): the framed square it always was.
+          // A landscape phone (short) keeps it small, so the name stays on screen.
+          className="hero-portrait relative h-[clamp(14rem,calc(100svh-18.5rem),40rem)] w-full shrink-0 origin-top overflow-hidden min-[551px]:aspect-square min-[551px]:h-auto min-[551px]:w-72 min-[551px]:rounded-2xl min-[551px]:[@media(max-height:520px)]:w-40"
         >
-          {/* The phone LCP: a copy cut for its 180px box (w-40 at the 18px root; 540px
-              covers 3x screens, and the export has no image optimizer), fetched ahead
-              of the scripts. */}
-          <Image
-            src="/images/Suvraneel_DP-540.webp"
-            alt="Black-and-white portrait of Suvraneel Bhuin"
-            fill
-            loading="eager"
-            fetchPriority="high"
-            sizes="180px"
-            className="object-cover grayscale"
-          />
+          {/* The phone LCP, fetched ahead of the scripts: 1200px covers the full-bleed frame
+              at 3x (the export has no image optimizer). The relief samples the same file.
+              Wider screens fetch a 600px copy for the framed square. */}
+          <picture>
+            <source media="(min-width: 551px)" srcSet={HERO_PHOTO_FRAMED} />
+            <img
+              src={HERO_PHOTO}
+              alt="Black-and-white portrait of Suvraneel Bhuin"
+              loading="eager"
+              fetchPriority="high"
+              className="absolute inset-0 h-full w-full object-cover object-[60%_50%] grayscale"
+            />
+          </picture>
+          {(portraitSettled || prefersReducedMotion) && (
+            <DepthPortrait
+              src={HERO_PHOTO}
+              depthSrc="/images/Suvraneel_DP-depth.webp"
+              media={HERO_RELIEF_MEDIA}
+              position={HERO_PHOTO_POSITION}
+              onReady={setRelief}
+              tilt
+              className="absolute inset-0"
+            />
+          )}
         </motion.div>
-        <motion.div
-          initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-5"
-        >
-          <h1 className={`text-[1.5rem] leading-[1.05] tracking-normal min-[320px]:text-[1.8rem] min-[360px]:text-[2.1rem] min-[390px]:text-[2.4rem] min-[480px]:text-[2.6rem] ${spaceBoards.className}`}>
-            Suvraneel Bhuin
+        <div className="relative -mt-24 px-5 min-[551px]:mt-6 min-[551px]:px-0">
+          {showTiltChip && (
+            <motion.button
+              type="button"
+              onClick={askForTilt}
+              aria-label="Tilt to look around"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.4, ease: HERO_EASE }}
+              whileTap={{ scale: 0.94 }}
+              // Across from the status pill, over the portrait's dark lower half and clear of the face.
+              // Too narrow for both below 360px: the portrait drifts and follows touch there.
+              // The chip is small; its tap area reaches past it to 44px.
+              className={`absolute -top-0.5 right-5 inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.14] bg-black/55 pl-1 pr-3 text-[0.68rem] leading-none tracking-[0.04em] text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md before:absolute before:-inset-2 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent max-[359px]:hidden ${tasaOrbiter.className}`}
+            >
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-white/10">
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="hero-tilt-icon h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="6.5" y="2.5" width="11" height="19" rx="2.5" />
+                  <path d="M11 18.5h2" />
+                </svg>
+              </span>
+              Tilt
+            </motion.button>
+          )}
+          <motion.p
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.35, ease: HERO_EASE }}
+            className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[0.62rem] font-medium uppercase leading-5 tracking-[0.2em] text-white/70 ${tasaOrbiter.className}`}
+          >
+            <span aria-hidden="true" className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent/70 motion-reduce:animate-none" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+            </span>
+            Currently at Accenture
+          </motion.p>
+          <h1 className={`mt-3 text-[1.5rem] leading-[1.05] tracking-normal min-[320px]:text-[1.8rem] min-[360px]:text-[2.1rem] min-[390px]:text-[2.4rem] min-[480px]:text-[2.6rem] ${spaceBoards.className}`}>
+            {["Suvraneel", "Bhuin"].map((line, i) => (
+              <motion.span
+                key={line}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: "0.45em", filter: "blur(10px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                transition={{ duration: 1, delay: 0.45 + i * 0.1, ease: HERO_EASE }}
+                className="block"
+              >
+                {line}
+                {i === 0 ? " " : null}
+              </motion.span>
+            ))}
           </h1>
-          <h2 className={`mt-2 max-w-[28ch] text-lead font-bold leading-[1.4] text-white ${tasaOrbiter.className}`}>
-            I build products, systems, and the things in between.
-          </h2>
-          <p className={`max-w-[32ch] text-body leading-[1.65] text-white/70 ${tasaOrbiter.className}`}>
-            <span className="block">Software engineer by profession. <br/>Product builder by instinct.</span>
-            <span className="mt-3 block">I like simplifying complex problems and building from interface to system.</span>
-          </p>
-          <p className={`mt-3 text-sm leading-6 text-white/55 ${tasaOrbiter.className}`}>
-            Currently at Accenture.
-          </p>
-        </motion.div>
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.7, ease: HERO_EASE }}
+          >
+            <h2 className={`mt-2 max-w-[28ch] text-lead font-bold leading-[1.35] text-white ${tasaOrbiter.className}`}>
+              I build products, systems, and the things in between.
+            </h2>
+            <p className={`mt-2 max-w-[34ch] text-body leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>
+              <span className="block">Software engineer by profession. <br/>Product builder by instinct.</span>
+              <span className="mt-2 block">I like simplifying complex problems and building from interface to system.</span>
+            </p>
+          </motion.div>
+        </div>
         <motion.div
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
-          // Phone-only actions: on wider screens this hero is visually hidden (sr-only), so keep its buttons out of the tab order too.
-          className="mt-4 grid w-full grid-cols-2 gap-3 min-[551px]:hidden"
+          transition={{ duration: 0.9, delay: 0.85, ease: HERO_EASE }}
+          // In the thumb's reach at the foot of the screen. Phone-only actions: on wider screens this
+          // hero is visually hidden (sr-only), so keep its buttons out of the tab order too.
+          className="mt-auto grid w-full grid-cols-2 gap-3 px-5 pt-5 min-[551px]:hidden"
         >
           <LiquidMetalButton href="/work" mobileOnly className="h-[54px] w-full">
             Explore my work

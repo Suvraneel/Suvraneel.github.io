@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useMotionValue, useScroll, useSpring, type MotionValue } from "motion/react";
+import { motion, useMotionValue, useScroll, useSpring, useTransform, type MotionValue } from "motion/react";
 import type { Application } from "@splinetool/runtime";
 import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 import ChronoCard from "@components/ChronoCard";
+import FrameSequence from "@components/FrameSequence";
 import TimelineSpine from "@components/TimelineSpine";
 import TimelineDate from "@components/TimelineDate";
 import LiftHeading from "@components/LiftHeading";
@@ -31,6 +32,30 @@ const PLANT_FADE_REDUCED_MS = 200;
  */
 const PLANT_GLOW =
   "radial-gradient(ellipse 25dvh 6.3dvh at 50% 63%, rgb(74 47 200), rgb(74 47 200 / 0.7) 32%, rgb(74 47 200 / 0.46) 48%, rgb(74 47 200 / 0.3) 64%, rgb(74 47 200 / 0.165) 80%, rgb(74 47 200 / 0.065) 96%, transparent)";
+
+/**
+ * Phones get the plant as frames recorded from the scene (61, one per step of its
+ * scroll event; public/images/work-plant), scrubbed by the same progress. Each
+ * frame is the scene's middle, 400 x 360 CSS px of a 720px square view at 2x.
+ */
+const PHONE_PLANT_MEDIA = "(max-width: 767.98px)";
+const PLANT_FRAME_COUNT = 61;
+const PLANT_FRAME_ASPECT = 400 / 360;
+const plantFrame = (index: number) => `/images/work-plant/${String(index).padStart(2, "0")}.webp`;
+/**
+ * Scrolled this far (px), the phone plant has dimmed to PHONE_PLANT_DIM: before the entries
+ * cross its leaves, and far enough that small text over the leaves keeps 4.5:1.
+ */
+const PHONE_PLANT_DIM_BY = 240;
+const PHONE_PLANT_DIM = 0.2;
+
+/** The plant's progress where Work stands. In flight, the edge the lift lands at decides: a backward link lands at Work's top. */
+function arrivalProgress(main: HTMLElement) {
+  const t = getTransition();
+  const edge = t && !t.settled && t.to === "/work" && typeof t.arrival === "string" ? t.arrival : null;
+  const range = main.scrollHeight - main.clientHeight;
+  return edge === "bottom" ? 1 : edge === "top" ? 0 : range > 0 ? main.scrollTop / range : 0;
+}
 
 /** An entry's dot lights once it has passed this share of the view. */
 const DOT_LIGHT_AT = 0.5;
@@ -92,7 +117,9 @@ function useTimelineDots(mainRef: RefObject<HTMLElement | null>, scrollY: Motion
         apply(main.scrollTop);
       });
       resizeObserver.observe(main);
-      if (main.firstElementChild) resizeObserver.observe(main.firstElementChild);
+      // The content, not main's first child: on phones that is the plant's fixed-size stage.
+      const content = main.querySelector("[data-work-content]");
+      if (content) resizeObserver.observe(content);
     });
 
     return () => {
@@ -142,6 +169,8 @@ const Work = () => {
   // Its column is display:none below md; an invisible canvas would still load
   // a Spline runtime. Mounted again later, the plant syncs on load (scrubPlant).
   const plantShown = useSyncExternalStore(subscribePlantQuery, isPlantShown, isPlantShownOnServer);
+  // Full under the intro; dimmed once the entries scroll over it, so they read first.
+  const phonePlantOpacity = useTransform(scrollY, [0, PHONE_PLANT_DIM_BY], [1, PHONE_PLANT_DIM]);
 
   useReveal(entriesRef, { rootRef: mainRef });
   useTimelineDots(mainRef, scrollY);
@@ -152,6 +181,14 @@ const Work = () => {
     const main = mainRef.current;
     if (!main) return;
     const reduced = prefersReducedMotion();
+    // Starts where the page lands (Back restores part way down, a backward lift lands at the
+    // bottom): the phone plant has no scene load to sync it, and the spring would otherwise
+    // play it all the way there from the full plant as the page arrives.
+    const stopWaiting = whenPlaced(main, () => {
+      const progress = arrivalProgress(main);
+      plantTarget.jump(progress);
+      plantProgress.jump(progress);
+    });
     const stopScroll = scrollY.on("change", (y) => {
       const range = main.scrollHeight - main.clientHeight;
       const progress = range > 0 ? y / range : 0;
@@ -160,6 +197,7 @@ const Work = () => {
     });
     const stopSeek = plantProgress.on("change", (progress) => seekPlant.current?.(progress));
     return () => {
+      stopWaiting();
       stopScroll();
       stopSeek();
       seekPlant.current = null;
@@ -186,11 +224,7 @@ const Work = () => {
       // The plant only moves with the scroll it follows: at rest it stops drawing.
       renderOnDemand(spline);
 
-      // In flight, the edge the lift lands at decides: a backward link lands at Work's top.
-      const t = getTransition();
-      const edge = t && !t.settled && t.to === "/work" && typeof t.arrival === "string" ? t.arrival : null;
-      const range = main.scrollHeight - main.clientHeight;
-      const progress = edge === "bottom" ? 1 : edge === "top" ? 0 : range > 0 ? main.scrollTop / range : 0;
+      const progress = arrivalProgress(main);
       seekPlant.current = seek;
       plantTarget.jump(progress);
       plantProgress.jump(progress);
@@ -213,7 +247,26 @@ const Work = () => {
         onBlur={(event) => event.currentTarget.removeAttribute("data-tab-focus")}
         className="page-scroller relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50 outline-none data-[tab-focus]:focus-visible:outline data-[tab-focus]:focus-visible:outline-2 data-[tab-focus]:focus-visible:-outline-offset-2 data-[tab-focus]:focus-visible:outline-accent"
       >
-        <div className="min-h-[100dvh] grid md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)] gap-0">
+        {/* Phones: the plant, recorded, held at the foot of the screen behind the page as it scrolls
+            (taking no room: the stage's negative margin gives its height back). Painted under the
+            grid, which is positioned. */}
+        <motion.div
+          aria-hidden="true"
+          style={{ opacity: phonePlantOpacity }}
+          // Short (landscape) phones have no room for it beside the copy.
+          className="pointer-events-none sticky top-0 -mb-[100dvh] h-[100dvh] overflow-hidden md:hidden [@media(max-height:520px)]:hidden"
+        >
+          <FrameSequence
+            frame={plantFrame}
+            count={PLANT_FRAME_COUNT}
+            progress={plantProgress}
+            media={PHONE_PLANT_MEDIA}
+            aspect={PLANT_FRAME_ASPECT}
+            // As wide as the screen allows, and no taller than the room under the intro (its height is 0.9 of its width).
+            className="phone-plant absolute bottom-[calc(0.25rem+env(safe-area-inset-bottom))] left-1/2 aspect-[10/9] w-[min(96vw,28rem,calc((100svh-17rem)*10/9))] -translate-x-1/2"
+          />
+        </motion.div>
+        <div data-work-content className="min-h-[100dvh] grid md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)] gap-0">
           <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-[100dvh] self-start md:block">
             {/* The plant centres in the space you can see (right of the nav rail). */}
             <div className="absolute inset-y-0 left-0 right-0 min-[769px]:[@media(min-height:521px)]:left-[var(--rail-w)]">
@@ -244,6 +297,8 @@ const Work = () => {
               Enterprise engineering, open-source leadership, and the communities that shaped how I build.
             </p>
            </header>
+           {/* Phones: room for the plant under the intro, so the first screen is title, intro and plant. */}
+           <div aria-hidden="true" className="h-[max(0px,calc(100svh-21rem))] md:hidden [@media(max-height:520px)]:hidden" />
 
            {/* Positioned for the one spine that runs through every section's dots. */}
            <div ref={entriesRef} className="relative">

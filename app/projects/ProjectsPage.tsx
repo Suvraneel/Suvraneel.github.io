@@ -38,6 +38,7 @@ import projectsData from "@data/projectsDat";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { useLiftEntrance } from "@hooks/useLiftEntrance";
 import { useReveal } from "@hooks/useReveal";
+import { subscribeDeviceTilt } from "@lib/tilt";
 import { useSfx } from "@hooks/useSfx";
 import { prefersReducedMotion } from "@lib/pageTransition";
 
@@ -165,12 +166,22 @@ const FINE_HOVER_QUERY = "(hover: hover) and (pointer: fine)";
 let fineHoverQuery: MediaQueryList | null = null;
 const hasFineHover = () => (fineHoverQuery ??= window.matchMedia(FINE_HOVER_QUERY)).matches;
 
+/** Touch screens: the device's tilt turns the cards on screen as a pointer would (lib/tilt.ts). */
+const TOUCH_TILT_QUERY = "(hover: none) and (pointer: coarse) and (prefers-reduced-motion: no-preference)";
+/** The light under a phone's tilt: dimmer than a pointer's, as nothing is pointing at it. */
+const TOUCH_SHEEN_OPACITY = 0.75;
+/** Tilt change a card answers (0.12deg of its 3deg): finer, a phone merely held would keep its springs running. */
+const TOUCH_TILT_STEP = 0.04;
+
 /**
- * Fine-pointer hover only: the card tilts toward the pointer (up to 3deg) and
- * a faint light follows it. Springs on transform and opacity; nothing under
- * reduced motion.
+ * Fine-pointer hover: the card tilts toward the pointer (up to 3deg) and a
+ * faint light follows it. On touch screens the device's tilt does the same for
+ * the cards in view. Springs on transform and opacity; nothing under reduced motion.
+ * `held` (the project dialog is up) freezes a phone's tilt where it is: the
+ * cards stay put under the dialog's blur (which would otherwise repaint with
+ * every turn), and the closing dialog lands back on the tile as it left it.
  */
-function useCardTilt(reduceMotion: boolean) {
+function useCardTilt(reduceMotion: boolean, tileRef: RefObject<HTMLElement | null>, held: boolean) {
   const rotateX = useSpring(0, TILT_SPRING);
   const rotateY = useSpring(0, TILT_SPRING);
   const sheenX = useMotionValue(0);
@@ -220,19 +231,72 @@ function useCardTilt(reduceMotion: boolean) {
     releaseWhenFlat();
   };
 
+  // Kept in a layout effect, as useMediaDepth's: set before the dialog's own effects run.
+  const heldRef = useRef(held);
+  // Catches up on whether the card is in view, once the dialog has gone.
+  const syncTouchTilt = useRef<(() => void) | null>(null);
+  useLayoutEffect(() => {
+    heldRef.current = held;
+    if (!held) syncTouchTilt.current?.();
+  }, [held]);
+
+  // Touch: only while the card is on screen, so off-screen cards keep `transform: none`.
+  useEffect(() => {
+    const tile = tileRef.current;
+    const query = window.matchMedia(TOUCH_TILT_QUERY);
+    if (!tile || reduceMotion || !query.matches) return;
+    let stop: (() => void) | null = null;
+    let visible = false;
+    const settle = () => {
+      stop?.();
+      stop = null;
+      rotateX.set(0);
+      rotateY.set(0);
+      sheenOpacity.set(0);
+      if (rotateX.get() === 0 && rotateY.get() === 0) perspective.set(0);
+    };
+    // Under the dialog the page is pinned and cards scroll out of view: they hold until it has gone.
+    const sync = () => {
+      if (heldRef.current) return;
+      if (!visible) return settle();
+      if (stop) return;
+      stop = subscribeDeviceTilt(({ x, y }) => {
+        if (bounds.current || heldRef.current) return;
+        const width = tile.offsetWidth;
+        const height = tile.offsetHeight;
+        perspective.set(TILT_PERSPECTIVE_PX);
+        rotateY.set(x * TILT_MAX_DEG);
+        rotateX.set(-y * TILT_MAX_DEG);
+        sheenX.set(((x + 1) / 2) * width);
+        sheenY.set(((y + 1) / 2) * height);
+        sheenOpacity.set(Math.min(1, Math.hypot(x, y) * 1.6) * TOUCH_SHEEN_OPACITY);
+      }, TOUCH_TILT_STEP);
+    };
+    syncTouchTilt.current = sync;
+    const viewer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      sync();
+    });
+    viewer.observe(tile);
+    return () => {
+      syncTouchTilt.current = null;
+      viewer.disconnect();
+      settle();
+    };
+  }, [reduceMotion, tileRef, perspective, rotateX, rotateY, sheenX, sheenY, sheenOpacity]);
+
   return { rotateX, rotateY, perspective, sheenX, sheenY, sheenOpacity, onPointerMove, onPointerLeave };
 }
 
-// Media depth, on desktops with a fine pointer only: the media shifts against the
-// tilt and drifts inside its frame as the page scrolls, so it reads as sitting
-// behind the tile's glass. The frame, title, chips and brief panel never move.
-const DEPTH_QUERY =
-  "(min-width: 768px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)";
-// The room that needs, under the same query: 8px either side for the pointer shift,
+// Media depth: the media shifts against the tilt (a fine pointer's, or a phone's)
+// and drifts inside its frame as the page scrolls, so it reads as sitting behind
+// the tile's glass. The frame, title, chips and brief panel never move.
+const DEPTH_QUERY = "(prefers-reduced-motion: no-preference)";
+// The room that needs, under the same query: 8px either side for the tilt shift,
 // and 6px plus the drift's reach above and below (.project-tile is a size container,
 // so 6cqh is 6% of the tile). Contained thumbnails need none: their edges are soft.
 const MEDIA_OVERSCAN =
-  "[@media(min-width:768px)_and_(hover:hover)_and_(pointer:fine)_and_(prefers-reduced-motion:no-preference)]:-inset-x-[8px] [@media(min-width:768px)_and_(hover:hover)_and_(pointer:fine)_and_(prefers-reduced-motion:no-preference)]:inset-y-[calc(-6px_-_min(6cqh,24px))]";
+  "motion-safe:-inset-x-[8px] motion-safe:inset-y-[calc(-6px_-_min(6cqh,24px))]";
 /** At full tilt, against it. */
 const POINTER_SHIFT_PX = { x: 8, y: 6 };
 /** The drift's reach either side of centre: 6% of the tile's height, at most 24px. */
@@ -252,8 +316,8 @@ const getDepthQuery = () => (depthQuery ??= window.matchMedia(DEPTH_QUERY));
  * or depth transform touches them). A lift's arriving page drifts as it will
  * stand once settled (a framed sheet at its arrival offset); an exiting page
  * keeps its last frame while the window scrolls on underneath it. Transforms
- * only, with will-change just while they move; touch, phones and reduced
- * motion leave the media where it is. The tile's layout is read once it is
+ * only, with will-change just while they move; reduced motion leaves the media
+ * where it is. The tile's layout is read once it is
  * placed and again only when something could have moved it (a resize, late
  * fonts or images), so a scroll event reads nothing but the scroll offset.
  * `held` (the project dialog is up) keeps the drift where it is until the
@@ -433,7 +497,7 @@ function ProjectTile({
   const tileRef = useRef<HTMLButtonElement>(null);
   const previewVideo = useRef<HTMLVideoElement>(null);
   const stillImage = useRef<HTMLImageElement>(null);
-  const tilt = useCardTilt(reduceMotion);
+  const tilt = useCardTilt(reduceMotion, tileRef, holdDepth);
   const depth = useMediaDepth(tileRef, tilt, scrollY, holdDepth);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const hasDedicatedPreview = project.gif !== "video-to-be-added.webm";
@@ -569,7 +633,7 @@ function ProjectTile({
       ) : (
         <ProjectArchivePreview project={project} />
       )}
-      {/* Soft light that follows the pointer (fine-pointer hover only), above the media and below the title. */}
+      {/* Soft light that follows the pointer (fine-pointer hover) or a phone's tilt, above the media and below the title. */}
       <motion.span
         aria-hidden="true"
         className="pointer-events-none absolute left-0 top-0 z-[5] -ml-56 -mt-56 size-[28rem] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.09),transparent_62%)]"

@@ -667,3 +667,37 @@ a:focus-visible > .link-draw::after {
     opacity: 0;
   }
 }
+
+/* Home's phone hero: the full-bleed portrait fades into the page from its middle down,
+   so the name set over its foot reads on black. The framed square (wider screens) keeps its edges. */
+@media (max-width: 550px) {
+  .hero-portrait {
+    -webkit-mask-image: linear-gradient(to bottom, #000 45%, rgb(0 0 0 / 0.55) 72%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 45%, rgb(0 0 0 / 0.55) 72%, transparent 100%);
+  }
+}
+/* The tilt chip's phone rocks gently, showing what the chip asks for. */
+.hero-tilt-icon {
+  transform-origin: 50% 80%;
+  animation: hero-tilt-rock 2.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes hero-tilt-rock {
+  0%,
+  100% {
+    transform: rotate(-14deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-tilt-icon {
+    animation: none;
+  }
+}
+
+/* Work's phone plant: its recorded frames' edges fade out, so the frame never reads as a box. */
+.phone-plant {
+  -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent);
+  mask-image: radial-gradient(closest-side, #000 72%, transparent);
+}
