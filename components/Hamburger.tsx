@@ -6,10 +6,12 @@ import { LayoutDashboardIcon } from "@components/animate-ui/icons/layout-dashboa
 import { LightbulbIcon } from "@components/animate-ui/icons/lightbulb";
 import { MessageCircleMoreIcon } from "@components/animate-ui/icons/message-circle-more";
 import { PickaxeIcon } from "@components/animate-ui/icons/pickaxe";
+import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
 import { TerminalIcon } from "@components/animate-ui/icons/terminal";
 import { VolumeIcon } from "@components/animate-ui/icons/volume";
 import { stopMusic, useMusicPlaying } from "@hooks/useMusic";
 import { toggleSfxMuted, useSfx, useSfxMuted } from "@hooks/useSfx";
+import * as gtag from "@lib/gtag";
 import { EASE_FADE, prefersReducedMotion } from "@lib/pageTransition";
 import { AnimatePresence, motion, stagger, useIsPresent, type Variants } from "motion/react";
 import Link from "next/link";
@@ -212,7 +214,8 @@ const Hamburger = () => {
   }
   const menu = [
     { name: "Home", href: "/", icon: LayoutDashboardIcon },
-    { name: "About", href: "/about", icon: FingerprintIcon },
+    // Phones skip About (lib/pageTransition's stepFrom): its resume is the drawer's last row.
+    { name: "About", href: "/about", icon: FingerprintIcon, hideOnPhone: true },
     { name: "Work", href: "/work", icon: PickaxeIcon },
     { name: "Projects", href: "/projects", icon: LightbulbIcon },
     { name: "Skills", href: "/skills", icon: TerminalIcon },
@@ -309,7 +312,7 @@ const Hamburger = () => {
                 animate="open"
                 className="mt-20 flex flex-1 flex-col gap-2 px-5"
               >
-                {menu.map(({ name, href, icon: Icon }) => (
+                {menu.map(({ name, href, icon: Icon, hideOnPhone }) => (
                   <motion.li
                     key={name}
                     variants={reduceMotion ? undefined : variantsItem}
@@ -317,7 +320,7 @@ const Hamburger = () => {
                     whileTap={{ scale: 0.98 }}
                     // Motion makes whileTap elements focusable; the link inside is the one tab stop.
                     tabIndex={-1}
-                    className="sidebar-item flex justify-start"
+                    className={`sidebar-item flex justify-start ${hideOnPhone ? "max-[550px]:hidden" : ""}`}
                   >
                     <Link
                       href={href}
@@ -340,6 +343,37 @@ const Hamburger = () => {
                     </Link>
                   </motion.li>
                 ))}
+                {/* The resume, one tap from any page: a file in a new tab, not a page of the sequence. */}
+                <motion.li
+                  variants={reduceMotion ? undefined : variantsItem}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  tabIndex={-1}
+                  className="sidebar-item flex justify-start"
+                >
+                  <a
+                    href="/docs/Suvraneel_Bhuin_Resume.pdf"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex w-full items-center gap-4 rounded-2xl border border-white/10 px-4 py-3 text-white transition hover:border-white/15 hover:bg-white/[0.04] hover:text-accent focus-visible:border-white/15 focus-visible:bg-white/[0.04] focus-visible:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    onMouseEnter={() => {
+                      stopTick();
+                      playTick();
+                    }}
+                    onMouseLeave={stopTick}
+                    onClick={() => {
+                      gtag.event({ action: "resume_download_opened", category: "portfolio_engagement", label: "drawer", value: 1 });
+                      playPress();
+                      // The row goes with the drawer and no page comes to take focus (the file opens in a
+                      // new tab): hand it back to the toggle, as Escape does.
+                      navRef.current?.querySelector<HTMLElement>("button")?.focus();
+                      closeDrawer();
+                    }}
+                  >
+                    <SquareArrowOutUpRightIcon aria-hidden="true" size={21} animateOnHover />
+                    <span className="text-lg font-medium">Resume</span>
+                  </a>
+                </motion.li>
               </motion.ul>
               <motion.div variants={reduceMotion ? undefined : variantsItem} initial="closed" animate="open" className="border-t border-white/10 px-5 py-5">
                 <Socials>
