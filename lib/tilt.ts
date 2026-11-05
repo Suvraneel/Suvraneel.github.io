@@ -119,3 +119,47 @@ export function createTiltTracker() {
     return { x: clamp((tilt.x - rest.x) / TILT_RANGE_DEG), y: clamp((tilt.y - rest.y) / TILT_RANGE_DEG) };
   };
 }
+
+/** Smallest change of the shared tilt worth reporting: below it, sensor noise would keep springs running. */
+const SHARED_TILT_STEP = 0.012;
+
+type TiltListener = (tilt: { x: number; y: number }) => void;
+const tiltListeners = new Set<TiltListener>();
+let follow: ReturnType<typeof createTiltTracker> | null = null;
+let reported = { x: 0, y: 0 };
+let stopRelistening: (() => void) | null = null;
+
+const onSharedOrientation = (event: DeviceOrientationEvent) => {
+  const reading = screenTilt(event, window.screen.orientation?.angle ?? 0);
+  if (!reading || !follow) return;
+  const next = follow(reading, performance.now());
+  if (Math.abs(next.x - reported.x) < SHARED_TILT_STEP && Math.abs(next.y - reported.y) < SHARED_TILT_STEP) return;
+  reported = next;
+  tiltListeners.forEach((listener) => listener(next));
+};
+const listenShared = () => {
+  window.removeEventListener("deviceorientation", onSharedOrientation);
+  window.addEventListener("deviceorientation", onSharedOrientation);
+};
+
+/**
+ * The device's tilt as a turn target in [-1, 1] per axis (createTiltTracker), shared by every
+ * subscriber through one orientation listener, and reported only when it changes by a visible step.
+ */
+export function subscribeDeviceTilt(listener: TiltListener): () => void {
+  if (tiltListeners.size === 0) {
+    follow = createTiltTracker();
+    reported = { x: 0, y: 0 };
+    listenShared();
+    stopRelistening = subscribeTilt(listenShared);
+  }
+  tiltListeners.add(listener);
+  return () => {
+    tiltListeners.delete(listener);
+    if (tiltListeners.size > 0) return;
+    window.removeEventListener("deviceorientation", onSharedOrientation);
+    stopRelistening?.();
+    stopRelistening = null;
+    follow = null;
+  };
+}
