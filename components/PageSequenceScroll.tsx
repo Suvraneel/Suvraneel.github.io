@@ -62,6 +62,8 @@ const sidewaysRatio = 2;
 const wheelHintFrom = 0.15;
 /** How long the pill explains a key step held back (isFormDirty), with no gesture to end it. */
 const heldKeyHintMs = 1600;
+/** Why a step is held back: the pill's words, and a key press's announcement (heldStatus). */
+const heldStepMessage = "Finish your message first";
 /** The rail's collapsed width (--rail-w, globals.css); the content column starts past it. */
 const railWidth = () =>
   Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--rail-w")) || 50;
@@ -186,6 +188,13 @@ const PageSequenceScroll = () => {
   const isNavigating = useRef(false);
   // The touch pull's hint, as the wheel (and a key held back) shows it (set up with the hint below).
   const wheelHint = useRef<((direction: 1 | -1, distance: number) => void) | null>(null);
+  // A polite live region for a key step held back (isFormDirty). The pill is
+  // aria-hidden, so without this a refused PageUp does nothing a screen reader
+  // user can perceive, where it used to move to Skills and announce the route.
+  // Rendered with the component and empty, not created with its text: screen
+  // readers skip a live region that arrives already holding it. Touch and the
+  // wheel stay visual: their pill follows a gesture the visitor is making.
+  const heldStatus = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     // Home and About own their dashboard flip interaction. Every subsequent
@@ -355,6 +364,8 @@ const PageSequenceScroll = () => {
     let scrolledAt = Number.NEGATIVE_INFINITY;
     let stepLanding: { scroller: Element; top: number } | null = null;
     let heldHintTimer = 0;
+    // Rendered with the component, so the same node for this effect's life.
+    const heldStatusNode = heldStatus.current;
     const noteScroll = (event: Event) => {
       const element = event.target instanceof Element ? event.target : document.scrollingElement;
       if (stepLanding && element === stepLanding.scroller && element.scrollTop === stepLanding.top) {
@@ -422,11 +433,21 @@ const PageSequenceScroll = () => {
 
       // A message typed into Contact's form holds the page (isFormDirty). A
       // press has no gesture to show the pill on, so it says why for a moment
-      // (the wheel's pill, full), then goes.
+      // (the wheel's pill, full), then goes. The same words go to the live
+      // region for screen readers, and are cleared with the pill. A second
+      // press while they are still there toggles a trailing no-break space:
+      // the text changes, so it is announced again, and it reads the same.
       if (isFormDirty()) {
         window.clearTimeout(heldHintTimer);
         wheelHint.current?.(direction, pullThreshold);
-        heldHintTimer = window.setTimeout(() => wheelHint.current?.(direction, 0), heldKeyHintMs);
+        if (heldStatusNode) {
+          heldStatusNode.textContent =
+            heldStatusNode.textContent === heldStepMessage ? `${heldStepMessage}\u00a0` : heldStepMessage;
+        }
+        heldHintTimer = window.setTimeout(() => {
+          wheelHint.current?.(direction, 0);
+          if (heldStatusNode) heldStatusNode.textContent = "";
+        }, heldKeyHintMs);
         return;
       }
 
@@ -448,6 +469,8 @@ const PageSequenceScroll = () => {
       window.removeEventListener("scroll", noteScroll, true);
       pendingSteps.forEach((cancel) => cancel());
       window.clearTimeout(heldHintTimer);
+      // Leaving mid-hint (a link, the drawer), the cleared timer would have emptied it.
+      if (heldStatusNode) heldStatusNode.textContent = "";
     };
   }, [navigate, pathname]);
 
@@ -502,7 +525,7 @@ const PageSequenceScroll = () => {
     // label in the grid, which would size every pill to it.
     const heldLabel = document.createElement("span");
     heldLabel.className = "relative text-sm font-medium text-white/85";
-    heldLabel.textContent = "Finish your message first";
+    heldLabel.textContent = heldStepMessage;
     heldLabel.style.display = "none";
     hint.append(hintFill, hintAction, hintTitle, heldLabel);
     document.body.append(hint);
@@ -918,7 +941,9 @@ const PageSequenceScroll = () => {
     return () => window.clearTimeout(timeoutId);
   }, [pathname, router]);
 
-  return null;
+  // role=status is polite and atomic: it waits for the screen reader to finish
+  // what it is saying, then reads the whole line.
+  return <span ref={heldStatus} className="sr-only" role="status" />;
 };
 
 export default PageSequenceScroll;
