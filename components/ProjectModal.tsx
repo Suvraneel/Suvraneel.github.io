@@ -418,6 +418,7 @@ export default function ProjectModal({
   project,
   startAt = 0,
   source = null,
+  returnFocus = null,
 }: Readonly<{
   ref?: Ref<ProjectModalHandle>;
   handleClose: () => void;
@@ -426,6 +427,16 @@ export default function ProjectModal({
   startAt?: number;
   /** The tile that opened the dialog: the preview frame travels from (and back to) its media. */
   source?: ModalSource | null;
+  /**
+   * Where focus goes back to on close, in place of whatever had it as the
+   * dialog opened. The page passes the tile for a dialog it opens itself (a
+   * project's link, a reload, a history step), which nothing on the page
+   * invoked: focus was then on the page itself, on the <main> a page
+   * transition focuses, or wherever an earlier close left it. Keyboard and
+   * screen reader users are then left on the project they came for, where
+   * the dialog closes back into its tile, not at the top of the page.
+   */
+  returnFocus?: HTMLElement | null;
 }>) {
   const dialog = useRef<HTMLDialogElement>(null);
   const frame = useRef<HTMLDivElement>(null);
@@ -440,6 +451,10 @@ export default function ProjectModal({
   const clip = useRef<HTMLVideoElement>(null);
   const scroller = useRef<HTMLElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
+  // Decided once, as it opens (see returnFocus).
+  const returnTo = useRef(returnFocus);
+  // A click or tap on Close or the backdrop asked for the close (a key's click has no detail).
+  const closedByPointer = useRef(false);
   const [visitHovered, setVisitHovered] = useState(false);
   const [playTick, { stop: stopTick }] = useSfx("tick");
   const [playPress] = useSfx("press");
@@ -503,9 +518,10 @@ export default function ProjectModal({
 
     // The tile that opened the dialog, to hand focus back to on close. Firefox
     // focuses a clicked tile's <video> (hidden from assistive tech) rather than
-    // the tile, so focus goes back to the tile around it.
+    // the tile, so focus goes back to the tile around it. A dialog the page
+    // opened itself goes back to the element it named (see returnFocus).
     const focused = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
-    const trigger = focused?.closest<HTMLElement>(".project-tile") ?? focused;
+    const trigger = returnTo.current ?? focused?.closest<HTMLElement>(".project-tile") ?? focused;
     const scrollPosition = window.scrollY;
     const root = document.documentElement;
     const body = document.body;
@@ -560,8 +576,13 @@ export default function ProjectModal({
       // By now the dialog has left the DOM after its exit animation, so the
       // browser's own focus restore never ran. Only when focus was dropped:
       // a page transition that closed the dialog keeps its own focus.
+      // A close by pointer hands it back without the keyboard's ring, as a
+      // tile's own press leaves it: a dialog opened with nothing focused (a
+      // project's link) showed its Close as keyboard-focused, and a click on
+      // the already-focused Close would carry that over to the tile, its
+      // brief sliding in.
       const focusDropped = document.activeElement === null || document.activeElement === document.body;
-      if (trigger?.isConnected && focusDropped) trigger.focus({ preventScroll: true });
+      if (trigger?.isConnected && focusDropped) trigger.focus(closedByPointer.current ? { preventScroll: true, focusVisible: false } : { preventScroll: true });
     };
   }, []);
 
@@ -633,7 +654,8 @@ export default function ProjectModal({
   // history leaving the page, or a swipe back the browser animated itself)
   // is already hidden.
   const closeHeard = useRef(false);
-  const close = () => {
+  const close = (press?: { detail: number }) => {
+    if (press && press.detail > 0) closedByPointer.current = true;
     const tile = source?.tile;
     const leadsIn =
       travels && landed && tileStill.current !== null && dialog.current?.open === true && tile?.isConnected === true && isOnScreen(tile.getBoundingClientRect());

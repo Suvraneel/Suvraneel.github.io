@@ -151,6 +151,8 @@ export default function ProjectsPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [previewTime, setPreviewTime] = useState(0);
   const [openedFrom, setOpenedFrom] = useState<ModalSource | null>(null);
+  // Where the dialog hands focus back on close, for a dialog the page opened itself (see showProject).
+  const [returnFocus, setReturnFocus] = useState<HTMLElement | null>(null);
   // The dialog is up, open or still leaving: from the press until its exit has
   // finished and it has unlocked the page.
   const [dialogPresent, setDialogPresent] = useState(false);
@@ -162,7 +164,7 @@ export default function ProjectsPage() {
   const tiles = useRef(new Map<string, () => TileOpening | null>());
   // Close has stepped back off the project's entry and that step hasn't landed yet.
   const backPending = useRef(false);
-  // Forward onto a project's entry while the last dialog is still leaving: it opens once that one has gone.
+  // A step onto a project's entry while a dialog is still up or leaving: it opens once that one has gone (showWhenGone).
   const queuedOpen = useRef<Project | null>(null);
   // The state of the last entry of this page seen (Next's state and the scroll key in it), for an entry that comes without one.
   const lastState = useRef<unknown>(null);
@@ -233,12 +235,19 @@ export default function ProjectsPage() {
     };
   }, []);
 
-  const showProject = (project: Project, time: number, source: ModalSource | null) => {
+  // `returnTo`: a dialog the page opens itself (a link, a reload, a history
+  // step, a #id followed in) was invoked by nothing on the page, so it names
+  // the tile for the dialog to hand focus back to on close, where the visitor
+  // is left; focus as it opens is only on the page, on the <main> a page
+  // transition focuses, or wherever an earlier close left it. A tile's own
+  // press names none: the dialog goes back to what had focus (the tile).
+  const showProject = (project: Project, time: number, source: ModalSource | null, returnTo: HTMLElement | null = null) => {
     selected.current = project;
     present.current = true;
     setSelectedProject(project);
     setPreviewTime(time);
     setOpenedFrom(source);
+    setReturnFocus(returnTo);
     setDialogPresent(true);
   };
 
@@ -252,25 +261,49 @@ export default function ProjectsPage() {
     if (!backPending.current && projectIdOf(window.history.state) !== project.id) pushProjectEntry(project);
   };
 
-  // Close, Escape, the backdrop, or a Back that has already left the entry.
-  // With the project's entry still on top (the first three), step back off
-  // it, so the next Back leaves Projects as it would have before the dialog
-  // opened, and Forward opens the project again. Once, however many closes
-  // are asked for on the way out. A Back, or a page left through history,
-  // has already moved off it: nothing to undo.
+  // Close, Escape, the backdrop, or a history step that has already left the
+  // entry. With the project's own entry still on top (the first three), step
+  // back off it, so the next Back leaves Projects as it would have before the
+  // dialog opened, and Forward opens the project again. Once, however many
+  // closes are asked for on the way out. A Back, a page left through history,
+  // or a step onto another project's entry (a #id followed in, Back or
+  // Forward onto one) has already moved off it: nothing to undo.
   const closeProject = () => {
+    const closing = selected.current;
     selected.current = null;
     setSelectedProject(null);
-    if (backPending.current || window.location.pathname !== PROJECTS_PATH || projectIdOf(window.history.state) === null) return;
+    if (backPending.current || window.location.pathname !== PROJECTS_PATH || !closing || projectIdOf(window.history.state) !== closing.id) return;
     backPending.current = true;
     window.history.back();
+  };
+
+  // A history step has already left the open dialog's entry: it goes, and
+  // closeProject finds nothing to step back off. An iPhone's edge swipe (or
+  // any back gesture the browser animated itself) has already shown the
+  // gallery coming back: the dialog goes at once, as it does when such a
+  // swipe leaves the page. Otherwise it closes as Close would, its frame
+  // going home to the tile.
+  const dismissProject = (event: PopStateEvent) => {
+    if ((event as PopStateEvent & { hasUAVisualTransition?: boolean }).hasUAVisualTransition) dismissModalDialogs();
+    else if (modal.current) modal.current.close();
+    else closeProject();
+  };
+
+  // A step onto a project's entry (or a #id followed in) while a dialog is
+  // up: the project opens once that dialog has gone (onDialogGone), so two
+  // never overlap. One still open is another project's, on an entry history
+  // has just left: it closes now, so the dialog on screen is always the one
+  // the address names, and Back always closes what is shown.
+  const showWhenGone = (project: Project, event: PopStateEvent) => {
+    queuedOpen.current = project;
+    if (selected.current) dismissProject(event);
   };
 
   // Forward onto a project's entry: it opens again, from its tile if that is
   // on screen (where Back left it), else in place.
   const reopenProject = (project: Project) => {
     const opening = tiles.current.get(project.id)?.() ?? null;
-    showProject(project, opening?.time ?? 0, opening?.source ?? null);
+    showProject(project, opening?.time ?? 0, opening?.source ?? null, opening?.source.tile ?? null);
     playOpen();
   };
 
@@ -282,11 +315,12 @@ export default function ProjectsPage() {
   // project they came for). A link from elsewhere also puts the bare
   // /projects under the project's entry, so Back (or Close) lands on the
   // gallery rather than leaving the site; a reload or a step back onto the
-  // project's own entry already has it.
+  // project's own entry already has it. `isCancelled` is asked before any of
+  // that and again once the still has decoded.
   const openLinkedProject = useEffectEvent(async (project: Project, isCancelled: () => boolean) => {
     const describe = tiles.current.get(project.id);
     const first = describe?.();
-    if (!describe || !first || present.current) return;
+    if (!describe || !first || present.current || isCancelled()) return;
     if (!first.source.onScreen) first.source.tile.scrollIntoView({ block: "center", behavior: "instant" });
     await stillDecoded(first.source);
     const opening = describe();
@@ -296,7 +330,7 @@ export default function ProjectsPage() {
       window.history.replaceState(withoutProject(window.history.state), "", window.location.pathname + window.location.search);
       pushProjectEntry(project);
     }
-    showProject(project, opening.time, opening.source);
+    showProject(project, opening.time, opening.source, opening.source.tile);
   });
 
   // Back and Forward between /projects and a project's entry (the page
@@ -311,7 +345,16 @@ export default function ProjectsPage() {
     const project = projectById(projectIdOf(window.history.state));
     if (ownStep) {
       // Close's step back landed. A project opened in the meantime gets its entry now.
-      if (open && open.id !== project?.id) pushProjectEntry(open);
+      if (open) {
+        if (open.id !== project?.id) pushProjectEntry(open);
+      } else if (project) {
+        // It landed on another project's entry: one a #id followed in while
+        // a dialog was open left underneath. Close goes on back to the
+        // gallery, so the address never names a project that isn't open, and
+        // Forward still opens them again in turn.
+        backPending.current = true;
+        window.history.back();
+      }
       return;
     }
     if (window.history.state !== null) lastState.current = window.history.state;
@@ -323,24 +366,17 @@ export default function ProjectsPage() {
     if (followed && lastState.current !== null) {
       window.history.replaceState({ ...withoutProject(lastState.current), [PROJECT_STATE_KEY]: followed.id }, "", `#${followed.id}`);
       if (open?.id === followed.id) return;
-      if (present.current) queuedOpen.current = followed;
+      if (present.current) showWhenGone(followed, event);
       else void openLinkedProject(followed, () => projectIdOf(window.history.state) !== followed.id);
       return;
     }
     if (!project) {
       queuedOpen.current = null;
-      if (!open) return;
-      // An iPhone's edge swipe (or any back gesture the browser animated
-      // itself) has already shown the gallery coming back: the dialog goes
-      // at once, as it does when such a swipe leaves the page. Otherwise it
-      // closes as Close would, its frame going home to the tile.
-      if ((event as PopStateEvent & { hasUAVisualTransition?: boolean }).hasUAVisualTransition) dismissModalDialogs();
-      else if (modal.current) modal.current.close();
-      else closeProject();
+      if (open) dismissProject(event);
       return;
     }
     if (open?.id === project.id) return;
-    if (present.current) queuedOpen.current = project;
+    if (present.current) showWhenGone(project, event);
     else reopenProject(project);
   });
 
@@ -356,14 +392,18 @@ export default function ProjectsPage() {
     const container = gallery.current;
     if (!project || !container) return;
     let cancelled = false;
-    const stop = whenSettled(container, () => void openLinkedProject(project, () => cancelled));
+    // Also given up once history has moved off the project's entry: a Back
+    // pressed while a lift is still bringing the page in lands on the bare
+    // /projects before this runs, and opening then would put the entry back
+    // and undo that Back.
+    const stop = whenSettled(container, () => void openLinkedProject(project, () => cancelled || projectNamed(window.location.hash)?.id !== project.id));
     return () => {
       cancelled = true;
       stop();
     };
   }, [isPresent]);
 
-  // The dialog's leave has finished. A Forward that came while it left opens its project now, a frame on, once this one is gone.
+  // The dialog's leave has finished. A step that came while it was up or leaving opens its project now, a frame on, once this one is gone.
   const onDialogGone = () => {
     present.current = false;
     setDialogPresent(false);
@@ -445,6 +485,7 @@ export default function ProjectsPage() {
             project={selectedProject}
             startAt={previewTime}
             source={openedFrom}
+            returnFocus={returnFocus}
             handleClose={closeProject}
           />
         )}
