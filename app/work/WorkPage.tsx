@@ -48,6 +48,21 @@ const plantFrame = (index: number) => `/images/work-plant/${String(index).padSta
  */
 const PHONE_PLANT_DIM_BY = 240;
 const PHONE_PLANT_DIM = 0.2;
+/**
+ * Where the plant shows in its frames (shares of a frame's height, across all 61): its tallest
+ * leaves start at 0.07, the floor glow fades out by 0.8. That band is what fills the room under
+ * the intro; the rest of the frame (black, under the edge mask) may run past it.
+ */
+const PLANT_VISIBLE_TOP = 0.07;
+const PLANT_VISIBLE_BOTTOM = 0.8;
+/**
+ * Widest the phone plant gets: past the screen's edges only its glow's faded rim goes. The slot's
+ * cap in CSS is the visible band at this width: min(120vw, 34rem) x 0.9 (the frame's height) x 0.73.
+ */
+const PHONE_PLANT_MAX_VW = 1.2;
+const PHONE_PLANT_MAX_REM = 34;
+/** Its width once it rests at the foot of the screen behind the entries (as before: 96vw at most). */
+const PHONE_PLANT_REST_VW = 0.96;
 
 /** The plant's progress where Work stands. In flight, the edge the lift lands at decides: a backward link lands at Work's top. */
 function arrivalProgress(main: HTMLElement) {
@@ -55,6 +70,77 @@ function arrivalProgress(main: HTMLElement) {
   const edge = t && !t.settled && t.to === "/work" && typeof t.arrival === "string" ? t.arrival : null;
   const range = main.scrollHeight - main.clientHeight;
   return edge === "bottom" ? 1 : edge === "top" ? 0 : range > 0 ? main.scrollTop / range : 0;
+}
+
+/**
+ * Places Work's phone plant: at the top, its visible band (PLANT_VISIBLE_*) fills the slot under
+ * the intro (sized in CSS from the intro's height, which this keeps in --intro-h); over the first
+ * PHONE_PLANT_DIM_BY px of scroll it sinks until its frame's foot meets the screen's, narrowing to
+ * its resting width. Read from layout (no transforms) whenever the intro, the slot or the page
+ * changes size; the scroll only moves it.
+ */
+function usePhonePlantLayout(
+  mainRef: RefObject<HTMLElement | null>,
+  headerRef: RefObject<HTMLElement | null>,
+  slotRef: RefObject<HTMLElement | null>,
+  boxRef: RefObject<HTMLElement | null>,
+  scrollY: MotionValue<number>,
+  y: MotionValue<number>,
+  scale: MotionValue<number>
+) {
+  useLayoutEffect(() => {
+    const main = mainRef.current;
+    const header = headerRef.current;
+    const slot = slotRef.current;
+    const box = boxRef.current;
+    if (!main || !header || !slot || !box) return;
+    const query = window.matchMedia(PHONE_PLANT_MEDIA);
+    let travel = 0;
+    let restScale = 1;
+
+    const follow = (scrolled: number) => {
+      const t = Math.min(Math.max(scrolled / PHONE_PLANT_DIM_BY, 0), 1);
+      y.set(travel * t);
+      scale.set(1 + (restScale - 1) * t);
+    };
+
+    const place = () => {
+      slot.style.setProperty("--intro-h", `${header.offsetHeight}px`);
+      const room = slot.offsetHeight;
+      if (!query.matches || room === 0) {
+        box.removeAttribute("data-placed");
+        return;
+      }
+      const width = main.clientWidth;
+      const rem = parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
+      const band = PLANT_VISIBLE_BOTTOM - PLANT_VISIBLE_TOP;
+      const widest = Math.min(width * PHONE_PLANT_MAX_VW, PHONE_PLANT_MAX_REM * rem);
+      const height = Math.min(room / band, widest / PLANT_FRAME_ASPECT);
+      const frameWidth = height * PLANT_FRAME_ASPECT;
+      // The visible band centred in the slot (the slot's CSS cap keeps the two the same height).
+      const top = layoutTop(slot) - layoutTop(main) + room / 2 - ((PLANT_VISIBLE_TOP + PLANT_VISIBLE_BOTTOM) / 2) * height;
+      box.style.top = `${top}px`;
+      box.style.width = `${frameWidth}px`;
+      box.style.height = `${height}px`;
+      travel = Math.max(0, main.clientHeight - (top + height));
+      restScale = Math.min(1, (width * PHONE_PLANT_REST_VW) / frameWidth);
+      box.setAttribute("data-placed", "");
+      follow(main.scrollTop);
+    };
+
+    place();
+    const resizer = new ResizeObserver(place);
+    resizer.observe(header);
+    resizer.observe(slot);
+    resizer.observe(main);
+    query.addEventListener("change", place);
+    const stopScroll = scrollY.on("change", follow);
+    return () => {
+      resizer.disconnect();
+      query.removeEventListener("change", place);
+      stopScroll();
+    };
+  }, [mainRef, headerRef, slotRef, boxRef, scrollY, y, scale]);
 }
 
 /** An entry's dot lights once it has passed this share of the view. */
@@ -171,6 +257,12 @@ const Work = () => {
   const plantShown = useSyncExternalStore(subscribePlantQuery, isPlantShown, isPlantShownOnServer);
   // Full under the intro; dimmed once the entries scroll over it, so they read first.
   const phonePlantOpacity = useTransform(scrollY, [0, PHONE_PLANT_DIM_BY], [1, PHONE_PLANT_DIM]);
+  const headerRef = useRef<HTMLElement>(null);
+  const plantSlotRef = useRef<HTMLDivElement>(null);
+  const plantBoxRef = useRef<HTMLDivElement>(null);
+  const phonePlantY = useMotionValue(0);
+  const phonePlantScale = useMotionValue(1);
+  usePhonePlantLayout(mainRef, headerRef, plantSlotRef, plantBoxRef, scrollY, phonePlantY, phonePlantScale);
 
   useReveal(entriesRef, { rootRef: mainRef });
   useTimelineDots(mainRef, scrollY);
@@ -247,24 +339,31 @@ const Work = () => {
         onBlur={(event) => event.currentTarget.removeAttribute("data-tab-focus")}
         className="page-scroller relative h-[100dvh] overflow-y-auto overflow-x-hidden text-gray-50 outline-none data-[tab-focus]:focus-visible:outline data-[tab-focus]:focus-visible:outline-2 data-[tab-focus]:focus-visible:-outline-offset-2 data-[tab-focus]:focus-visible:outline-accent"
       >
-        {/* Phones: the plant, recorded, held at the foot of the screen behind the page as it scrolls
-            (taking no room: the stage's negative margin gives its height back). Painted under the
-            grid, which is positioned. */}
+        {/* Phones: the plant, recorded, on a stage held behind the page as it scrolls (taking no
+            room: the stage's negative margin gives its height back). It starts in the room under the
+            intro (usePhonePlantLayout) and, as the entries come up, sinks to the foot of the screen
+            while it dims. Painted under the grid, which is positioned. */}
         <motion.div
           aria-hidden="true"
           style={{ opacity: phonePlantOpacity }}
           // Short (landscape) phones have no room for it beside the copy.
           className="pointer-events-none sticky top-0 -mb-[100dvh] h-[100dvh] overflow-hidden md:hidden [@media(max-height:520px)]:hidden"
         >
-          <FrameSequence
-            frame={plantFrame}
-            count={PLANT_FRAME_COUNT}
-            progress={plantProgress}
-            media={PHONE_PLANT_MEDIA}
-            aspect={PLANT_FRAME_ASPECT}
-            // As wide as the screen allows, and no taller than the room under the intro (its height is 0.9 of its width).
-            className="phone-plant absolute bottom-[calc(0.25rem+env(safe-area-inset-bottom))] left-1/2 aspect-[10/9] w-[min(96vw,28rem,calc((100svh-17rem)*10/9))] -translate-x-1/2"
-          />
+          <motion.div
+            ref={plantBoxRef}
+            // Unseen until placed: before hydration nothing knows where the intro ends.
+            className="invisible absolute left-1/2 top-0 data-[placed]:visible"
+            style={{ x: "-50%", y: phonePlantY, scale: phonePlantScale, originY: 1 }}
+          >
+            <FrameSequence
+              frame={plantFrame}
+              count={PLANT_FRAME_COUNT}
+              progress={plantProgress}
+              media={PHONE_PLANT_MEDIA}
+              aspect={PLANT_FRAME_ASPECT}
+              className="phone-plant absolute inset-0 h-full w-full"
+            />
+          </motion.div>
         </motion.div>
         <div data-work-content className="min-h-[100dvh] grid md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)] gap-0">
           <aside aria-label="Growing plant illustration" className="sticky top-0 hidden h-[100dvh] self-start md:block">
@@ -288,17 +387,25 @@ const Work = () => {
             {/* A size container: beside the md plant (about 768-900px wide) the column is too
                 narrow for the full-size title and the two-column entries, which ask it for room. */}
             <div className="max-w-6xl px-5 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-20 [container-type:inline-size] sm:px-10 sm:pb-28 sm:pt-14 lg:px-14">
-          <header className="max-w-4xl">
+          <header ref={headerRef} className="max-w-4xl">
             {/* Shrinks with the column only where "experience" would not fit at full size. */}
             <LiftHeading rootRef={mainRef} className={`text-[length:min(var(--text-display),13cqi)] leading-none tracking-[-0.045em] ${spaceBoards.className}`}>
               Work &amp; experience
             </LiftHeading>
-            <p className={`mt-5 max-w-2xl text-body leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>
+            <p className={`mt-5 max-w-2xl text-balance text-body leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>
               Enterprise engineering, open-source leadership, and the communities that shaped how I build.
             </p>
            </header>
-           {/* Phones: room for the plant under the intro, so the first screen is title, intro and plant. */}
-           <div aria-hidden="true" className="h-[max(0px,calc(100svh-21rem))] md:hidden [@media(max-height:520px)]:hidden" />
+           {/* Phones: the first screen is the title, the intro, the plant and the first heading. The
+               plant's slot takes the room the intro leaves (the page's top padding, the intro, and
+               8rem kept for the heading and the start of the first entry: 13rem plus the intro's
+               measured height, --intro-h), and no more than the plant fills at its widest, so the
+               heading always follows the plant's glow. Short landscape phones go without it. */}
+           <div
+             ref={plantSlotRef}
+             aria-hidden="true"
+             className="h-[clamp(8rem,calc(100svh-13rem-var(--intro-h,11rem)),min(78.84vw,22.34rem))] md:hidden [@media(max-height:520px)]:hidden"
+           />
 
            {/* Positioned for the one spine that runs through every section's dots. */}
            <div ref={entriesRef} className="relative">
