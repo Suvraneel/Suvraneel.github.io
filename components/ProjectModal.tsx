@@ -996,13 +996,19 @@ export default function ProjectModal({
             variants={fade}
           >
             {/* Set in capitals: Space Boards' lowercase f, p and d are bars and hooks
-                that read as "=" and "⊃" ("O==ICIAL", "STAKEOVER=LOW"). text-transform
-                leaves the text itself, and so the dialog's accessible name, as written.
-                Capitals run wider, so the title is never larger than lets its longest
-                word fit the column (STAKEOVERFLOW and METEOROLOGYLY, some 10.9em each):
-                the notes column at 1200px and up, and the narrowest phones. */}
-            <h2 id="project-dialog-title" className={`text-balance uppercase leading-[1.02] text-white [font-size:min(var(--text-title),8.8cqi)] ${spaceBoards.className}`}>
-              {project.name}
+                that read as "=" and "⊃" ("O==ICIAL", "STAKEOVER=LOW"). Browsers name a
+                heading, and the dialog it labels, from its rendered text, text-transform
+                included (Chromium read "STAKEOVERFLOW"), so the capitals are a copy kept
+                from assistive tech and a visually hidden copy gives the name as written,
+                as the tab and the tile have it. Capitals run wider, so the title is never
+                larger than lets its longest word fit the column (STAKEOVERFLOW and
+                METEOROLOGYLY, some 10.9em each): the notes column at 1200px and up, and
+                the narrowest phones. */}
+            <h2 id="project-dialog-title" className={`text-balance leading-[1.02] text-white [font-size:min(var(--text-title),8.8cqi)] ${spaceBoards.className}`}>
+              <span aria-hidden="true" className="uppercase">
+                {project.name}
+              </span>
+              <span className="sr-only">{project.name}</span>
             </h2>
 
             {stack && <div className="mt-6 min-[1200px]:hidden">{stack}</div>}
