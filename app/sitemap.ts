@@ -14,7 +14,7 @@ const routes = [
       "app/page.tsx",
       "app/HomePage.tsx",
       "public/spline/sceneDACCORD_NEW.splinecode",
-      "public/images/Suvraneel_DP-540.webp",
+      "public/images/Suvraneel_DP-1200.webp",
     ],
   },
   { path: "/about", sources: ["app/about", "public/images/Suvraneel_DP.jpeg"] },
