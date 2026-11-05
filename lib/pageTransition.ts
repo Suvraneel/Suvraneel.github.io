@@ -8,6 +8,27 @@ export type PagePath = (typeof pageOrder)[number];
 export const isPagePath = (path: string | null | undefined): path is PagePath =>
   typeof path === "string" && (pageOrder as readonly string[]).includes(path);
 
+/**
+ * Phones (up to DashboardScene's SPLINE_MIN_WIDTH, where Home is the portrait hero, not the 3D
+ * dashboard) step past About: what makes it a page of its own is desktop's (the dashboard's flip,
+ * the portrait in relief), its copy is on Work and Skills, and its resume is on Home and in the
+ * drawer. /about still opens from a link, and steps on from there to its neighbours.
+ */
+export const PHONE_SEQUENCE_QUERY = "(max-width: 550px)";
+const skipsAbout = () => typeof window !== "undefined" && window.matchMedia(PHONE_SEQUENCE_QUERY).matches;
+
+/**
+ * The page a step in `direction` leads to from `pathname`. The 404 page has
+ * no place in the sequence: its bottom edge leads Home, its top edge nowhere.
+ */
+export const stepFrom = (pathname: string, direction: 1 | -1): PagePath | undefined => {
+  const index = pageOrder.indexOf(pathname as PagePath);
+  if (index === -1) return direction === 1 ? "/" : undefined;
+  let next = index + direction;
+  if (pageOrder[next] === "/about" && skipsAbout()) next += direction;
+  return pageOrder[next];
+};
+
 // Native <dialog> elements (ProjectModal) expose their role implicitly, so match
 // open dialogs as well as explicit ARIA modals (the mobile drawer sheet).
 export const isDialogOpen = () =>

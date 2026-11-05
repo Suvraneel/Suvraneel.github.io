@@ -16,6 +16,7 @@ import {
   isPagePath,
   pageOrder,
   prefersReducedMotion,
+  stepFrom,
   type PagePath,
 } from "@lib/pageTransition";
 
@@ -84,16 +85,6 @@ const pageLabels: Record<(typeof pageOrder)[number], string> = {
   "/projects": "Projects",
   "/skills": "Skills",
   "/contact": "Contact",
-};
-
-/**
- * The page a step in `direction` leads to from `pathname`. The 404 page has
- * no place in the sequence: its bottom edge leads Home, its top edge nowhere.
- */
-const stepFrom = (pathname: string, direction: 1 | -1): PagePath | undefined => {
-  const index = pageOrder.indexOf(pathname as PagePath);
-  if (index !== -1) return pageOrder[index + direction];
-  return direction === 1 ? "/" : undefined;
 };
 
 /**
@@ -868,12 +859,11 @@ const PageSequenceScroll = () => {
   }, [pathname]);
 
   useEffect(() => {
-    const pageIndex = pageOrder.indexOf(pathname as (typeof pageOrder)[number]);
-    if (pageIndex === -1) return;
+    if (!isPagePath(pathname)) return;
 
     const warmAdjacentRoutes = () => {
-      const previousPath = pageOrder[pageIndex - 1];
-      const nextPath = pageOrder[pageIndex + 1];
+      const previousPath = stepFrom(pathname, -1);
+      const nextPath = stepFrom(pathname, 1);
 
       if (previousPath) router.prefetch(previousPath);
       if (nextPath) router.prefetch(nextPath);

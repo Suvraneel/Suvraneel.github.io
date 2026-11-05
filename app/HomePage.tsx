@@ -16,7 +16,8 @@ import {
   useTransitionState,
 } from "@components/transition/transitionStore";
 import { spaceBoards, tasaOrbiter } from "@font";
-import { isDialogOpen, isDrawerOpen } from "@lib/pageTransition";
+import * as gtag from "@lib/gtag";
+import { isDialogOpen, isDrawerOpen, stepFrom } from "@lib/pageTransition";
 import { PORTRAIT_COLUMN_MEDIA } from "@lib/portrait";
 import { needsTiltPermission, requestTilt, subscribeTiltState } from "@lib/tilt";
 
@@ -53,8 +54,8 @@ const HERO_EASE = [0.16, 1, 0.3, 1] as const;
 const HERO_PORTRAIT_S = 1.4;
 /** Phones: where the hero is the landing view (the 3D dashboard never loads). */
 const HERO_RELIEF_MEDIA = `(max-width: ${SPLINE_MIN_WIDTH}px)`;
-/** object-[60%_50%]: the face a third in from the left, the dark backdrop on its right. */
-const HERO_PHOTO_POSITION: [number, number] = [0.6, 0.5];
+/** object-[60%_0%]: the face a third in from the left, the dark backdrop on its right, the hair never cropped. */
+const HERO_PHOTO_POSITION: [number, number] = [0.6, 0];
 
 /** A flip or unflip in flight drives the rig itself. */
 const flipOwnsRig = () => {
@@ -138,9 +139,10 @@ const Home = () => {
   }, []);
 
   // The page transition owns the dashboard flip: About pushes up while the
-  // rig turns, so the two read as one motion.
+  // rig turns, so the two read as one motion. Phones step on to Work instead
+  // (stepFrom: their sequence skips About).
   const flipToAbout = useCallback(
-    (source: "sequence" | "key") => navigate("/about", { source }),
+    (source: "sequence" | "key") => navigate(stepFrom("/", 1) ?? "/about", { source }),
     [navigate]
   );
 
@@ -252,7 +254,8 @@ const Home = () => {
           full-bleed, turning in relief with the phone, the name rising out of its fade. */}
       <section
         aria-label="Portfolio introduction"
-        className={`relative flex min-h-[100dvh] flex-col justify-start pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-white min-[551px]:px-5 min-[551px]:pt-8 ${
+        // Phones: the small viewport (svh), so the portrait doesn't resize as the URL bar slides.
+        className={`relative flex min-h-[100dvh] flex-col justify-start max-[550px]:min-h-[100svh] pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-white min-[551px]:px-5 min-[551px]:pt-8 ${
           heroOnScreen ? "nav-gap" : "min-[551px]:sr-only"
         }`}
       >
@@ -260,11 +263,11 @@ const Home = () => {
           initial={prefersReducedMotion ? false : { opacity: 0, scale: 1.06 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: HERO_PORTRAIT_S, ease: HERO_EASE }}
-          // Phones: edge to edge and as tall as the copy and actions below leave room for, its lower
-          // half fading into the page so the name can sit in it.
+          // Phones: edge to edge, taking whatever height the copy and actions below leave (flex-1,
+          // never under 14rem), its lower half fading into the page so the name can sit in it.
           // Wider (a hero standing in for a failed scene): the framed square it always was.
           // A landscape phone (short) keeps it small, so the name stays on screen.
-          className="hero-portrait relative h-[clamp(14rem,calc(100svh-18.5rem),40rem)] w-full shrink-0 origin-top overflow-hidden min-[551px]:aspect-square min-[551px]:h-auto min-[551px]:w-72 min-[551px]:rounded-2xl min-[551px]:[@media(max-height:520px)]:w-40"
+          className="hero-portrait relative min-h-[14rem] max-h-[40rem] w-full flex-1 basis-0 origin-top overflow-hidden min-[551px]:aspect-square min-[551px]:h-auto min-[551px]:max-h-none min-[551px]:min-h-0 min-[551px]:w-72 min-[551px]:flex-none min-[551px]:rounded-2xl min-[551px]:[@media(max-height:520px)]:w-40"
         >
           {/* The phone LCP, fetched ahead of the scripts: 1200px covers the full-bleed frame
               at 3x (the export has no image optimizer). The relief samples the same file.
@@ -276,7 +279,7 @@ const Home = () => {
               alt="Black-and-white portrait of Suvraneel Bhuin"
               loading="eager"
               fetchPriority="high"
-              className="absolute inset-0 h-full w-full object-cover object-[60%_50%] grayscale"
+              className="absolute inset-0 h-full w-full object-cover object-[60%_0%] grayscale"
             />
           </picture>
           {(portraitSettled || prefersReducedMotion) && (
@@ -346,12 +349,11 @@ const Home = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.7, ease: HERO_EASE }}
           >
-            <h2 className={`mt-2 max-w-[28ch] text-lead font-bold leading-[1.35] text-white ${tasaOrbiter.className}`}>
+            <h2 className={`mt-2 max-w-[28ch] text-balance text-lead font-bold leading-[1.35] text-white ${tasaOrbiter.className}`}>
               I build products, systems, and the things in between.
             </h2>
             <p className={`mt-2 max-w-[34ch] text-body leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>
-              <span className="block">Software engineer by profession. <br/>Product builder by instinct.</span>
-              <span className="mt-2 block">I like simplifying complex problems and building from interface to system.</span>
+              Software engineer by profession. <br/>Product builder by instinct.
             </p>
           </motion.div>
         </div>
@@ -361,13 +363,22 @@ const Home = () => {
           transition={{ duration: 0.9, delay: 0.85, ease: HERO_EASE }}
           // In the thumb's reach at the foot of the screen. Phone-only actions: on wider screens this
           // hero is visually hidden (sr-only), so keep its buttons out of the tab order too.
-          className="mt-auto grid w-full grid-cols-2 gap-3 px-5 pt-5 min-[551px]:hidden"
+          // The resume stands in for About, which phones skip; contact is in the drawer and ends the sequence.
+          className="mt-auto grid w-full grid-cols-[1.45fr_1fr] gap-3 px-5 pt-5 min-[551px]:hidden"
         >
           <LiquidMetalButton href="/work" mobileOnly className="h-[54px] w-full">
             Explore my work
           </LiquidMetalButton>
-          <PillButton href="https://suvraneel.bio.link" target="_blank" rel="noreferrer" className="h-[54px] w-full px-3">
-            Contact me
+          <PillButton
+            href="/docs/Suvraneel_Bhuin_Resume.pdf"
+            target="_blank"
+            rel="noreferrer"
+            className="h-[54px] w-full px-3"
+            onClick={() =>
+              gtag.event({ action: "resume_download_opened", category: "portfolio_engagement", label: "home", value: 1 })
+            }
+          >
+            Resume
           </PillButton>
         </motion.div>
       </section>
