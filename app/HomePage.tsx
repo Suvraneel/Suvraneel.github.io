@@ -9,6 +9,7 @@ import PillButton from "@components/PillButton";
 import { usePageTransition } from "@components/transition/PageTransitionProvider";
 import { warmPortrait } from "@components/transition/avatarPortrait";
 import {
+  edgeTail,
   gestureGate,
   getTransition,
   isInFlight,
@@ -57,6 +58,20 @@ const HERO_RELIEF_MEDIA = `(max-width: ${SPLINE_MIN_WIDTH}px)`;
 /** object-[60%_0%]: the face a third in from the left, the dark backdrop on its right, the hair never cropped. */
 const HERO_PHOTO_POSITION: [number, number] = [0.6, 0];
 
+/**
+ * Home's page runs past the window's foot: the static hero in a window too short
+ * for it (a landscape phone, a short or zoomed laptop window), its actions below
+ * the fold. The wheel and keys then scroll down to them, as on any page, and turn
+ * to About only from the bottom. Otherwise Home is exactly a screen tall (the
+ * dashboard fills it) and they flip at once, as they always have. Measured as
+ * PageSequenceScroll's isAtEdge measures the document: against innerHeight, with
+ * a few px of slack for the fractional offsets of high-DPR screens.
+ */
+const heroRunsPastFold = () => {
+  const page = document.scrollingElement ?? document.documentElement;
+  return page.scrollTop < page.scrollHeight - Math.max(page.clientHeight, window.innerHeight) - 4;
+};
+
 /** A flip or unflip in flight drives the rig itself. */
 const flipOwnsRig = () => {
   const t = getTransition();
@@ -69,6 +84,8 @@ const Home = () => {
   const transition = useTransitionState();
   const scrollIntent = useRef(0);
   const lastWheelAt = useRef(0);
+  // The wheel last scrolled the page down towards the hero's actions (heroRunsPastFold).
+  const wheelScrolledPage = useRef(false);
   const preloaderActiveRef = useRef(preloaderActive);
   // False on the server and while hydrating (matching the server HTML), the live
   // setting after: a Home remounted by a navigation reads it on its first render,
@@ -189,6 +206,23 @@ const Home = () => {
       // up), the wheel is left to the page.
       if (preloaderActiveRef.current || isDialogOpen() || isDrawerOpen() || !gestureGate.canStart()) return;
 
+      // A hero taller than the window: the wheel scrolls down to its actions first.
+      if (heroRunsPastFold()) {
+        scrollIntent.current = 0;
+        wheelScrolledPage.current = true;
+        return;
+      }
+      // At the bottom, the momentum of a fling that carried the page there is
+      // not a push past it (PageSequenceScroll holds it the same way).
+      if (wheelScrolledPage.current) {
+        wheelScrolledPage.current = false;
+        edgeTail.arm(event);
+      }
+      if (edgeTail.holds(event)) {
+        event.preventDefault();
+        return;
+      }
+
       event.preventDefault();
       const now = window.performance.now();
 
@@ -220,6 +254,7 @@ const Home = () => {
     return () => {
       window.removeEventListener("wheel", handleWheel, true);
       window.clearTimeout(preTiltIdle.current);
+      edgeTail.disarm();
     };
   }, [flipToAbout, getRig, handOffTilt, preTilt]);
 
@@ -233,6 +268,8 @@ const Home = () => {
 
       if (isTyping || isControl || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       if (!["ArrowDown", "PageDown", " "].includes(event.key)) return;
+      // A hero taller than the window: the keys scroll down to its actions first, as the wheel does.
+      if (heroRunsPastFold()) return;
 
       // The key is only taken by a flip that starts; one navigate() refuses
       // (open drawer, preloader up) leaves it to the page.
@@ -267,9 +304,12 @@ const Home = () => {
           // never under 14rem), its lower half fading into the page so the name can sit in it.
           // Wider (a hero standing in for a failed scene): the framed square it always was, 18rem.
           // A shorter screen gives it what the copy and actions below leave (28rem of them), down to
-          // 10rem, so on a laptop's 720-768px the actions stay above the fold: the wheel flips to
-          // About here rather than scrolling down to them. A landscape phone keeps it at 10rem.
-          className="hero-portrait relative min-h-[14rem] max-h-[40rem] w-full flex-1 basis-0 origin-top overflow-hidden min-[551px]:aspect-square min-[551px]:h-auto min-[551px]:max-h-none min-[551px]:min-h-0 min-[551px]:w-[clamp(10rem,100dvh_-_28rem,18rem)] min-[551px]:flex-none min-[551px]:rounded-2xl"
+          // 6rem, so the actions stay above the fold in a laptop's browser window: a 1280x720 or
+          // 1366x768 screen leaves the page only about 610-660px once the tabs, address bar and
+          // bookmarks are drawn, and at a 10rem floor the actions ran 20-35px past its foot. With
+          // 6rem they fit down to a ~575px window. Shorter still (a landscape phone, a zoomed page),
+          // the wheel and keys scroll down to them before they flip to About (heroRunsPastFold).
+          className="hero-portrait relative min-h-[14rem] max-h-[40rem] w-full flex-1 basis-0 origin-top overflow-hidden min-[551px]:aspect-square min-[551px]:h-auto min-[551px]:max-h-none min-[551px]:min-h-0 min-[551px]:w-[clamp(6rem,100dvh_-_28rem,18rem)] min-[551px]:flex-none min-[551px]:rounded-2xl"
         >
           {/* The phone LCP, fetched ahead of the scripts: 1200px covers the full-bleed frame
               at 3x (the export has no image optimizer). The relief samples the same file.
