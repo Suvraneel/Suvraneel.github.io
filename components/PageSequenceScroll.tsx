@@ -469,6 +469,11 @@ const PageSequenceScroll = () => {
     // The next page's name as its wordmark, at the label's scale.
     const hintTitle = document.createElement("span");
     hintTitle.className = `animated-heading relative text-[0.95rem] leading-none tracking-[-0.02em] ${spaceBoards.className}`;
+    // The texture without its drift. The pill lives as long as the page, mostly
+    // hidden and empty, and the drift (background-position, which no browser
+    // composites) would restyle and repaint it on every frame all the while; in
+    // the second or two the pill shows, the drift would barely move anyway.
+    hintTitle.style.animation = "none";
     hint.append(hintFill, hintAction, hintTitle);
     document.body.append(hint);
 

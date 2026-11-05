@@ -11,7 +11,7 @@ const ChronoCard = ({
   variant?: "work" | "community";
 }) => {
   const isWork = variant === "work";
-  const isRoundMark = ["Web3ConfIndia23.png", "HyperEdgeWoB23.png"].includes(
+  const isRoundMark = ["Web3ConfIndia23.webp", "HyperEdgeWoB23.webp"].includes(
     curElem.image ?? ""
   );
   // Dates | details from sm, once Work's text column (a size container) has room;
@@ -34,6 +34,9 @@ const ChronoCard = ({
               alt={`${curElem.company} mark`}
               width={56}
               height={56}
+              // The current role's mark is the first on the page; the community
+              // marks below it wait until they near the view.
+              {...(isWork ? {} : ({ loading: "lazy", decoding: "async" } as const))}
             />
           </div>
         )}

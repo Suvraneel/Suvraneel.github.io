@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, type ComponentPropsWithoutRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, type ComponentPropsWithoutRef, type RefObject } from "react";
 import { arrivalView, whenPlaced } from "@components/transition/arrival";
 import { EASE_LIFT, cssEase, prefersReducedMotion } from "@lib/pageTransition";
 
@@ -24,6 +24,11 @@ type LiftHeadingProps = ComponentPropsWithoutRef<"h1"> & {
  * span, padded 0.08em 0 0.22em like the preloader's so the clip box keeps
  * Space Boards' descenders; the h1's matching negative margins keep the
  * page's layout as it was. Pass type and size classes, not margins.
+ *
+ * The texture's drift animates background-position, which no browser can
+ * composite: each of its frames restyles and repaints the heading, forever,
+ * including once the page has scrolled it out of view. It runs only while
+ * some of the heading is on screen and holds where it is otherwise.
  */
 export default function LiftHeading({ children, className = "", rootRef, ...props }: LiftHeadingProps) {
   const box = useRef<HTMLHeadingElement>(null);
@@ -46,6 +51,19 @@ export default function LiftHeading({ children, className = "", rootRef, ...prop
       );
     });
   }, [rootRef]);
+
+  // Any of the line in view, through every clip on the way (Work's scrolling
+  // <main>, the h1's own mask while the line rises into it). A page that has
+  // left is unmounted with its layer, so nothing else needs watching.
+  useEffect(() => {
+    const text = line.current;
+    if (!text || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => {
+      text.style.animationPlayState = entry?.isIntersecting ? "" : "paused";
+    });
+    observer.observe(text);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <h1 ref={box} className={`-mb-[0.22em] -mt-[0.08em] overflow-hidden ${className}`} {...props}>

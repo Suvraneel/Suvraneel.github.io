@@ -39,7 +39,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
     role: "Organiser · Core Team",
     company: "Web3Conf India 2023",
     duration: "Jun 2023 - Aug 2023",
-    image: "Web3ConfIndia23.png",
+    image: "Web3ConfIndia23.webp",
     summary: "Produced a Web3 developer conference in India.",
     highlights: [
       "Coordinated speakers, sponsors, and media partners from first outreach to event day.",
@@ -53,7 +53,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
     role: "Program Manager",
     company: "HyperEdge Winter of Blockchain 2023",
     duration: "Jan 2023 - Apr 2023",
-    image: "HyperEdgeWoB23.png",
+    image: "HyperEdgeWoB23.webp",
     summary:
       "Ran a blockchain learning programme for an 800+ member community.",
     highlights: [
@@ -67,7 +67,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
     role: "Technical Program Manager",
     company: "GirlScript Summer of Code 2022",
     duration: "Jan 2022 - Aug 2022",
-    image: "GSSoC22.png",
+    image: "GSSoC22.webp",
     summary:
       "Led delivery of the official platform and contributor programme for a national open-source initiative.",
     highlights: [
@@ -82,7 +82,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
     role: "Full-stack Web Development Intern",
     company: "GEOGO TechSolutions",
     duration: "Nov 2021 - Feb 2022",
-    image: "GEOGO.png",
+    image: "GEOGO.webp",
     summary:
       "Built responsive web applications and APIs under industry mentorship.",
     highlights: [
@@ -95,7 +95,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
     role: "Supervisor & Mentor · C/C++",
     company: "GirlScript Winter of Contributing 2021",
     duration: "Sep 2021 - Dec 2021",
-    image: "GWOC21.png",
+    image: "GWOC21.webp",
     summary:
       "Maintained an open-source programme repository and mentored new contributors.",
     highlights: [
@@ -108,7 +108,7 @@ export const communityLeadershipData: ExperienceEntry[] = [
     role: "Open-source Contributor",
     company: "GirlScript Summer of Code 2021",
     duration: "Mar 2021 - Jun 2021",
-    image: "GSSoC21.png",
+    image: "GSSoC21.webp",
     summary: "Contributed algorithm code to NeoAlgo and AlgoTree.",
     highlights: [
       "Made 14 merged pull requests across NeoAlgo and AlgoTree.",
@@ -123,5 +123,5 @@ export const educationData: EducationEntry = {
   campus: "University College of Science, Technology & Agriculture (UCSTA)",
   duration: "2019 - 2023",
   score: "9.24 CGPA",
-  image: "UCSTA.png",
+  image: "UCSTA.webp",
 };

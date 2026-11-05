@@ -33,11 +33,12 @@ import ProjectModal, {
 } from "@components/ProjectModal";
 import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
 import { layerPathOf, layoutTop, whenPlaced } from "@components/transition/arrival";
-import { getTransition, isInFlight } from "@components/transition/transitionStore";
+import { getTransition, isInFlight, subscribeTransition } from "@components/transition/transitionStore";
 import projectsData from "@data/projectsDat";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { useLiftEntrance } from "@hooks/useLiftEntrance";
 import { useReveal } from "@hooks/useReveal";
+import { hasFastWebGL2 } from "@lib/gpu";
 import { subscribeDeviceTilt } from "@lib/tilt";
 import { useSfx } from "@hooks/useSfx";
 import { prefersReducedMotion } from "@lib/pageTransition";
@@ -97,6 +98,47 @@ export default function ProjectsPage() {
   const [playTick, { stop: stopTick }] = useSfx("tick");
   const [playOpen] = useSfx("open");
 
+  // The dialog's "Visit project" rim asks hasFastWebGL2() as it mounts, and
+  // the first ask creates a WebGL 2 context to read the renderer: some 25 ms
+  // on a phone, inside the tap that opens the first project. Asked once the
+  // page has settled and gone idle instead, the answer (kept for the page's
+  // life) is ready by then; not during a lift, which a long task would cost
+  // frames. Reduced motion never runs the shader, so it never asks.
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    let cancel = () => {};
+    const schedule = () => {
+      const warm = () => void hasFastWebGL2();
+      if ("requestIdleCallback" in window) {
+        const idle = window.requestIdleCallback(warm, { timeout: 2000 });
+        cancel = () => window.cancelIdleCallback(idle);
+        return;
+      }
+      // Safari has no idle callback: after the next frame rather than inside it.
+      let timer = 0;
+      const frame = requestAnimationFrame(() => {
+        timer = window.setTimeout(warm, 0);
+      });
+      cancel = () => {
+        cancelAnimationFrame(frame);
+        window.clearTimeout(timer);
+      };
+    };
+    if (!isInFlight(getTransition())) {
+      schedule();
+      return () => cancel();
+    }
+    const unsubscribe = subscribeTransition(() => {
+      if (isInFlight(getTransition())) return;
+      unsubscribe();
+      schedule();
+    });
+    return () => {
+      unsubscribe();
+      cancel();
+    };
+  }, []);
+
   const openProject = (project: Project, time: number, source: ModalSource) => {
     setSelectedProject(project);
     setPreviewTime(time);
@@ -128,6 +170,7 @@ export default function ProjectsPage() {
               >
                 <ProjectTile
                   project={project}
+                  eager={index < 2}
                   reduceMotion={Boolean(reduceMotion)}
                   mountEntrance={!arrivingByTransition}
                   scrollY={scrollY}
@@ -474,6 +517,7 @@ function useMediaDepth(
 
 function ProjectTile({
   project,
+  eager,
   reduceMotion,
   mountEntrance,
   scrollY,
@@ -483,6 +527,13 @@ function ProjectTile({
   onHoverEnd,
 }: {
   project: Project;
+  /**
+   * One of the first two tiles, in view on every layout as the page opens (the
+   * first is its LCP): its pictures load at once. The rest wait until they near
+   * the view, and decode off the main thread. Video posters can't wait: a
+   * <video> fetches its poster at once.
+   */
+  eager: boolean;
   reduceMotion: boolean;
   /** Direct load: the short entrance on mount. A lift brings the cards in itself. */
   mountEntrance: boolean;
@@ -509,6 +560,7 @@ function ProjectTile({
   const youtubeStill = `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
   // The still the tile shows, already decoded: the dialog's preview starts on it.
   const still = showsThumbnail ? thumbnail : hasDedicatedPreview ? videoPoster : hasVideoThumbnail ? youtubeStill : undefined;
+  const lazy = eager ? {} : ({ loading: "lazy", decoding: "async" } as const);
   // Plain text here: case-note links ([label](url)) keep only their label on the tile.
   const overview = project.details
     .split("|")[0]
@@ -586,7 +638,7 @@ function ProjectTile({
           {/* Depth layers (useMediaDepth): the backdrop sits furthest back, the crisp copy moves at the full rate. */}
           <motion.div className="absolute inset-0" style={depth.back}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className={THUMBNAIL_BACKDROP_CLASS} src={thumbnail} alt="" aria-hidden="true" data-thumbnail-backdrop />
+            <img className={THUMBNAIL_BACKDROP_CLASS} src={thumbnail} alt="" aria-hidden="true" data-thumbnail-backdrop {...lazy} />
           </motion.div>
           <div className={THUMBNAIL_VEIL_CLASS} />
           <motion.div className="absolute inset-0 z-10" style={depth.front}>
@@ -597,6 +649,7 @@ function ProjectTile({
               className="absolute inset-0 m-auto max-h-full max-w-full opacity-95 transition duration-500 ease-out group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
               src={thumbnail}
               alt=""
+              {...lazy}
               onError={() => setThumbnailFailed(true)}
               style={THUMBNAIL_EDGE_STYLE}
             />
@@ -627,6 +680,7 @@ function ProjectTile({
             className="h-full w-full object-cover opacity-80 transition duration-500 ease-out group-hover:scale-[1.035] group-hover:opacity-100 motion-reduce:transition-none"
             src={youtubeStill}
             alt=""
+            {...lazy}
             onError={() => setThumbnailFailed(true)}
           />
         </motion.div>

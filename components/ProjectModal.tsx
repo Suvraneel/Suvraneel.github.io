@@ -512,10 +512,12 @@ export default function ProjectModal({
     // The room a classic scrollbar gives back as it goes, padded out of the
     // page so it doesn't widen. The root's scrollbar-gutter keeps that room
     // where it is supported, so only an engine without it (Safari before 18.2)
-    // gives any back.
-    const width = root.offsetWidth;
+    // gives any back: as much as a scrollbar shown now takes. Read before any
+    // style is written, and the lock then written in one go: reading the
+    // root's width either side of hiding its overflow laid the whole grid out
+    // a second time inside the tap.
+    const scrollbarWidth = CSS.supports("scrollbar-gutter", "stable") ? 0 : window.innerWidth - root.clientWidth;
     root.style.overflow = "hidden";
-    const scrollbarWidth = root.offsetWidth - width;
     body.style.overflow = "hidden";
     body.style.position = "fixed";
     body.style.top = `-${scrollPosition}px`;
@@ -556,13 +558,14 @@ export default function ProjectModal({
   }, []);
 
   // Open: the preview frame starts over the tile's still and grows into its
-  // place. Measured after showModal() above, whose UA max-height re-centres
-  // the panel; a click or key press flushes both before the first paint. Web
-  // Animations: the frame is held over the tile until the next frame, then
-  // the move runs on the compositor, and they leave no styles behind once
-  // they end. A travel cut short by a close never lands. A contained
-  // thumbnail's copy, drawn and laid over the tile with the frame, stands over
-  // all of the frame's own picture until it has landed.
+  // place. Measured after showModal() above has moved the dialog into the top
+  // layer (over the viewport, whatever transforms the page carries); a click
+  // or key press flushes both before the first paint. Web Animations: the
+  // frame is held over the tile until the next frame, then the move runs on
+  // the compositor, and they leave no styles behind once they end. A travel
+  // cut short by a close never lands. A contained thumbnail's copy, drawn and
+  // laid over the tile with the frame, stands over all of the frame's own
+  // picture until it has landed.
   useEffect(() => {
     const preview = frame.current;
     const layer = picture.current;
@@ -715,12 +718,14 @@ export default function ProjectModal({
 
   return (
     // No opacity on the dialog itself: it would cut the backdrop's blur off
-    // from the page behind it (a backdrop root) for the whole fade.
+    // from the page behind it (a backdrop root) for the whole fade. No max
+    // height either: the UA's dialog:modal one (100% less 2em and 6px) left it
+    // short of the screen it fills, the sheet off-centre on phones.
     <dialog
       ref={dialog}
       aria-modal="true"
       aria-labelledby="project-dialog-title"
-      className="fixed inset-0 z-modal m-0 flex h-dvh w-full max-w-none items-center justify-center overflow-hidden border-0 bg-transparent p-2 backdrop:bg-transparent sm:p-5"
+      className="fixed inset-0 z-modal m-0 flex h-dvh max-h-none w-full max-w-none items-center justify-center overflow-hidden border-0 bg-transparent p-2 backdrop:bg-transparent sm:p-5"
       onCancel={(event) => {
         event.preventDefault();
         close();
@@ -929,10 +934,16 @@ export default function ProjectModal({
           )}
 
           <motion.div
-            className="px-5 pb-8 pt-6 sm:px-7 sm:pt-8 min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:px-8 min-[1200px]:[grid-area:2/2/5/3]"
+            className="px-5 pb-8 pt-6 [container-type:inline-size] sm:px-7 sm:pt-8 min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:px-8 min-[1200px]:[grid-area:2/2/5/3]"
             variants={fade}
           >
-            <h2 id="project-dialog-title" className={`text-balance text-title leading-[1.02] text-white ${spaceBoards.className}`}>
+            {/* Set in capitals: Space Boards' lowercase f, p and d are bars and hooks
+                that read as "=" and "⊃" ("O==ICIAL", "STAKEOVER=LOW"). text-transform
+                leaves the text itself, and so the dialog's accessible name, as written.
+                Capitals run wider, so the title is never larger than lets its longest
+                word fit the column (STAKEOVERFLOW and METEOROLOGYLY, some 10.9em each):
+                the notes column at 1200px and up, and the narrowest phones. */}
+            <h2 id="project-dialog-title" className={`text-balance uppercase leading-[1.02] text-white [font-size:min(var(--text-title),8.8cqi)] ${spaceBoards.className}`}>
               {project.name}
             </h2>
 

@@ -265,9 +265,11 @@ const Home = () => {
           transition={{ duration: HERO_PORTRAIT_S, ease: HERO_EASE }}
           // Phones: edge to edge, taking whatever height the copy and actions below leave (flex-1,
           // never under 14rem), its lower half fading into the page so the name can sit in it.
-          // Wider (a hero standing in for a failed scene): the framed square it always was.
-          // A landscape phone (short) keeps it small, so the name stays on screen.
-          className="hero-portrait relative min-h-[14rem] max-h-[40rem] w-full flex-1 basis-0 origin-top overflow-hidden min-[551px]:aspect-square min-[551px]:h-auto min-[551px]:max-h-none min-[551px]:min-h-0 min-[551px]:w-72 min-[551px]:flex-none min-[551px]:rounded-2xl min-[551px]:[@media(max-height:520px)]:w-40"
+          // Wider (a hero standing in for a failed scene): the framed square it always was, 18rem.
+          // A shorter screen gives it what the copy and actions below leave (28rem of them), down to
+          // 10rem, so on a laptop's 720-768px the actions stay above the fold: the wheel flips to
+          // About here rather than scrolling down to them. A landscape phone keeps it at 10rem.
+          className="hero-portrait relative min-h-[14rem] max-h-[40rem] w-full flex-1 basis-0 origin-top overflow-hidden min-[551px]:aspect-square min-[551px]:h-auto min-[551px]:max-h-none min-[551px]:min-h-0 min-[551px]:w-[clamp(10rem,100dvh_-_28rem,18rem)] min-[551px]:flex-none min-[551px]:rounded-2xl"
         >
           {/* The phone LCP, fetched ahead of the scripts: 1200px covers the full-bleed frame
               at 3x (the export has no image optimizer). The relief samples the same file.
@@ -361,10 +363,13 @@ const Home = () => {
           initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.85, ease: HERO_EASE }}
-          // In the thumb's reach at the foot of the screen. Phone-only actions: on wider screens this
-          // hero is visually hidden (sr-only), so keep its buttons out of the tab order too.
+          // In the thumb's reach at the foot of the screen. Wider screens show them, under the copy, while
+          // this hero stands in for the 3D dashboard (heroOnScreen: a scene that failed or can't run here,
+          // or one still loading); while it is visually hidden (sr-only) they stay out of the tab order too.
           // The resume stands in for About, which phones skip; contact is in the drawer and ends the sequence.
-          className="mt-auto grid w-full grid-cols-[1.45fr_1fr] gap-3 px-5 pt-5 min-[551px]:hidden"
+          className={`mt-auto grid w-full grid-cols-[1.45fr_1fr] gap-3 px-5 pt-5 ${
+            heroOnScreen ? "min-[551px]:mt-6 min-[551px]:max-w-md min-[551px]:px-0" : "min-[551px]:hidden"
+          }`}
         >
           <LiquidMetalButton href="/work" mobileOnly className="h-[54px] w-full">
             Explore my work
