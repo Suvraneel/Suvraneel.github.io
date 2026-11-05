@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, type ComponentPropsWithoutRef, type RefObject } from "react";
 import { arrivalView, whenPlaced } from "@components/transition/arrival";
-import { EASE_LIFT, cssEase, prefersReducedMotion } from "@lib/pageTransition";
+import { EASE_LIFT, cssEase, isInDialog, prefersReducedMotion } from "@lib/pageTransition";
 
 /** The rise starts this far into the lift, as the sheet's edge nears the top, and runs to its end. */
 const RISE_START = 0.45;
@@ -37,13 +37,14 @@ type LiftHeadingProps = ComponentPropsWithoutRef<"h1"> & {
  * composite: each of its frames restyles and repaints the heading, forever,
  * including once the page has scrolled it out of view or the visitor has
  * stopped to read. It runs only while some of the heading is on screen and
- * the visitor has moved, scrolled, tapped or typed in the last few seconds
- * (DRIFT_IDLE_MS), and holds where it is otherwise: a page left open at its
- * heading settles to no frames at all, which the slow drift (a 50 s cycle,
- * some 10% of it in that time) barely shows. Of the ways to stop it at idle,
- * this keeps the drift as it was while anyone is there to see it; a
- * scroll-linked drift (animation-timeline: scroll()) would never move on a
- * page that fits its window, and would need a fallback where it is unsupported.
+ * the visitor has moved, scrolled, tapped or typed on the page (not in a
+ * dialog over it) in the last few seconds (DRIFT_IDLE_MS), and holds where it
+ * is otherwise: a page left open at its heading settles to no frames at all,
+ * which the slow drift (a 50 s cycle, some 10% of it in that time) barely
+ * shows. Of the ways to stop it at idle, this keeps the drift as it was while
+ * anyone is there to see it; a scroll-linked drift (animation-timeline:
+ * scroll()) would never move on a page that fits its window, and would need a
+ * fallback where it is unsupported.
  */
 export default function LiftHeading({ children, className = "", rootRef, ...props }: LiftHeadingProps) {
   const box = useRef<HTMLHeadingElement>(null);
@@ -93,7 +94,13 @@ export default function LiftHeading({ children, className = "", rootRef, ...prop
       awake = false;
       apply();
     };
-    const wake = () => {
+    // Input inside a modal dialog (a project's case notes read, scrolled or
+    // tabbed through) is not input on the page: the dialog's blurred backdrop
+    // still lets the observer see the heading, and its every frame would
+    // repaint under that blur. The drift rests as at idle, 5 s after the
+    // dialog opened, and wakes at the first input once it has gone.
+    const wake = (event: Event) => {
+      if (isInDialog(event.target)) return;
       lastInput = performance.now();
       if (awake) return;
       awake = true;

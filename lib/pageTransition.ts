@@ -31,9 +31,16 @@ export const stepFrom = (pathname: string, direction: 1 | -1): PagePath | undefi
 
 // Native <dialog> elements (ProjectModal) expose their role implicitly, so match
 // open dialogs as well as explicit ARIA modals (the mobile drawer sheet).
+const MODAL_SELECTOR = "dialog[open], [role='dialog'][aria-modal='true']";
 export const isDialogOpen = () =>
-  typeof document !== "undefined" &&
-  Boolean(document.querySelector("dialog[open], [role='dialog'][aria-modal='true']"));
+  typeof document !== "undefined" && Boolean(document.querySelector(MODAL_SELECTOR));
+
+/**
+ * An event's target is inside an open modal (see isDialogOpen): input on the
+ * dialog, not on the page under it. Its ancestors only, so it is cheap enough
+ * for every pointermove.
+ */
+export const isInDialog = (target: EventTarget | null) => target instanceof Element && target.closest(MODAL_SELECTOR) !== null;
 
 /**
  * A field marked data-draft (Contact's name, email and message) holds typed
