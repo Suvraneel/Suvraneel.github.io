@@ -1,5 +1,5 @@
 import { CONTENT_LEAD, UNDER_OFFSET, type PageTransition } from "@lib/pageTransition";
-import { getTransition, isInFlight, onArrival, type ArrivalTrack } from "./transitionStore";
+import { getTransition, isInFlight, onArrival, subscribeTransition, type ArrivalTrack } from "./transitionStore";
 
 // ---------------------------------------------------------------------------
 // Where a page will be seen when it arrives. In-page motion (scroll reveals,
@@ -41,6 +41,38 @@ export function whenPlaced(
   }
   place(isInFlight(t) && t.to === path ? t : null, null);
   return () => undefined;
+}
+
+/**
+ * Runs `arrived` once the page holding `element` has landed for good: at once
+ * for a page that is already live, or, for a page a transition is bringing
+ * in, a frame after that transition settles. Not at its placing (whenPlaced):
+ * until it settles the page is still a framed sheet or under one, its input
+ * locked, and the window only takes the arrival offset in the commit that
+ * settles it, which has run by the frame after. Nothing runs if by then a
+ * newer transition is taking the page away again. Returns a cleanup.
+ */
+export function whenSettled(element: Element, arrived: () => void) {
+  const path = layerPathOf(element);
+  const t = getTransition();
+  if (!isInFlight(t) || t.to !== path) {
+    arrived();
+    return () => undefined;
+  }
+  let frame = 0;
+  const stop = subscribeTransition(() => {
+    const now = getTransition();
+    if (now?.id === t.id && !now.settled) return;
+    stop();
+    frame = window.requestAnimationFrame(() => {
+      const next = getTransition();
+      if (!isInFlight(next) || next.from !== path) arrived();
+    });
+  });
+  return () => {
+    stop();
+    window.cancelAnimationFrame(frame);
+  };
 }
 
 /** Document (or offset-parent chain) top of an element, ignoring every transform. */

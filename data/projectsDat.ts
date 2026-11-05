@@ -209,6 +209,7 @@ const projectsData = [
     tech_stk: ["HTML5", "CSS3", "Javascript", "BootStrap", "Chart.js", "APIs"],
   },
   {
+    id: "diablo-music",
     name: "Diablo Music App",
     details:
       "Minimalistic Music Player with a dark UI especially-curated for the nocturnal.| Utilises Firebase-authenticated login.| Doubles as local & online music player",

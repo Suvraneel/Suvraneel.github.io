@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, usePresence, useReducedMotion, type Variants } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { spaceBoards, tasaOrbiter } from "@font";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import LiteYouTube from "@components/LiteYouTube";
@@ -406,12 +406,20 @@ type Project = {
   tech_stk: string[];
 };
 
+/**
+ * What the page can ask of an open dialog: to close as Close, Escape or the
+ * backdrop close it (the page's Back closes a project's dialog this way).
+ */
+export type ProjectModalHandle = { close: () => void };
+
 export default function ProjectModal({
+  ref,
   handleClose,
   project,
   startAt = 0,
   source = null,
 }: Readonly<{
+  ref?: Ref<ProjectModalHandle>;
   handleClose: () => void;
   project: Project;
   /** Where the tile's hover preview of the same clip had got to, in seconds. */
@@ -614,14 +622,16 @@ export default function ProjectModal({
     if (landed && !reduceMotion) clip.current?.play().catch(() => undefined);
   }, [landed, reduceMotion]);
 
-  // Asked to close (Close, Escape, a click on the backdrop). A frame that has
-  // landed, showing the demo's own picture, and goes back to a tile on screen
-  // first holds still for the lead-in while the tile's still comes back over
-  // it (see the close effect). Decided here, as the close is asked for: the
+  // Asked to close (Close, Escape, a click on the backdrop, or a Back off the
+  // project's history entry, through the handle). A frame that has landed,
+  // showing the demo's own picture, and goes back to a tile on screen first
+  // holds still for the lead-in while the tile's still comes back over it
+  // (see the close effect). Decided here, as the close is asked for: the
   // backdrop's exit is fixed the moment the dialog starts to leave, and must
   // wait as long. A frame caught on its way in still carries the tile's
   // still, so it turns back at once. A dialog closed from outside (browser
-  // Back) is already hidden.
+  // history leaving the page, or a swipe back the browser animated itself)
+  // is already hidden.
   const closeHeard = useRef(false);
   const close = () => {
     const tile = source?.tile;
@@ -636,6 +646,7 @@ export default function ProjectModal({
     if (leadsIn) window.setTimeout(playClose, STILL_LEAD_IN_MS);
     else playClose();
   };
+  useImperativeHandle(ref, () => ({ close }));
 
   // Close: the frame goes back over the tile, re-measured now, from wherever
   // the open had got to, carrying the tile's still, which first fades back
