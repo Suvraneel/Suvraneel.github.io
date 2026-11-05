@@ -38,8 +38,12 @@ const FRAME_MS = 1000 / 60;
 /** Longest a page transition may hold back the build. */
 const TRANSITION_WAIT_MS = 3000;
 const ANISOTROPY = 4;
-/** Smallest change of tilt target that turns the portrait: below it, sensor noise would keep the loop drawing. */
-const TILT_STEP = 0.012;
+/** Smallest change of tilt target that turns the portrait (0.33deg): below it, a phone merely held keeps the loop drawing. */
+const TILT_STEP = 0.03;
+/** A tilt change this large is a deliberate turn: the drift gives way to it, as it does to a moving pointer. */
+const TILT_MOVE = 0.1;
+/** Within this of its target (radians, far under a pixel) the turn has settled. */
+const SETTLED = 1e-4;
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 // Plain WebGL2 rather than three.js: one grid, two textures and one shader don't need a
@@ -423,16 +427,17 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
       document.documentElement.addEventListener("pointerleave", handleLeave);
 
       // The device's tilt sets the target as the pointer does, in steps of TILT_STEP, so a phone
-      // held still lets the loop settle and sleep as a resting pointer does.
+      // held still lets the loop settle and sleep as a resting pointer does. Only a deliberate
+      // turn (TILT_MOVE) restarts the drift's clock: a hand's small wobble doesn't keep it awake.
       const followTilt = createTiltTracker();
       const handleOrientation = (event: DeviceOrientationEvent) => {
         const reading = screenTilt(event, window.screen.orientation?.angle ?? 0);
         if (!reading) return;
         const next = followTilt(reading, performance.now());
         if (Math.abs(next.x - target.x) < TILT_STEP && Math.abs(next.y - target.y) < TILT_STEP) return;
+        if (Math.abs(next.x - target.x) >= TILT_MOVE || Math.abs(next.y - target.y) >= TILT_MOVE) pointerAt = performance.now();
         target.x = next.x;
         target.y = next.y;
-        pointerAt = performance.now();
         wake();
       };
       const listenToTilt = () => {
@@ -468,7 +473,7 @@ export default function DepthPortrait({ src, depthSrc, media, position, classNam
         const pitch = target.y * MAX_PITCH + Math.sin(t * 0.7 + 1) * SWAY_PITCH * sway;
         const dy = yaw - rotation.y;
         const dx = pitch - rotation.x;
-        if (!first && Math.abs(dy) < 1e-5 && Math.abs(dx) < 1e-5) {
+        if (!first && Math.abs(dy) < SETTLED && Math.abs(dx) < SETTLED) {
           // Settled with the drift over: the loop sleeps until the pointer moves.
           if (idle > SWAY_IDLE + SWAY_FADE) {
             window.cancelAnimationFrame(frame);

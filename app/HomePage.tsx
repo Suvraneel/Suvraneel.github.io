@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { motion, useSpring } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { SPLINE_MIN_WIDTH, useDashboardScene } from "@components/DashboardScene";
@@ -46,6 +45,8 @@ let homeSeenNarrow = false;
 
 /** The phone hero's photo; its relief samples the same file, so it is fetched once. */
 const HERO_PHOTO = "/images/Suvraneel_DP-1200.webp";
+/** Wider screens' copy, for the 288px framed square at 2x: there the hero is mostly hidden (sr-only) behind the scene. */
+const HERO_PHOTO_FRAMED = "/images/Suvraneel_DP-600.webp";
 /** The hero's arrival: a long, heavy settle. */
 const HERO_EASE = [0.16, 1, 0.3, 1] as const;
 /** The portrait's scale-in (s); the relief is built once it is over. */
@@ -95,11 +96,9 @@ const Home = () => {
     return () => window.clearTimeout(timer);
   }, []);
   const needsTilt = useSyncExternalStore(subscribeTiltState, needsTiltPermission, readNeedsTiltOnServer);
-  // Hidden once tapped, whatever the answer: a refusal is not asked again.
-  const [tiltAsked, setTiltAsked] = useState(false);
-  const showTiltChip = relief && needsTilt && !tiltAsked;
+  // Asked once per tab (lib/tilt.ts): the chip goes as it is tapped, whatever the answer.
+  const showTiltChip = relief && needsTilt;
   const askForTilt = useCallback(() => {
-    setTiltAsked(true);
     void requestTilt();
   }, []);
   /** Home has been seen at phone width (homeSeenNarrow). */
@@ -264,19 +263,22 @@ const Home = () => {
           // Phones: edge to edge and as tall as the copy and actions below leave room for, its lower
           // half fading into the page so the name can sit in it.
           // Wider (a hero standing in for a failed scene): the framed square it always was.
-          className="hero-portrait relative h-[clamp(14rem,calc(100svh-18.5rem),40rem)] w-full shrink-0 origin-top overflow-hidden min-[551px]:aspect-square min-[551px]:h-auto min-[551px]:w-72 min-[551px]:rounded-2xl"
+          // A landscape phone (short) keeps it small, so the name stays on screen.
+          className="hero-portrait relative h-[clamp(14rem,calc(100svh-18.5rem),40rem)] w-full shrink-0 origin-top overflow-hidden min-[551px]:aspect-square min-[551px]:h-auto min-[551px]:w-72 min-[551px]:rounded-2xl min-[551px]:[@media(max-height:520px)]:w-40"
         >
           {/* The phone LCP, fetched ahead of the scripts: 1200px covers the full-bleed frame
-              at 3x (the export has no image optimizer). The relief samples the same file. */}
-          <Image
-            src={HERO_PHOTO}
-            alt="Black-and-white portrait of Suvraneel Bhuin"
-            fill
-            loading="eager"
-            fetchPriority="high"
-            sizes="(max-width: 550px) 100vw, 288px"
-            className="object-cover object-[60%_50%] grayscale"
-          />
+              at 3x (the export has no image optimizer). The relief samples the same file.
+              Wider screens fetch a 600px copy for the framed square. */}
+          <picture>
+            <source media="(min-width: 551px)" srcSet={HERO_PHOTO_FRAMED} />
+            <img
+              src={HERO_PHOTO}
+              alt="Black-and-white portrait of Suvraneel Bhuin"
+              loading="eager"
+              fetchPriority="high"
+              className="absolute inset-0 h-full w-full object-cover object-[60%_50%] grayscale"
+            />
+          </picture>
           {(portraitSettled || prefersReducedMotion) && (
             <DepthPortrait
               src={HERO_PHOTO}
@@ -289,26 +291,30 @@ const Home = () => {
             />
           )}
         </motion.div>
-        {showTiltChip && (
-          <motion.button
-            type="button"
-            onClick={askForTilt}
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.4, ease: HERO_EASE }}
-            // Level with the menu button, across from it. The chip is small; its tap area reaches past it to 44px.
-            className={`absolute left-5 top-[calc(var(--hero-chip-top)+env(safe-area-inset-top))] inline-flex h-8 items-center gap-2 rounded-full border border-white/[0.14] bg-black/55 pl-1 pr-3 text-[0.68rem] leading-none tracking-[0.02em] text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] [--hero-chip-top:1.75rem] before:absolute before:-inset-2 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.96] ${tasaOrbiter.className}`}
-          >
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-white/10">
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="hero-tilt-icon h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="6.5" y="2.5" width="11" height="19" rx="2.5" />
-                <path d="M11 18.5h2" />
-              </svg>
-            </span>
-            Tilt to look around
-          </motion.button>
-        )}
         <div className="relative -mt-24 px-5 min-[551px]:mt-6 min-[551px]:px-0">
+          {showTiltChip && (
+            <motion.button
+              type="button"
+              onClick={askForTilt}
+              aria-label="Tilt to look around"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.4, ease: HERO_EASE }}
+              whileTap={{ scale: 0.94 }}
+              // Across from the status pill, over the portrait's dark lower half and clear of the face.
+              // Too narrow for both below 360px: the portrait drifts and follows touch there.
+              // The chip is small; its tap area reaches past it to 44px.
+              className={`absolute -top-0.5 right-5 inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.14] bg-black/55 pl-1 pr-3 text-[0.68rem] leading-none tracking-[0.04em] text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md before:absolute before:-inset-2 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent max-[359px]:hidden ${tasaOrbiter.className}`}
+            >
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-white/10">
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="hero-tilt-icon h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="6.5" y="2.5" width="11" height="19" rx="2.5" />
+                  <path d="M11 18.5h2" />
+                </svg>
+              </span>
+              Tilt
+            </motion.button>
+          )}
           <motion.p
             initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}

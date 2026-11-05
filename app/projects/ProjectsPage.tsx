@@ -170,13 +170,18 @@ const hasFineHover = () => (fineHoverQuery ??= window.matchMedia(FINE_HOVER_QUER
 const TOUCH_TILT_QUERY = "(hover: none) and (pointer: coarse) and (prefers-reduced-motion: no-preference)";
 /** The light under a phone's tilt: dimmer than a pointer's, as nothing is pointing at it. */
 const TOUCH_SHEEN_OPACITY = 0.75;
+/** Tilt change a card answers (0.12deg of its 3deg): finer, a phone merely held would keep its springs running. */
+const TOUCH_TILT_STEP = 0.04;
 
 /**
  * Fine-pointer hover: the card tilts toward the pointer (up to 3deg) and a
  * faint light follows it. On touch screens the device's tilt does the same for
  * the cards in view. Springs on transform and opacity; nothing under reduced motion.
+ * `held` (the project dialog is up) freezes a phone's tilt where it is: the
+ * cards stay put under the dialog's blur (which would otherwise repaint with
+ * every turn), and the closing dialog lands back on the tile as it left it.
  */
-function useCardTilt(reduceMotion: boolean, tileRef: RefObject<HTMLElement | null>) {
+function useCardTilt(reduceMotion: boolean, tileRef: RefObject<HTMLElement | null>, held: boolean) {
   const rotateX = useSpring(0, TILT_SPRING);
   const rotateY = useSpring(0, TILT_SPRING);
   const sheenX = useMotionValue(0);
@@ -226,12 +231,22 @@ function useCardTilt(reduceMotion: boolean, tileRef: RefObject<HTMLElement | nul
     releaseWhenFlat();
   };
 
+  // Kept in a layout effect, as useMediaDepth's: set before the dialog's own effects run.
+  const heldRef = useRef(held);
+  // Catches up on whether the card is in view, once the dialog has gone.
+  const syncTouchTilt = useRef<(() => void) | null>(null);
+  useLayoutEffect(() => {
+    heldRef.current = held;
+    if (!held) syncTouchTilt.current?.();
+  }, [held]);
+
   // Touch: only while the card is on screen, so off-screen cards keep `transform: none`.
   useEffect(() => {
     const tile = tileRef.current;
     const query = window.matchMedia(TOUCH_TILT_QUERY);
     if (!tile || reduceMotion || !query.matches) return;
     let stop: (() => void) | null = null;
+    let visible = false;
     const settle = () => {
       stop?.();
       stop = null;
@@ -240,11 +255,13 @@ function useCardTilt(reduceMotion: boolean, tileRef: RefObject<HTMLElement | nul
       sheenOpacity.set(0);
       if (rotateX.get() === 0 && rotateY.get() === 0) perspective.set(0);
     };
-    const viewer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return settle();
+    // Under the dialog the page is pinned and cards scroll out of view: they hold until it has gone.
+    const sync = () => {
+      if (heldRef.current) return;
+      if (!visible) return settle();
       if (stop) return;
       stop = subscribeDeviceTilt(({ x, y }) => {
-        if (bounds.current) return;
+        if (bounds.current || heldRef.current) return;
         const width = tile.offsetWidth;
         const height = tile.offsetHeight;
         perspective.set(TILT_PERSPECTIVE_PX);
@@ -253,10 +270,16 @@ function useCardTilt(reduceMotion: boolean, tileRef: RefObject<HTMLElement | nul
         sheenX.set(((x + 1) / 2) * width);
         sheenY.set(((y + 1) / 2) * height);
         sheenOpacity.set(Math.min(1, Math.hypot(x, y) * 1.6) * TOUCH_SHEEN_OPACITY);
-      });
+      }, TOUCH_TILT_STEP);
+    };
+    syncTouchTilt.current = sync;
+    const viewer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      sync();
     });
     viewer.observe(tile);
     return () => {
+      syncTouchTilt.current = null;
       viewer.disconnect();
       settle();
     };
@@ -474,7 +497,7 @@ function ProjectTile({
   const tileRef = useRef<HTMLButtonElement>(null);
   const previewVideo = useRef<HTMLVideoElement>(null);
   const stillImage = useRef<HTMLImageElement>(null);
-  const tilt = useCardTilt(reduceMotion, tileRef);
+  const tilt = useCardTilt(reduceMotion, tileRef, holdDepth);
   const depth = useMediaDepth(tileRef, tilt, scrollY, holdDepth);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const hasDedicatedPreview = project.gif !== "video-to-be-added.webm";
