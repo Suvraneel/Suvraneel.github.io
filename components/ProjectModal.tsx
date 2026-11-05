@@ -372,6 +372,63 @@ const travel = (frame: HTMLElement, layer: HTMLElement, from: FrameState, to: Fr
   layer.animate([{ opacity: from.opacity }, { opacity: to.opacity }], { ...FRAME_TRAVEL, fill, delay }),
 ];
 
+// The page's scroll lock, counted across dialogs. Only one is meant to be up
+// at a time, but one closed from outside (a back swipe the browser animated
+// itself) is hidden and lets the page go at once, while it stays mounted for
+// its exit. A lock taken over another saved that one's lock as the page's own
+// styles (and its offset as 0) and put it back as it went, so whichever went
+// last could leave the page locked with no dialog open, or unlocked under
+// one. The first lock saves the page as it stands; the last release puts it
+// back.
+let pageLocks = 0;
+let unlockPage: (() => void) | null = null;
+
+/** Locks the page under a dialog. Returns its release, which acts once. */
+function lockPage() {
+  pageLocks += 1;
+  if (pageLocks === 1) {
+    const scrollPosition = window.scrollY;
+    const root = document.documentElement;
+    const body = document.body;
+    const previousRootOverflow = root.style.overflow;
+    const previousBodyStyles = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      paddingRight: body.style.paddingRight,
+    };
+    // The room a classic scrollbar gives back as it goes, padded out of the
+    // page so it doesn't widen. The root's scrollbar-gutter keeps that room
+    // where it is supported, so only an engine without it (Safari before 18.2)
+    // gives any back: as much as a scrollbar shown now takes. Read before any
+    // style is written, and the lock then written in one go: reading the
+    // root's width either side of hiding its overflow laid the whole grid out
+    // a second time inside the tap.
+    const scrollbarWidth = CSS.supports("scrollbar-gutter", "stable") ? 0 : window.innerWidth - root.clientWidth;
+    root.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollPosition}px`;
+    body.style.width = "100%";
+    if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
+    unlockPage = () => {
+      root.style.overflow = previousRootOverflow;
+      Object.assign(body.style, previousBodyStyles);
+      window.scrollTo(0, scrollPosition);
+    };
+  }
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    pageLocks -= 1;
+    if (pageLocks > 0) return;
+    unlockPage?.();
+    unlockPage = null;
+  };
+}
+
 /** A case note's text, with markdown-style `[label](https://…)` links as real links. */
 const NOTE_LINK = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
 function noteContent(note: string) {
@@ -522,43 +579,11 @@ export default function ProjectModal({
     // opened itself goes back to the element it named (see returnFocus).
     const focused = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     const trigger = returnTo.current ?? focused?.closest<HTMLElement>(".project-tile") ?? focused;
-    const scrollPosition = window.scrollY;
-    const root = document.documentElement;
-    const body = document.body;
-    const previousRootOverflow = root.style.overflow;
-    const previousBodyStyles = {
-      overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      width: body.style.width,
-      paddingRight: body.style.paddingRight,
-    };
-    // The room a classic scrollbar gives back as it goes, padded out of the
-    // page so it doesn't widen. The root's scrollbar-gutter keeps that room
-    // where it is supported, so only an engine without it (Safari before 18.2)
-    // gives any back: as much as a scrollbar shown now takes. Read before any
-    // style is written, and the lock then written in one go: reading the
-    // root's width either side of hiding its overflow laid the whole grid out
-    // a second time inside the tap.
-    const scrollbarWidth = CSS.supports("scrollbar-gutter", "stable") ? 0 : window.innerWidth - root.clientWidth;
-    root.style.overflow = "hidden";
-    body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollPosition}px`;
-    body.style.width = "100%";
-    if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
 
     // Released once: on unmount, or as soon as the dialog is closed from
     // outside (browser Back closes it before the page transition snapshots
     // the scroll offset, so the page must be unlocked by then).
-    let released = false;
-    const releasePage = () => {
-      if (released) return;
-      released = true;
-      root.style.overflow = previousRootOverflow;
-      Object.assign(body.style, previousBodyStyles);
-      window.scrollTo(0, scrollPosition);
-    };
+    const releasePage = lockPage();
 
     // A queued close event from an earlier close() (Strict Mode re-runs this
     // effect) arrives after showModal() has reopened the dialog: ignore it.

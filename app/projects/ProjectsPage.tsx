@@ -164,7 +164,7 @@ export default function ProjectsPage() {
   const tiles = useRef(new Map<string, () => TileOpening | null>());
   // Close has stepped back off the project's entry and that step hasn't landed yet.
   const backPending = useRef(false);
-  // A step onto a project's entry while a dialog is still up or leaving: it opens once that one has gone (showWhenGone).
+  // A step onto a project's entry (showWhenGone), or a tile pressed (openProject), while a dialog is still up or leaving: it opens once that one has gone.
   const queuedOpen = useRef<Project | null>(null);
   // The state of the last entry of this page seen (Next's state and the scroll key in it), for an entry that comes without one.
   const lastState = useRef<unknown>(null);
@@ -251,8 +251,23 @@ export default function ProjectsPage() {
     setDialogPresent(true);
   };
 
-  // A tap, a click or a key on a tile.
+  // A tap, a click or a key on a tile. A dialog closed from outside (a back
+  // swipe the browser animated itself) is hidden at once and has let the page
+  // go, but it is still mounted for its exit: a tile pressed meanwhile opens
+  // once that one has gone (onDialogGone), from the tile as it stands then, so
+  // two never overlap. Its entry goes on now, so the address already names
+  // it; a second press before it opens takes the first one's place, entry and
+  // all.
   const openProject = (project: Project, time: number, source: ModalSource) => {
+    if (present.current) {
+      const queued = queuedOpen.current;
+      queuedOpen.current = project;
+      const top = projectIdOf(window.history.state);
+      if (backPending.current || top === project.id) return;
+      if (queued && top === queued.id) window.history.replaceState({ ...window.history.state, [PROJECT_STATE_KEY]: project.id }, "", `#${project.id}`);
+      else pushProjectEntry(project);
+      return;
+    }
     showProject(project, time, source);
     playOpen();
     // Not while Close's step back off the last project's entry is still on
@@ -403,7 +418,7 @@ export default function ProjectsPage() {
     };
   }, [isPresent]);
 
-  // The dialog's leave has finished. A step that came while it was up or leaving opens its project now, a frame on, once this one is gone.
+  // The dialog's leave has finished. A step or a press that came while it was up or leaving opens its project now, a frame on, once this one is gone.
   const onDialogGone = () => {
     present.current = false;
     setDialogPresent(false);
