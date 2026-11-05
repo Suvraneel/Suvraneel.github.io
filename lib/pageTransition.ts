@@ -180,8 +180,9 @@ export const DEPTH_SELECTORS: Record<PagePath, string | null> = {
   // Text column only; the black root and the portrait's frame stay with the
   // sheet (the photo inside it trails instead: LAG_SELECTOR).
   "/about": "section > div",
-  // Text column inside the <main> scroller; the sticky plant aside stays.
-  "/work": "main > div > div:last-child",
+  // Text column inside the <main> scroller; the sticky plant aside stays, and so does the
+  // phone plant's stage (main's first child, whose box would match a looser selector).
+  "/work": "main > [data-work-content] > div:last-child",
   // <main> paints the background on these pages; its inner wrapper is content.
   "/projects": "main > div:first-child",
   "/skills": "main > div:first-child",

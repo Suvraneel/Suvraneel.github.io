@@ -364,6 +364,9 @@ const Hamburger = () => {
                     onClick={() => {
                       gtag.event({ action: "resume_download_opened", category: "portfolio_engagement", label: "drawer", value: 1 });
                       playPress();
+                      // The row goes with the drawer and no page comes to take focus (the file opens in a
+                      // new tab): hand it back to the toggle, as Escape does.
+                      navRef.current?.querySelector<HTMLElement>("button")?.focus();
                       closeDrawer();
                     }}
                   >

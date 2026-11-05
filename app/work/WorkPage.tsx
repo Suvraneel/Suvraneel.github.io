@@ -95,6 +95,7 @@ function usePhonePlantLayout(
     const box = boxRef.current;
     if (!main || !header || !slot || !box) return;
     const query = window.matchMedia(PHONE_PLANT_MEDIA);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let travel = 0;
     let restScale = 1;
 
@@ -122,8 +123,10 @@ function usePhonePlantLayout(
       box.style.top = `${top}px`;
       box.style.width = `${frameWidth}px`;
       box.style.height = `${height}px`;
-      travel = Math.max(0, main.clientHeight - (top + height));
-      restScale = Math.min(1, (width * PHONE_PLANT_REST_VW) / frameWidth);
+      // Under reduced motion it stays where it is placed, and only dims (the stage's opacity).
+      const still = reducedMotion.matches;
+      travel = still ? 0 : Math.max(0, main.clientHeight - (top + height));
+      restScale = still ? 1 : Math.min(1, (width * PHONE_PLANT_REST_VW) / frameWidth);
       box.setAttribute("data-placed", "");
       follow(main.scrollTop);
     };
@@ -134,10 +137,12 @@ function usePhonePlantLayout(
     resizer.observe(slot);
     resizer.observe(main);
     query.addEventListener("change", place);
+    reducedMotion.addEventListener("change", place);
     const stopScroll = scrollY.on("change", follow);
     return () => {
       resizer.disconnect();
       query.removeEventListener("change", place);
+      reducedMotion.removeEventListener("change", place);
       stopScroll();
     };
   }, [mainRef, headerRef, slotRef, boxRef, scrollY, y, scale]);
@@ -400,11 +405,13 @@ const Work = () => {
                plant's slot takes the room the intro leaves (the page's top padding, the intro, and
                8rem kept for the heading and the start of the first entry: 13rem plus the intro's
                measured height, --intro-h), and no more than the plant fills at its widest, so the
-               heading always follows the plant's glow. Short landscape phones go without it. */}
+               heading always follows the plant's glow. Short landscape phones go without it. Until
+               it is measured, --intro-h is the intro's usual height: three lines of copy below 400px
+               wide, two above. */}
            <div
              ref={plantSlotRef}
              aria-hidden="true"
-             className="h-[clamp(8rem,calc(100svh-13rem-var(--intro-h,11rem)),min(78.84vw,22.34rem))] md:hidden [@media(max-height:520px)]:hidden"
+             className="h-[clamp(8rem,calc(100svh-13rem-var(--intro-h)),min(78.84vw,22.34rem))] [--intro-h:10.25rem] md:hidden min-[400px]:[--intro-h:8.9rem] [@media(max-height:520px)]:hidden"
            />
 
            {/* Positioned for the one spine that runs through every section's dots. */}
