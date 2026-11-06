@@ -43,7 +43,7 @@ import { useReveal } from "@hooks/useReveal";
 import { hasFastWebGL2 } from "@lib/gpu";
 import { subscribeDeviceTilt } from "@lib/tilt";
 import { useSfx } from "@hooks/useSfx";
-import { dismissModalDialogs, prefersReducedMotion } from "@lib/pageTransition";
+import { dismissModalDialogs, isDrawerOpen, prefersReducedMotion } from "@lib/pageTransition";
 import { siteName } from "@lib/seo";
 
 type Project = (typeof projectsData)[number];
@@ -418,7 +418,15 @@ export default function ProjectsPage() {
     };
   }, [isPresent]);
 
-  // The dialog's leave has finished. A step or a press that came while it was up or leaving opens its project now, a frame on, once this one is gone.
+  // The dialog's leave has finished. A step or a press that came while it was
+  // up or leaving opens its project now, a frame on, once this one is gone.
+  // The page is live while it waits, so the visitor may have asked for
+  // something else since. The navigation drawer opened meanwhile was asked
+  // for last: it stays on top and alone, and the project's entry, put on for
+  // it, is stepped back off, so the address never names a project that isn't
+  // open. A page transition under way is taking the page away (a link
+  // followed meanwhile): nothing opens over it, and history has moved on, or
+  // is about to, with the transition.
   const onDialogGone = () => {
     present.current = false;
     setDialogPresent(false);
@@ -426,7 +434,14 @@ export default function ProjectsPage() {
     queuedOpen.current = null;
     if (!queued) return;
     window.requestAnimationFrame(() => {
-      if (!present.current && projectIdOf(window.history.state) === queued.id) reopenProject(queued);
+      if (present.current || projectIdOf(window.history.state) !== queued.id || isInFlight(getTransition())) return;
+      if (!isDrawerOpen()) {
+        reopenProject(queued);
+        return;
+      }
+      if (backPending.current) return;
+      backPending.current = true;
+      window.history.back();
     });
   };
 
