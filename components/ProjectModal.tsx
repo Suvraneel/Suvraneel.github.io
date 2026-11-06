@@ -19,7 +19,7 @@ import {
   MODAL_REDUCED_MOTION,
 } from "@lib/modalMotion";
 import { useSfx } from "@hooks/useSfx";
-import { cssEase } from "@lib/pageTransition";
+import { cssEase, holdRootOverflow } from "@lib/pageTransition";
 
 /**
  * The tile that opened the dialog. Its media becomes the preview frame, which
@@ -379,7 +379,8 @@ const travel = (frame: HTMLElement, layer: HTMLElement, from: FrameState, to: Fr
 // styles (and its offset as 0) and put it back as it went, so whichever went
 // last could leave the page locked with no dialog open, or unlocked under
 // one. The first lock saves the page as it stands; the last release puts it
-// back.
+// back. <html>'s overflow is also held by a lift a finger pulls, so it is
+// counted with that one too (holdRootOverflow).
 let pageLocks = 0;
 let unlockPage: (() => void) | null = null;
 
@@ -390,7 +391,6 @@ function lockPage() {
     const scrollPosition = window.scrollY;
     const root = document.documentElement;
     const body = document.body;
-    const previousRootOverflow = root.style.overflow;
     const previousBodyStyles = {
       overflow: body.style.overflow,
       position: body.style.position,
@@ -406,14 +406,14 @@ function lockPage() {
     // root's width either side of hiding its overflow laid the whole grid out
     // a second time inside the tap.
     const scrollbarWidth = CSS.supports("scrollbar-gutter", "stable") ? 0 : window.innerWidth - root.clientWidth;
-    root.style.overflow = "hidden";
+    const releaseRoot = holdRootOverflow();
     body.style.overflow = "hidden";
     body.style.position = "fixed";
     body.style.top = `-${scrollPosition}px`;
     body.style.width = "100%";
     if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
     unlockPage = () => {
-      root.style.overflow = previousRootOverflow;
+      releaseRoot();
       Object.assign(body.style, previousBodyStyles);
       window.scrollTo(0, scrollPosition);
     };

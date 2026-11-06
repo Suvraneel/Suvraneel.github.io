@@ -78,6 +78,33 @@ export const dismissModalDialogs = () => {
 export const isDrawerOpen = () =>
   typeof document !== "undefined" && Boolean(document.querySelector("[data-drawer-open]"));
 
+// <html>'s overflow, held hidden by two owners that know nothing of each
+// other: a project dialog's page lock, and a lift a finger pulled, which
+// freezes the page under the sheet. Each saved the value it found and put it
+// back as it let go, so one taken over the other (a dialog opened mid-lift)
+// saved the other's "hidden" as the page's own and left the whole site
+// unscrollable once both had gone. Counted instead: the first hold saves the
+// page's own value, the last release puts it back.
+let rootOverflowHolds = 0;
+let rootOverflowOwn = "";
+
+/** Holds <html> at overflow: hidden. Returns its release, which acts once. */
+export const holdRootOverflow = () => {
+  const root = document.documentElement;
+  rootOverflowHolds += 1;
+  if (rootOverflowHolds === 1) {
+    rootOverflowOwn = root.style.overflow;
+    root.style.overflow = "hidden";
+  }
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    rootOverflowHolds -= 1;
+    if (rootOverflowHolds === 0) root.style.overflow = rootOverflowOwn;
+  };
+};
+
 // ---------------------------------------------------------------------------
 // Motion tokens. One ease and one duration for every layer of a lift, so the
 // sheet, its content and the page underneath stay in lockstep: a weighted
