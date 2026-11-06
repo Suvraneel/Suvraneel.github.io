@@ -257,7 +257,7 @@ export default function ProjectsPage() {
   // A dialog the page opens later, by itself (a press or a step that waited
   // for a dialog to leave or a lift to land, a link's once its still has
   // decoded), first checks that it is still wanted: never over a page that
-  // is leaving, nor, for a press or a step, over the drawer. An open is only
+  // is leaving, nor over the drawer. An open is only
   // state, though: React rendered it in a task of its own, and the dialog
   // locked the page and went modal (showModal, in its effect) in another, a
   // frame or two on. A link followed or the drawer opened in between got past
@@ -382,7 +382,23 @@ export default function ProjectsPage() {
     await stillDecoded(first.source);
     const opening = describe();
     if (isCancelled() || present.current || !opening) return;
+    // The page is live while the still decodes (up to STILL_WAIT_MS). A link
+    // followed or a step taken meanwhile is taking the page away, though the
+    // address and isPresent only move once its route commits: nothing opens
+    // over it, and history moves on with the transition. The drawer opened
+    // meanwhile was asked for last: it stays on top and alone, and the address
+    // stops naming the project, as onDialogGone leaves one that waited.
+    const t = getTransition();
+    if (isInFlight(t) && t.from === PROJECTS_PATH) return;
     const ownEntry = projectIdOf(window.history.state) === project.id;
+    if (isDrawerOpen()) {
+      if (!ownEntry) window.history.replaceState(withoutProject(window.history.state), "", window.location.pathname + window.location.search);
+      else if (!backPending.current) {
+        backPending.current = true;
+        window.history.back();
+      }
+      return;
+    }
     if (!ownEntry) {
       window.history.replaceState(withoutProject(window.history.state), "", window.location.pathname + window.location.search);
       pushProjectEntry(project);
