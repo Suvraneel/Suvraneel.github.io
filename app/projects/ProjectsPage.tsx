@@ -23,6 +23,7 @@ import {
   type PointerEvent,
   type RefObject,
 } from "react";
+import { flushSync } from "react-dom";
 import LiftHeading from "@components/LiftHeading";
 import ProjectModal, {
   isOnScreen,
@@ -253,6 +254,22 @@ export default function ProjectsPage() {
     setOpens((count) => count + 1);
   };
 
+  // A dialog the page opens later, by itself (a press or a step that waited
+  // for a dialog to leave or a lift to land, a link's once its still has
+  // decoded), first checks that it is still wanted: never over a page that
+  // is leaving, nor, for a press or a step, over the drawer. An open is only
+  // state, though: React rendered it in a task of its own, and the dialog
+  // locked the page and went modal (showModal, in its effect) in another, a
+  // frame or two on. A link followed or the drawer opened in between got past
+  // the checks, and the project opened over the leaving page or the drawer;
+  // meanwhile the dialog stood in the page unopened, drawn over it but not
+  // modal, its preview frame at rest in the panel rather than on the tile.
+  // Rendered at once (flushSync), the dialog is in the page, open and modal,
+  // in the same task as the checks, before any input can come between. A
+  // press or a history step that opens one straight away needs none of
+  // this: React renders what input asks for, effects and all, before the next.
+  const openAtOnce = (open: () => void) => flushSync(open);
+
   // A tap, a click or a key on a tile. A dialog closed from outside (a back
   // swipe the browser animated itself) is hidden at once and has let the page
   // go, but it is still mounted for its exit: a tile pressed meanwhile opens
@@ -289,7 +306,7 @@ export default function ProjectsPage() {
       landingPress.current = whenSettled(container, () => {
         landingPress.current = null;
         const opening = tiles.current.get(project.id)?.();
-        if (opening && !present.current && !isDrawerOpen()) openProject(project, opening.time, opening.source, opening.source.tile);
+        if (opening && !present.current && !isDrawerOpen()) openAtOnce(() => openProject(project, opening.time, opening.source, opening.source.tile));
       });
       return;
     }
@@ -370,7 +387,7 @@ export default function ProjectsPage() {
       window.history.replaceState(withoutProject(window.history.state), "", window.location.pathname + window.location.search);
       pushProjectEntry(project);
     }
-    showProject(project, opening.time, opening.source, opening.source.tile);
+    openAtOnce(() => showProject(project, opening.time, opening.source, opening.source.tile));
   });
 
   // Back and Forward between /projects and a project's entry (the page
@@ -464,7 +481,7 @@ export default function ProjectsPage() {
     window.requestAnimationFrame(() => {
       if (present.current || projectIdOf(window.history.state) !== queued.id || isInFlight(getTransition())) return;
       if (!isDrawerOpen()) {
-        reopenProject(queued);
+        openAtOnce(() => reopenProject(queued));
         return;
       }
       if (backPending.current) return;
