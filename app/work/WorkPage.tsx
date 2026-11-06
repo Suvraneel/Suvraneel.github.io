@@ -4,6 +4,7 @@ import Image from "next/image";
 import { motion, useMotionValue, useScroll, useSpring, useTransform, type MotionValue } from "motion/react";
 import type { Application } from "@splinetool/runtime";
 import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from "react";
+import { preload } from "react-dom";
 import ChronoCard from "@components/ChronoCard";
 import FrameSequence from "@components/FrameSequence";
 import TimelineSpine from "@components/TimelineSpine";
@@ -249,6 +250,12 @@ function revealPlant(scene: HTMLElement | null, glow: HTMLElement | null) {
 }
 
 const Work = () => {
+  // The H1's texture is Work's LCP, but only the stylesheet names it, so it was
+  // fetched only once the CSS had been parsed, behind the logos. Asked for with
+  // the page's HTML instead (a <link rel=preload> in the server HTML's head). Not
+  // in the root layout: on Projects it took bandwidth from the thumbnails, which
+  // are that page's LCP.
+  preload("/images/seed-46867.webp", { as: "image" });
   const mainRef = useRef<HTMLElement>(null);
   const entriesRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll({ container: mainRef });

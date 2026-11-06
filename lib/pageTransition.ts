@@ -31,9 +31,31 @@ export const stepFrom = (pathname: string, direction: 1 | -1): PagePath | undefi
 
 // Native <dialog> elements (ProjectModal) expose their role implicitly, so match
 // open dialogs as well as explicit ARIA modals (the mobile drawer sheet).
+const MODAL_SELECTOR = "dialog[open], [role='dialog'][aria-modal='true']";
 export const isDialogOpen = () =>
+  typeof document !== "undefined" && Boolean(document.querySelector(MODAL_SELECTOR));
+
+/**
+ * An event's target is inside an open modal (see isDialogOpen): input on the
+ * dialog, not on the page under it. Its ancestors only, so it is cheap enough
+ * for every pointermove.
+ */
+export const isInDialog = (target: EventTarget | null) => target instanceof Element && target.closest(MODAL_SELECTOR) !== null;
+
+/**
+ * A field marked data-draft (Contact's name, email and message) holds typed
+ * text. The page sequence's own steps (pull, wheel, keys) hold back while it
+ * does: a phone's rubber-band overscroll at the top of the form is enough to
+ * pull the visitor to Skills, and a drafted message is the costliest thing on
+ * the site to lose. Links, the drawer and browser history still go, as a
+ * deliberate choice; ContactPage keeps a copy of the draft for the tab, so it
+ * is there again on the way back. Whitespace alone is not a draft.
+ */
+export const isFormDirty = () =>
   typeof document !== "undefined" &&
-  Boolean(document.querySelector("dialog[open], [role='dialog'][aria-modal='true']"));
+  Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[data-draft]")).some(
+    (field) => field.value.trim() !== ""
+  );
 
 /**
  * Browser history (or a page link) leaving a page with a modal <dialog> open:
@@ -55,6 +77,33 @@ export const dismissModalDialogs = () => {
 
 export const isDrawerOpen = () =>
   typeof document !== "undefined" && Boolean(document.querySelector("[data-drawer-open]"));
+
+// <html>'s overflow, held hidden by two owners that know nothing of each
+// other: a project dialog's page lock, and a lift a finger pulled, which
+// freezes the page under the sheet. Each saved the value it found and put it
+// back as it let go, so one taken over the other (a dialog opened mid-lift)
+// saved the other's "hidden" as the page's own and left the whole site
+// unscrollable once both had gone. Counted instead: the first hold saves the
+// page's own value, the last release puts it back.
+let rootOverflowHolds = 0;
+let rootOverflowOwn = "";
+
+/** Holds <html> at overflow: hidden. Returns its release, which acts once. */
+export const holdRootOverflow = () => {
+  const root = document.documentElement;
+  rootOverflowHolds += 1;
+  if (rootOverflowHolds === 1) {
+    rootOverflowOwn = root.style.overflow;
+    root.style.overflow = "hidden";
+  }
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    rootOverflowHolds -= 1;
+    if (rootOverflowHolds === 0) root.style.overflow = rootOverflowOwn;
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Motion tokens. One ease and one duration for every layer of a lift, so the

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, usePresence, useReducedMotion, type Variants } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { spaceBoards, tasaOrbiter } from "@font";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import LiteYouTube from "@components/LiteYouTube";
@@ -19,7 +19,7 @@ import {
   MODAL_REDUCED_MOTION,
 } from "@lib/modalMotion";
 import { useSfx } from "@hooks/useSfx";
-import { cssEase } from "@lib/pageTransition";
+import { cssEase, holdRootOverflow } from "@lib/pageTransition";
 
 /**
  * The tile that opened the dialog. Its media becomes the preview frame, which
@@ -372,6 +372,73 @@ const travel = (frame: HTMLElement, layer: HTMLElement, from: FrameState, to: Fr
   layer.animate([{ opacity: from.opacity }, { opacity: to.opacity }], { ...FRAME_TRAVEL, fill, delay }),
 ];
 
+// The page's scroll lock, counted across dialogs. Only one is meant to be up
+// at a time, but one closed from outside (a back swipe the browser animated
+// itself) is hidden and lets the page go at once, while it stays mounted for
+// its exit. A lock taken over another saved that one's lock as the page's own
+// styles (and its offset as 0) and put it back as it went, so whichever went
+// last could leave the page locked with no dialog open, or unlocked under
+// one. The first lock saves the page as it stands; the last release puts it
+// back. <html>'s overflow is also held by a lift a finger pulls, so it is
+// counted with that one too (holdRootOverflow).
+//
+// The offset it puts back is its own page's, so it goes back only while that
+// page is still the one shown: its layer in the document and not leaving (a
+// page transition makes a leaving layer inert). Links and browser history let
+// a dialog go before they take its page away (dismissModalDialogs), so only a
+// release as the page unmounts comes later: one whose dialog had opened on a
+// page a link was already taking away scrolled the page that replaced it to
+// this one's offset (Skills landed at 213px, or 731px on a phone, not at its
+// top).
+let pageLocks = 0;
+let unlockPage: (() => void) | null = null;
+
+/** Locks the page under a dialog (on the page layer holding `dialog`). Returns its release, which acts once. */
+function lockPage(dialog: HTMLElement) {
+  pageLocks += 1;
+  if (pageLocks === 1) {
+    const scrollPosition = window.scrollY;
+    const page = dialog.closest<HTMLElement>("[data-page]");
+    const root = document.documentElement;
+    const body = document.body;
+    const previousBodyStyles = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      paddingRight: body.style.paddingRight,
+    };
+    // The room a classic scrollbar gives back as it goes, padded out of the
+    // page so it doesn't widen. The root's scrollbar-gutter keeps that room
+    // where it is supported, so only an engine without it (Safari before 18.2)
+    // gives any back: as much as a scrollbar shown now takes. Read before any
+    // style is written, and the lock then written in one go: reading the
+    // root's width either side of hiding its overflow laid the whole grid out
+    // a second time inside the tap.
+    const scrollbarWidth = CSS.supports("scrollbar-gutter", "stable") ? 0 : window.innerWidth - root.clientWidth;
+    const releaseRoot = holdRootOverflow();
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollPosition}px`;
+    body.style.width = "100%";
+    if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
+    unlockPage = () => {
+      releaseRoot();
+      Object.assign(body.style, previousBodyStyles);
+      if (!page || (page.isConnected && !page.inert)) window.scrollTo(0, scrollPosition);
+    };
+  }
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    pageLocks -= 1;
+    if (pageLocks > 0) return;
+    unlockPage?.();
+    unlockPage = null;
+  };
+}
+
 /** A case note's text, with markdown-style `[label](https://…)` links as real links. */
 const NOTE_LINK = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
 function noteContent(note: string) {
@@ -406,18 +473,37 @@ type Project = {
   tech_stk: string[];
 };
 
+/**
+ * What the page can ask of an open dialog: to close as Close, Escape or the
+ * backdrop close it (the page's Back closes a project's dialog this way).
+ */
+export type ProjectModalHandle = { close: () => void };
+
 export default function ProjectModal({
+  ref,
   handleClose,
   project,
   startAt = 0,
   source = null,
+  returnFocus = null,
 }: Readonly<{
+  ref?: Ref<ProjectModalHandle>;
   handleClose: () => void;
   project: Project;
   /** Where the tile's hover preview of the same clip had got to, in seconds. */
   startAt?: number;
   /** The tile that opened the dialog: the preview frame travels from (and back to) its media. */
   source?: ModalSource | null;
+  /**
+   * Where focus goes back to on close, in place of whatever had it as the
+   * dialog opened. The page passes the tile for a dialog it opens itself (a
+   * project's link, a reload, a history step), which nothing on the page
+   * invoked: focus was then on the page itself, on the <main> a page
+   * transition focuses, or wherever an earlier close left it. Keyboard and
+   * screen reader users are then left on the project they came for, where
+   * the dialog closes back into its tile, not at the top of the page.
+   */
+  returnFocus?: HTMLElement | null;
 }>) {
   const dialog = useRef<HTMLDialogElement>(null);
   const frame = useRef<HTMLDivElement>(null);
@@ -432,6 +518,10 @@ export default function ProjectModal({
   const clip = useRef<HTMLVideoElement>(null);
   const scroller = useRef<HTMLElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
+  // Decided once, as it opens (see returnFocus).
+  const returnTo = useRef(returnFocus);
+  // A click or tap on Close or the backdrop asked for the close (a key's click has no detail).
+  const closedByPointer = useRef(false);
   const [visitHovered, setVisitHovered] = useState(false);
   const [playTick, { stop: stopTick }] = useSfx("tick");
   const [playPress] = useSfx("press");
@@ -495,44 +585,15 @@ export default function ProjectModal({
 
     // The tile that opened the dialog, to hand focus back to on close. Firefox
     // focuses a clicked tile's <video> (hidden from assistive tech) rather than
-    // the tile, so focus goes back to the tile around it.
+    // the tile, so focus goes back to the tile around it. A dialog the page
+    // opened itself goes back to the element it named (see returnFocus).
     const focused = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
-    const trigger = focused?.closest<HTMLElement>(".project-tile") ?? focused;
-    const scrollPosition = window.scrollY;
-    const root = document.documentElement;
-    const body = document.body;
-    const previousRootOverflow = root.style.overflow;
-    const previousBodyStyles = {
-      overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      width: body.style.width,
-      paddingRight: body.style.paddingRight,
-    };
-    // The room a classic scrollbar gives back as it goes, padded out of the
-    // page so it doesn't widen. The root's scrollbar-gutter keeps that room
-    // where it is supported, so only an engine without it (Safari before 18.2)
-    // gives any back.
-    const width = root.offsetWidth;
-    root.style.overflow = "hidden";
-    const scrollbarWidth = root.offsetWidth - width;
-    body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollPosition}px`;
-    body.style.width = "100%";
-    if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
+    const trigger = returnTo.current ?? focused?.closest<HTMLElement>(".project-tile") ?? focused;
 
     // Released once: on unmount, or as soon as the dialog is closed from
     // outside (browser Back closes it before the page transition snapshots
     // the scroll offset, so the page must be unlocked by then).
-    let released = false;
-    const releasePage = () => {
-      if (released) return;
-      released = true;
-      root.style.overflow = previousRootOverflow;
-      Object.assign(body.style, previousBodyStyles);
-      window.scrollTo(0, scrollPosition);
-    };
+    const releasePage = lockPage(currentDialog);
 
     // A queued close event from an earlier close() (Strict Mode re-runs this
     // effect) arrives after showModal() has reopened the dialog: ignore it.
@@ -550,19 +611,25 @@ export default function ProjectModal({
       // By now the dialog has left the DOM after its exit animation, so the
       // browser's own focus restore never ran. Only when focus was dropped:
       // a page transition that closed the dialog keeps its own focus.
+      // A close by pointer hands it back without the keyboard's ring, as a
+      // tile's own press leaves it: a dialog opened with nothing focused (a
+      // project's link) showed its Close as keyboard-focused, and a click on
+      // the already-focused Close would carry that over to the tile, its
+      // brief sliding in.
       const focusDropped = document.activeElement === null || document.activeElement === document.body;
-      if (trigger?.isConnected && focusDropped) trigger.focus({ preventScroll: true });
+      if (trigger?.isConnected && focusDropped) trigger.focus(closedByPointer.current ? { preventScroll: true, focusVisible: false } : { preventScroll: true });
     };
   }, []);
 
   // Open: the preview frame starts over the tile's still and grows into its
-  // place. Measured after showModal() above, whose UA max-height re-centres
-  // the panel; a click or key press flushes both before the first paint. Web
-  // Animations: the frame is held over the tile until the next frame, then
-  // the move runs on the compositor, and they leave no styles behind once
-  // they end. A travel cut short by a close never lands. A contained
-  // thumbnail's copy, drawn and laid over the tile with the frame, stands over
-  // all of the frame's own picture until it has landed.
+  // place. Measured after showModal() above has moved the dialog into the top
+  // layer (over the viewport, whatever transforms the page carries); a click
+  // or key press flushes both before the first paint. Web Animations: the
+  // frame is held over the tile until the next frame, then the move runs on
+  // the compositor, and they leave no styles behind once they end. A travel
+  // cut short by a close never lands. A contained thumbnail's copy, drawn and
+  // laid over the tile with the frame, stands over all of the frame's own
+  // picture until it has landed.
   useEffect(() => {
     const preview = frame.current;
     const layer = picture.current;
@@ -611,16 +678,19 @@ export default function ProjectModal({
     if (landed && !reduceMotion) clip.current?.play().catch(() => undefined);
   }, [landed, reduceMotion]);
 
-  // Asked to close (Close, Escape, a click on the backdrop). A frame that has
-  // landed, showing the demo's own picture, and goes back to a tile on screen
-  // first holds still for the lead-in while the tile's still comes back over
-  // it (see the close effect). Decided here, as the close is asked for: the
+  // Asked to close (Close, Escape, a click on the backdrop, or a Back off the
+  // project's history entry, through the handle). A frame that has landed,
+  // showing the demo's own picture, and goes back to a tile on screen first
+  // holds still for the lead-in while the tile's still comes back over it
+  // (see the close effect). Decided here, as the close is asked for: the
   // backdrop's exit is fixed the moment the dialog starts to leave, and must
   // wait as long. A frame caught on its way in still carries the tile's
   // still, so it turns back at once. A dialog closed from outside (browser
-  // Back) is already hidden.
+  // history leaving the page, or a swipe back the browser animated itself)
+  // is already hidden.
   const closeHeard = useRef(false);
-  const close = () => {
+  const close = (press?: { detail: number }) => {
+    if (press && press.detail > 0) closedByPointer.current = true;
     const tile = source?.tile;
     const leadsIn =
       travels && landed && tileStill.current !== null && dialog.current?.open === true && tile?.isConnected === true && isOnScreen(tile.getBoundingClientRect());
@@ -633,6 +703,7 @@ export default function ProjectModal({
     if (leadsIn) window.setTimeout(playClose, STILL_LEAD_IN_MS);
     else playClose();
   };
+  useImperativeHandle(ref, () => ({ close }));
 
   // Close: the frame goes back over the tile, re-measured now, from wherever
   // the open had got to, carrying the tile's still, which first fades back
@@ -715,12 +786,14 @@ export default function ProjectModal({
 
   return (
     // No opacity on the dialog itself: it would cut the backdrop's blur off
-    // from the page behind it (a backdrop root) for the whole fade.
+    // from the page behind it (a backdrop root) for the whole fade. No max
+    // height either: the UA's dialog:modal one (100% less 2em and 6px) left it
+    // short of the screen it fills, the sheet off-centre on phones.
     <dialog
       ref={dialog}
       aria-modal="true"
       aria-labelledby="project-dialog-title"
-      className="fixed inset-0 z-modal m-0 flex h-dvh w-full max-w-none items-center justify-center overflow-hidden border-0 bg-transparent p-2 backdrop:bg-transparent sm:p-5"
+      className="fixed inset-0 z-modal m-0 flex h-dvh max-h-none w-full max-w-none items-center justify-center overflow-hidden border-0 bg-transparent p-2 backdrop:bg-transparent sm:p-5"
       onCancel={(event) => {
         event.preventDefault();
         close();
@@ -775,14 +848,17 @@ export default function ProjectModal({
         />
         {/* Wide layout: the preview column is as wide as its 16:9 video can be at this
             height (the modal's height less 18.72rem of chrome, plus 5.61rem of side padding),
-            capped at the old 1.5fr:0.78fr share, so short screens give the notes the room. */}
+            capped at the old 1.5fr:0.78fr share, so short screens give the notes the room,
+            and never past what leaves the notes their 24rem: from 1200px to about 1310px
+            the share alone left them less, and the notes column ran past the section's
+            clipped edge, cutting off the Close button and the end of the widest titles. */}
         {/* A transparent border keeps the content where the surface's border puts it.
             No sideways scroll: the content is fluid, and the frame's travel (whose
             transformed box runs past the edge for media narrower than 16:9) must
             not add a horizontal scrollbar or let a phone pan the panel. */}
         <section
           ref={scroller}
-          className="relative flex h-full w-full flex-col overflow-y-auto overflow-x-hidden overscroll-contain rounded-[1.5rem] border border-transparent min-[1200px]:grid min-[1200px]:grid-cols-[min(65.8%,calc((min(92dvh,920px)_-_18.72rem)*16/9_+_5.61rem))_minmax(24rem,1fr)] min-[1200px]:grid-rows-[auto_minmax(0,1fr)_auto_auto] min-[1200px]:overflow-hidden">
+          className="relative flex h-full w-full flex-col overflow-y-auto overflow-x-hidden overscroll-contain rounded-[1.5rem] border border-transparent min-[1200px]:grid min-[1200px]:grid-cols-[min(65.8%,100%_-_24rem,calc((min(92dvh,920px)_-_18.72rem)*16/9_+_5.61rem))_minmax(24rem,1fr)] min-[1200px]:grid-rows-[auto_minmax(0,1fr)_auto_auto] min-[1200px]:overflow-hidden">
           {/* Left column backdrop (wide layout only). */}
           <motion.div
             aria-hidden="true"
@@ -929,11 +1005,23 @@ export default function ProjectModal({
           )}
 
           <motion.div
-            className="px-5 pb-8 pt-6 sm:px-7 sm:pt-8 min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:px-8 min-[1200px]:[grid-area:2/2/5/3]"
+            className="px-5 pb-8 pt-6 [container-type:inline-size] sm:px-7 sm:pt-8 min-[1200px]:min-h-0 min-[1200px]:overflow-y-auto min-[1200px]:px-8 min-[1200px]:[grid-area:2/2/5/3]"
             variants={fade}
           >
-            <h2 id="project-dialog-title" className={`text-balance text-title leading-[1.02] text-white ${spaceBoards.className}`}>
-              {project.name}
+            {/* Set in capitals: Space Boards' lowercase f, p and d are bars and hooks
+                that read as "=" and "⊃" ("O==ICIAL", "STAKEOVER=LOW"). Browsers name a
+                heading, and the dialog it labels, from its rendered text, text-transform
+                included (Chromium read "STAKEOVERFLOW"), so the capitals are a copy kept
+                from assistive tech and a visually hidden copy gives the name as written,
+                as the tab and the tile have it. Capitals run wider, so the title is never
+                larger than lets its longest word fit the column (STAKEOVERFLOW and
+                METEOROLOGYLY, some 10.9em each): the notes column at 1200px and up, and
+                the narrowest phones. */}
+            <h2 id="project-dialog-title" className={`text-balance leading-[1.02] text-white [font-size:min(var(--text-title),8.8cqi)] ${spaceBoards.className}`}>
+              <span aria-hidden="true" className="uppercase">
+                {project.name}
+              </span>
+              <span className="sr-only">{project.name}</span>
             </h2>
 
             {stack && <div className="mt-6 min-[1200px]:hidden">{stack}</div>}

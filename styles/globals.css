@@ -523,6 +523,14 @@ a:focus-visible > .link-draw::after {
 .calendly-inline-widget {
   filter: invert(100%) hue-rotate(128deg) brightness(1.15);
 }
+/* react-calendly's loading dots sit inside the filtered widget, so their light
+   grey (#e1e1e1) came out near-black on the black panel and a slow load looked
+   like an empty, broken one. Drawn in Calendly's blue instead, which the filter
+   turns into the accent. Two classes, to outrank the library's own rule,
+   injected after this sheet. */
+.calendly-inline-widget .calendly-spinner > div {
+  background-color: #006bff;
+}
 
 /* First-visit Home preloader (components/StairsPreloader.tsx). The name is a
    stroked ghost (visible text from the first paint); a textured copy fills it

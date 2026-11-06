@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimateIcon } from "@components/animate-ui/icons/icon";
+import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
 import { XIcon } from "@components/animate-ui/icons/x";
 import {
   MODAL_BACKDROP_CLASS,
@@ -14,6 +15,8 @@ import {
 import { motion, useReducedMotion } from "motion/react";
 import { InlineWidget } from "react-calendly";
 import { useEffect, useRef } from "react";
+
+const SCHEDULER_URL = "https://calendly.com/suvraneel/meet";
 
 /**
  * The scheduler, as a modal dialog with the case study's motion: it grows from
@@ -65,7 +68,7 @@ export default function CalendlyModal({
         ref={dialog}
         aria-modal="true"
         aria-label="Schedule a conversation"
-        className="fixed inset-0 m-0 flex h-dvh w-full max-w-none items-center justify-center overflow-hidden border-0 bg-transparent p-3 backdrop:bg-transparent sm:p-6"
+        className="fixed inset-0 m-0 flex h-dvh max-h-none w-full max-w-none items-center justify-center overflow-hidden border-0 bg-transparent p-3 backdrop:bg-transparent sm:p-6"
         onCancel={(event) => {
           event.preventDefault();
           onClose();
@@ -92,8 +95,23 @@ export default function CalendlyModal({
           exit={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "scale(0.96)" }}
           transition={reduceMotion ? MODAL_REDUCED_MOTION : MODAL_PANEL_MOTION}
         >
-          <div className="flex items-center justify-between border-b border-white/15 px-5 py-4 sm:px-6">
-            <h2 id="scheduler-title" className="text-lg font-semibold tracking-[-0.02em] text-white sm:text-xl">Find a time that works</h2>
+          <div className="flex items-center justify-between gap-3 border-b border-white/15 px-5 py-4 sm:px-6">
+            <h2 id="scheduler-title" className="min-w-0 text-balance text-lg font-semibold leading-tight tracking-[-0.02em] text-white sm:text-xl">Find a time that works</h2>
+            <div className="flex shrink-0 items-center gap-2">
+            {/* The same scheduler in a tab of its own: a way through while the embed
+                is slow to load, or when a content blocker keeps it blank. Phones get
+                the icon alone, a round button like Close, so the title keeps its row. */}
+            <AnimateIcon animateOnHover asChild>
+            <a
+              href={SCHEDULER_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-white/20 text-sm text-white/75 transition-[color,border-color] duration-300 hover:border-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent sm:w-auto sm:px-4"
+            >
+              <span className="max-sm:sr-only">Open in Calendly</span>
+              <SquareArrowOutUpRightIcon aria-hidden="true" size={16} />
+            </a>
+            </AnimateIcon>
             <AnimateIcon animateOnHover asChild>
             <button
               ref={closeButton}
@@ -105,9 +123,10 @@ export default function CalendlyModal({
               <XIcon aria-hidden="true" size={18} />
             </button>
             </AnimateIcon>
+            </div>
           </div>
           <div className="min-h-0 flex-1 bg-black">
-            <InlineWidget url="https://calendly.com/suvraneel/meet" styles={{ height: "100%", width: "100%" }} pageSettings={{ hideGdprBanner: true }} />
+            <InlineWidget url={SCHEDULER_URL} styles={{ height: "100%", width: "100%" }} pageSettings={{ hideGdprBanner: true }} />
           </div>
         </motion.section>
       </dialog>

@@ -31,8 +31,9 @@ export const MODAL_BACKDROP_CLASS = "fixed inset-0 bg-[#030609]/85 backdrop-blur
 
 /**
  * Points a panel's scale at its opener, in the panel's own untransformed box
- * (the dialog has no transform). Call after showModal(), whose UA max-height
- * re-centres the panel.
+ * (the dialog has no transform). Call after showModal(), which moves the
+ * dialog into the top layer (over the viewport, whatever transforms the page
+ * carries).
  */
 export function anchorToOrigin(dialog: HTMLDialogElement, panel: HTMLElement, origin: ModalOrigin) {
   const frame = dialog.getBoundingClientRect();

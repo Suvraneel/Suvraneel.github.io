@@ -35,6 +35,7 @@ import {
   deriveKind,
   directionOf,
   dismissModalDialogs,
+  holdRootOverflow,
   isDialogOpen,
   isDrawerOpen,
   isPagePath,
@@ -421,15 +422,15 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
     window.addEventListener("touchmove", onTouchMove, { capture: true, passive: false });
     window.addEventListener("keydown", onKeyDown, { capture: true });
 
-    const html = document.documentElement;
-    const freezeOverflow = options.source === "sequence" && options.input === "touch";
-    const previousOverflow = html.style.overflow;
-    if (freezeOverflow) html.style.overflow = "hidden";
+    // A lift a finger pulled freezes the page under the sheet: <html> is held
+    // at overflow: hidden, counted with a project dialog's page lock, which
+    // holds it too, so neither ever puts back the other's.
+    const releaseOverflow = options.source === "sequence" && options.input === "touch" ? holdRootOverflow() : null;
 
     setTransitionLocked(true);
     unlock.current = () => {
       window.removeEventListener("keydown", onKeyDown, true);
-      if (freezeOverflow) html.style.overflow = previousOverflow;
+      releaseOverflow?.();
       let landingTimer = 0;
       const releaseTouch = () => {
         window.clearTimeout(landingTimer);
