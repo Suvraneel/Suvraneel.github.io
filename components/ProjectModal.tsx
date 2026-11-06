@@ -381,14 +381,24 @@ const travel = (frame: HTMLElement, layer: HTMLElement, from: FrameState, to: Fr
 // one. The first lock saves the page as it stands; the last release puts it
 // back. <html>'s overflow is also held by a lift a finger pulls, so it is
 // counted with that one too (holdRootOverflow).
+//
+// The offset it puts back is its own page's, so it goes back only while that
+// page is still the one shown: its layer in the document and not leaving (a
+// page transition makes a leaving layer inert). Links and browser history let
+// a dialog go before they take its page away (dismissModalDialogs), so only a
+// release as the page unmounts comes later: one whose dialog had opened on a
+// page a link was already taking away scrolled the page that replaced it to
+// this one's offset (Skills landed at 213px, or 731px on a phone, not at its
+// top).
 let pageLocks = 0;
 let unlockPage: (() => void) | null = null;
 
-/** Locks the page under a dialog. Returns its release, which acts once. */
-function lockPage() {
+/** Locks the page under a dialog (on the page layer holding `dialog`). Returns its release, which acts once. */
+function lockPage(dialog: HTMLElement) {
   pageLocks += 1;
   if (pageLocks === 1) {
     const scrollPosition = window.scrollY;
+    const page = dialog.closest<HTMLElement>("[data-page]");
     const root = document.documentElement;
     const body = document.body;
     const previousBodyStyles = {
@@ -415,7 +425,7 @@ function lockPage() {
     unlockPage = () => {
       releaseRoot();
       Object.assign(body.style, previousBodyStyles);
-      window.scrollTo(0, scrollPosition);
+      if (!page || (page.isConnected && !page.inert)) window.scrollTo(0, scrollPosition);
     };
   }
   let released = false;
@@ -583,7 +593,7 @@ export default function ProjectModal({
     // Released once: on unmount, or as soon as the dialog is closed from
     // outside (browser Back closes it before the page transition snapshots
     // the scroll offset, so the page must be unlocked by then).
-    const releasePage = lockPage();
+    const releasePage = lockPage(currentDialog);
 
     // A queued close event from an earlier close() (Strict Mode re-runs this
     // effect) arrives after showModal() has reopened the dialog: ignore it.
