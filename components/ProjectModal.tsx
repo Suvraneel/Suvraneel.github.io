@@ -838,14 +838,17 @@ export default function ProjectModal({
         />
         {/* Wide layout: the preview column is as wide as its 16:9 video can be at this
             height (the modal's height less 18.72rem of chrome, plus 5.61rem of side padding),
-            capped at the old 1.5fr:0.78fr share, so short screens give the notes the room. */}
+            capped at the old 1.5fr:0.78fr share, so short screens give the notes the room,
+            and never past what leaves the notes their 24rem: from 1200px to about 1310px
+            the share alone left them less, and the notes column ran past the section's
+            clipped edge, cutting off the Close button and the end of the widest titles. */}
         {/* A transparent border keeps the content where the surface's border puts it.
             No sideways scroll: the content is fluid, and the frame's travel (whose
             transformed box runs past the edge for media narrower than 16:9) must
             not add a horizontal scrollbar or let a phone pan the panel. */}
         <section
           ref={scroller}
-          className="relative flex h-full w-full flex-col overflow-y-auto overflow-x-hidden overscroll-contain rounded-[1.5rem] border border-transparent min-[1200px]:grid min-[1200px]:grid-cols-[min(65.8%,calc((min(92dvh,920px)_-_18.72rem)*16/9_+_5.61rem))_minmax(24rem,1fr)] min-[1200px]:grid-rows-[auto_minmax(0,1fr)_auto_auto] min-[1200px]:overflow-hidden">
+          className="relative flex h-full w-full flex-col overflow-y-auto overflow-x-hidden overscroll-contain rounded-[1.5rem] border border-transparent min-[1200px]:grid min-[1200px]:grid-cols-[min(65.8%,100%_-_24rem,calc((min(92dvh,920px)_-_18.72rem)*16/9_+_5.61rem))_minmax(24rem,1fr)] min-[1200px]:grid-rows-[auto_minmax(0,1fr)_auto_auto] min-[1200px]:overflow-hidden">
           {/* Left column backdrop (wide layout only). */}
           <motion.div
             aria-hidden="true"
