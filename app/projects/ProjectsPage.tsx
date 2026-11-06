@@ -172,6 +172,8 @@ export default function ProjectsPage() {
   const backPending = useRef(false);
   // A step onto a project's entry (showWhenGone), or a tile pressed (openProject), while a dialog is still up or leaving: it opens once that one has gone.
   const queuedOpen = useRef<Project | null>(null);
+  // A tile pressed while a lift is still bringing the page in: the wait for it to land (openProject), to give up on.
+  const landingPress = useRef<(() => void) | null>(null);
   // The state of the last entry of this page seen (Next's state and the scroll key in it), for an entry that comes without one.
   const lastState = useRef<unknown>(null);
   const reduceMotion = useReducedMotion();
@@ -258,7 +260,20 @@ export default function ProjectsPage() {
   // two never overlap. Its entry goes on now, so the address already names
   // it; a second press before it opens takes the first one's place, entry and
   // all.
-  const openProject = (project: Project, time: number, source: ModalSource) => {
+  //
+  // A lift still bringing the page in takes presses too (the arriving sheet
+  // is live as it moves). Opened then, the dialog locked the page at the top,
+  // where the sheet is framed in flight, rather than at the offset it lands
+  // at, so closing it left the visitor at the top of the gallery, its frame
+  // flying home to a tile now off screen. The press opens once the lift has
+  // landed (whenSettled) instead, from the tile as it stands then, handing
+  // focus back to it (the landing may have focused the page's <main>). Its
+  // entry waits too, so a Back before then still goes back the way the lift
+  // came. A later press takes its place; with the drawer opened meanwhile, or
+  // the page leaving again, it never opens.
+  const openProject = (project: Project, time: number, source: ModalSource, returnTo: HTMLElement | null = null) => {
+    landingPress.current?.();
+    landingPress.current = null;
     if (present.current) {
       const queued = queuedOpen.current;
       queuedOpen.current = project;
@@ -268,7 +283,17 @@ export default function ProjectsPage() {
       else pushProjectEntry(project);
       return;
     }
-    showProject(project, time, source);
+    const container = gallery.current;
+    const t = getTransition();
+    if (container && isInFlight(t) && t.to === layerPathOf(container)) {
+      landingPress.current = whenSettled(container, () => {
+        landingPress.current = null;
+        const opening = tiles.current.get(project.id)?.();
+        if (opening && !present.current && !isDrawerOpen()) openProject(project, opening.time, opening.source, opening.source.tile);
+      });
+      return;
+    }
+    showProject(project, time, source, returnTo);
     playOpen();
     // Not while Close's step back off the last project's entry is still on
     // its way: that step would take this entry off again. The popstate it
@@ -400,6 +425,9 @@ export default function ProjectsPage() {
     window.addEventListener("popstate", listener);
     return () => window.removeEventListener("popstate", listener);
   }, []);
+
+  // A press still waiting for a lift to land goes with the page.
+  useEffect(() => () => landingPress.current?.(), []);
 
   useEffect(() => {
     if (isPresent && window.history.state !== null) lastState.current = window.history.state;
