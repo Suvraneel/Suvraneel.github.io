@@ -433,8 +433,8 @@ a:focus-visible > .link-draw::after {
 
 /* Projects: one hover for every tile, sized to its room. The poster stays in
    full view: no panel slides over it. Tiles with room under the poster (at
-   least 340×300) lift the title and fade in one compact row under it (up to
-   three stack chips, as many as fit, + "Case notes"). Small tiles lift the
+   least 340×300) lift the title and fade in one compact row under it (as many
+   stack chips as fit, + "Case notes"). Small tiles lift the
    title less, over compact chips alone. Keyboard focus shows the same. */
 .project-tile {
   container: tile / size;

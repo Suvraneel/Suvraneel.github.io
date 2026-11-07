@@ -675,9 +675,9 @@ function ProjectTile({
           <span className="min-w-0">{project.name}</span>
         </span>
         <div aria-hidden="true" className="tile-brief-meta absolute inset-x-5 bottom-5 hidden items-center gap-1.5 sm:inset-x-6 sm:bottom-6">
-          {/* Up to three chips, on one row: any that won't fit beside "Case notes" wraps out of sight. */}
+          {/* The whole stack, on one row, in the project's own order: whole chips that won't fit beside "Case notes" wrap out of sight. */}
           <span className="tile-brief-chips flex h-[calc(1.5rem+2px)] min-w-0 flex-wrap gap-1.5 overflow-hidden">
-            {project.tech_stk.slice(0, 3).map((tech) => (
+            {project.tech_stk.map((tech) => (
               <span key={tech} className="tile-brief-chip shrink-0 rounded-full border border-white/15 bg-black/30 px-2.5 py-1 text-[0.65rem] font-medium leading-4 text-white/75">
                 {tech}
               </span>
