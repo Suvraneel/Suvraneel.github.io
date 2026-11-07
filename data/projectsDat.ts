@@ -12,6 +12,11 @@ type Rect = [number, number, number, number];
  * for this page in its poster's colour (NFT Haven, CrewS, SoLingo, JailBreak,
  * Bounty Gunslinger, CoWIN Clone, Diablo, LSTM).
  *
+ * `hero` marks the two flagship tiles (Monoma, SettleX) that break the poster
+ * template: full-bleed footage from their teasers under copy set in each brand's
+ * own type and palette (see app/projects/ProjectHero.tsx); `thumbnail` is then
+ * the footage's first frame.
+ *
  * `posterText` is what a designed thumbnail (thumbs/) says in its pixels: the tile
  * also carries it as text, for screen readers, search and find-in-page.
  */
@@ -52,9 +57,9 @@ const projectsData = [
       "Built a multi-tenant, Atlassian-centric agentic AI platform that turns Jira, Confluence, GitHub, and Slack activity into a persistent organisational graph and shared execution context.|Correlated tickets, documentation, pull requests, reviews, ownership, and engineering discussions across tools.|Developed 18+ permission-aware MCP tools and approval-gated workflows with tenant-scoped access, identity propagation, and audit trails for topic monitors, team and personal digests, morning briefs, blocker detection, cross-tool investigations, and actionable Slack delivery.",
     github: "#",
     url: "https://usemonoma.com",
-    thumbnail: "/images/project-assets/thumbs/monoma.webp",
-    posterText: "Company brain. 18+ MCP tools · Multi-tenant agentic AI · Approval-gated workflows",
-    thumbLoop: loop("monoma", "16 / 9", [44.001, 11.557, 50.897, 54.089], [43.958, 11.481, 50.99, 54.167]),
+    thumbnail: "/images/project-assets/hero/monoma.poster.webp",
+    hero: "monoma",
+    posterText: "Organizational memory. Company brain that evolves with every action. Scoped to your permissions. Approval-gated before every write.",
     gif: "video-to-be-added.webm",
     video: "https://www.youtube.com/embed/1yD7N6u9MG8",
     tech_stk: ["FastAPI", "Celery", "PostgreSQL", "pgvector", "Redis", "MCP"],
@@ -67,9 +72,9 @@ const projectsData = [
       "Architected a chain-agnostic cross-chain settlement protocol that aggregates transactions and settles net deltas instead of bridging each transfer individually.|Built and deployed a containerised Bun/Elysia backend on AWS with scheduled workers, persistent WebSocket listeners, and PostgreSQL to monitor spoke-chain contracts and execute settlements with on-chain acknowledgements.|Validated multiple chain testnets through a Next.js explorer; net settlement reduces transaction fees by up to 90% while improving capital efficiency.",
     github: "#",
     url: "https://settlex.fi",
-    thumbnail: "/images/project-assets/thumbs/settlex.webp",
-    posterText: "Bridge only the net. Up to 90% lower fees · Hub & spoke contracts · Multi-chain testnets",
-    thumbLoop: loop("settlex", "6 / 5", [45.033, 25.839, 49.435, 46.456], [45, 25.8, 49.5, 46.5]),
+    thumbnail: "/images/project-assets/hero/settlex.poster.webp",
+    hero: "settlex",
+    posterText: "Multi-chain testnets. The Clearing Layer for Crypto. Settles only the net delta, cutting bridging costs by up to 90%.",
     gif: "video-to-be-added.webm",
     video: "https://www.youtube.com/embed/2CyxdCe9RD8",
     tech_stk: ["Bun", "Elysia", "AWS", "PostgreSQL", "WebSockets", "Next.js"],

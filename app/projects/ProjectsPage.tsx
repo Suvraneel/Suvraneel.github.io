@@ -38,6 +38,8 @@ import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
 import { layerPathOf, layoutTop, whenPlaced } from "@components/transition/arrival";
 import { getTransition, isInFlight } from "@components/transition/transitionStore";
 import projectsData, { type ThumbLoop } from "@data/projectsDat";
+import ProjectHero, { type HeroBrand } from "./ProjectHero";
+import { useLoopPlayback } from "./useLoopPlayback";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { useLiftEntrance } from "@hooks/useLiftEntrance";
 import { useReveal } from "@hooks/useReveal";
@@ -489,6 +491,7 @@ function ProjectTile({
   const thumbLoop = "thumbLoop" in project ? project.thumbLoop : undefined;
   const posterText = "posterText" in project ? project.posterText : undefined;
   const logo = "logo" in project ? project.logo : undefined;
+  const hero = "hero" in project ? (project.hero as HeroBrand) : undefined;
   const posterTextId = useId();
   const showsThumbnail = Boolean(thumbnail && !thumbnailFailed);
   const videoPoster = `/images/project-assets/${project.gif.replace(/\.webm$/, ".poster.webp")}`;
@@ -543,7 +546,7 @@ function ProjectTile({
       style={{ rotateX: tilt.rotateX, rotateY: tilt.rotateY, transformPerspective: tilt.perspective }}
       onClick={(event) => {
         const tile = event.currentTarget;
-        const media = hasDedicatedPreview && !showsThumbnail ? previewVideo.current : stillImage.current;
+        const media = hero ? null : hasDedicatedPreview && !showsThumbnail ? previewVideo.current : stillImage.current;
         // An unplayed preview has no src, so its currentTime reads 0.
         onOpen(previewVideo.current?.currentTime ?? 0, {
           tile,
@@ -551,7 +554,9 @@ function ProjectTile({
           poster: still ?? null,
           strength: media ? parseFloat(getComputedStyle(dimmedBy(media)).opacity) : 1,
           // Now, as it is pressed (a click, a key or a tap): before the dialog locks the page.
-          onScreen: isOnScreen(tile.getBoundingClientRect()),
+          // A flagship's composed hero (footage, scrim, brand type) has no still that
+          // matches it, so its dialog fades in place rather than growing from the tile.
+          onScreen: !hero && isOnScreen(tile.getBoundingClientRect()),
         });
       }}
       onHoverStart={startPreview}
@@ -561,7 +566,9 @@ function ProjectTile({
       onFocus={startFocusPreview}
       onBlur={stopFocusPreview}
     >
-      {thumbnail && !thumbnailFailed ? (
+      {hero ? (
+        <ProjectHero brand={hero} tileRef={tileRef} paused={holdDepth} />
+      ) : thumbnail && !thumbnailFailed ? (
         <div className={`relative z-0 h-full w-full overflow-hidden ${THUMBNAIL_MOUNT_CLASS}`}>
           {/* Let the thumbnail's colours soften into the tile behind its crisp, uncropped copy. */}
           {/* Own compositing layer: WebKit otherwise re-renders the 40px blur in software on every
@@ -686,12 +693,8 @@ function ProjectTile({
   );
 }
 
-const LOOP_VISIBLE_SHARE = 0.25;
-/** Loops play from tablet width up; phones keep the posters, as the hover previews always have. */
-const LOOP_QUERY = "(min-width: 768px)";
 /** Names longer than this wrap to two lines on a short tile. */
 const LONG_NAME_CHARS = 24;
-type NetworkInformation = { saveData?: boolean };
 
 /**
  * A designed thumbnail's footage, playing over the spot its poster shows on the
@@ -710,65 +713,7 @@ function ThumbLoopVideo({
   tileRef: RefObject<HTMLElement | null>;
   paused: boolean;
 }) {
-  const video = useRef<HTMLVideoElement>(null);
-  const top = useRef<HTMLImageElement>(null);
-
-  useEffect(() => {
-    const clip = video.current;
-    const tile = tileRef.current;
-    if (!clip || !tile) return;
-    // Shown and hidden here rather than in state, so the effect never re-renders the tile.
-    const show = () => {
-      clip.style.visibility = "visible";
-      if (top.current) top.current.style.visibility = "visible";
-    };
-    // Back to the poster alone, on its first frame: the dialog's frame carries the
-    // poster, so it leaves and lands on exactly what the tile shows.
-    const rest = () => {
-      clip.pause();
-      clip.style.visibility = "";
-      if (top.current) top.current.style.visibility = "";
-      if (clip.readyState > 0) clip.currentTime = 0;
-    };
-    if (paused) {
-      rest();
-      return;
-    }
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const wide = window.matchMedia(LOOP_QUERY);
-    const saveData = (navigator as Navigator & { connection?: NetworkInformation }).connection?.saveData;
-    const allowed = () => !reduce.matches && wide.matches && !saveData;
-    // Set as a property too: autoplay without a gesture needs it muted before play().
-    clip.muted = true;
-    clip.addEventListener("playing", show);
-    const inView = new IntersectionObserver(
-      (entries) => {
-        const entry = entries.at(-1);
-        if (!allowed()) rest();
-        // isIntersecting holds for any overlap, whatever the threshold: the ratio says whether a quarter shows.
-        else if (entry?.isIntersecting && entry.intersectionRatio >= LOOP_VISIBLE_SHARE) clip.play().catch(() => undefined);
-        else clip.pause();
-      },
-      { threshold: LOOP_VISIBLE_SHARE }
-    );
-    inView.observe(tile);
-    // Reduced motion switched on, or the window narrowed to a phone's, mid-visit:
-    // back to the poster. Observing afresh reports the tile again, so a change
-    // back resumes it if it is on screen.
-    const recheck = () => {
-      inView.unobserve(tile);
-      inView.observe(tile);
-    };
-    reduce.addEventListener("change", recheck);
-    wide.addEventListener("change", recheck);
-    return () => {
-      inView.disconnect();
-      reduce.removeEventListener("change", recheck);
-      wide.removeEventListener("change", recheck);
-      clip.removeEventListener("playing", show);
-      clip.pause();
-    };
-  }, [paused, tileRef]);
+  const { video, overlay: top } = useLoopPlayback(tileRef, paused, true);
 
   const box = ([left, top, width, height]: ThumbLoop["rect"]) => ({
     left: `${left}%`,
