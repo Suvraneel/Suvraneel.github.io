@@ -107,6 +107,12 @@ function drawnPicture(media: HTMLElement, still: DOMRect, style: CSSStyleDeclara
   return { width: width * scale, height: height * scale };
 }
 
+/**
+ * What carries a still's dim and hover scale: the still itself, or, for a designed
+ * thumbnail whose footage loops over its poster, the frame they share.
+ */
+export const dimmedBy = (media: HTMLElement) => media.closest<HTMLElement>("[data-thumb-frame]") ?? media;
+
 /** The tile as it stands now (with its clip's poster size, where known); null once it is gone. */
 function measureTile(source: ModalSource, poster: Size | null = null): TileRects | null {
   const { tile, media } = source;
@@ -118,7 +124,8 @@ function measureTile(source: ModalSource, poster: Size | null = null): TileRects
   const still = media.getBoundingClientRect();
   const style = getComputedStyle(media);
   const backdrop = thumbnailBackdrop(source)?.getBoundingClientRect() ?? null;
-  return { box, still, picture: drawnPicture(media, still, style, poster), border, radius, strength: parseFloat(style.opacity), backdrop };
+  const strength = parseFloat(getComputedStyle(dimmedBy(media)).opacity);
+  return { box, still, picture: drawnPicture(media, still, style, poster), border, radius, strength, backdrop };
 }
 
 /**
@@ -130,9 +137,10 @@ function measureTile(source: ModalSource, poster: Size | null = null): TileRects
  */
 function settleTile({ media }: ModalSource) {
   if (!media?.isConnected) return;
+  const dimmed = dimmedBy(media);
   // Read first: a hover change becomes a running transition only once style is computed.
-  void getComputedStyle(media).opacity;
-  media.getAnimations().forEach((animation) => {
+  void getComputedStyle(dimmed).opacity;
+  dimmed.getAnimations().forEach((animation) => {
     if (animation instanceof CSSTransition) animation.finish();
   });
 }
@@ -326,37 +334,31 @@ const FRAME_TRAVEL: KeyframeAnimationOptions = { duration: MODAL_PANEL_S * 1000,
  * The close's lead-in: the tile's still comes back over the frame's own
  * picture while the panel's fade does most of its work, and only then does the
  * frame set off home. Its own 120 ms, an ease-out: the shortest that still
- * reads as a fade over several frames, never a cut. A thumbnail's copy gives
- * way to the dialog's own picture the same way as the frame lands, the other
- * way round.
+ * reads as a fade over several frames, never a cut.
  */
 const STILL_LEAD_IN_MS = 120;
 const STILL_FADE: KeyframeAnimationOptions = { duration: STILL_LEAD_IN_MS, easing: "ease-out", fill: "forwards" };
 
-/** One frame at 60 Hz: the most a thumbnail's handover moves on in any one frame (see playFrameByFrame). */
-const HANDOVER_FRAME_MS = 1000 / 60;
-
 /**
- * Runs a held fade on a clock of its own, frame by frame, each moving it on by
- * the time the frame took but never more than HANDOVER_FRAME_MS. The landing
- * is where WebKit's frames run long: the dialog's own picture comes in under
- * the copy, and a YouTube poster sets off on its own fade in it. A clock that
- * kept to the time would spend the fade on those few frames, so the copy would
- * drop away rather than fade; held to this one, a long frame slows the fade
- * instead. A fade cancelled meanwhile (the dialog closing) is left as it is.
+ * The open's settle: once the frame has landed, the tile's poster holds a
+ * moment so the arrival reads, then dissolves (softening as it goes) into the
+ * demo's own picture: YouTube's still, or the clip's first frames. The two
+ * rarely match, so a short fade read as a cut. Under reduced motion the frame
+ * never travels, so this never runs.
  */
-function playFrameByFrame(fade: Animation) {
-  let previous: number | null = null;
-  const step = (time: number) => {
-    if (fade.playState !== "paused") return;
-    const elapsed = previous === null ? 0 : Math.min(time - previous, HANDOVER_FRAME_MS);
-    previous = time;
-    fade.currentTime = Number(fade.currentTime ?? 0) + elapsed;
-    if (Number(fade.currentTime) < STILL_LEAD_IN_MS) requestAnimationFrame(step);
-    else fade.finish();
-  };
-  requestAnimationFrame(step);
-}
+const POSTER_SETTLE: KeyframeAnimationOptions = {
+  delay: 280,
+  duration: 720,
+  easing: "cubic-bezier(0.45, 0, 0.2, 1)",
+  // Both: the hold keeps the poster at full strength before the fade begins.
+  fill: "both",
+};
+/** The settle fades the still's whole layer (its mount stays opaque and sharp, so no light rim at the frame's edge)... */
+const POSTER_SETTLE_FADE: Keyframe[] = [{ opacity: 1 }, { opacity: 0 }];
+/** ...and softens only the poster image inside it. */
+const POSTER_SETTLE_SOFTEN: Keyframe[] = [{ filter: "blur(0px)" }, { filter: "blur(6px)" }];
+/** The settle waits for the demo's own picture (YouTube's still, the clip's first frame), but no longer than this after landing. */
+const SETTLE_WAIT_MAX_MS = 1500;
 
 /**
  * Moves the frame from one state to another. Separate animations, so the
@@ -461,6 +463,10 @@ export default function ProjectModal({
   // demo's own frame takes over only once it has landed, and gives way to the
   // tile's still again before the frame goes back (see close).
   const [landed, setLanded] = useState(!travels);
+  // The open's settle (see POSTER_SETTLE), made as the frame lands and held until the demo's picture is ready.
+  const settle = useRef<Animation[]>([]);
+  // YouTube's own still has loaded (LiteYouTube reports it).
+  const [demoStillReady, setDemoStillReady] = useState(false);
   // How long the close holds the frame while the tile's still comes back over
   // it (0: it sets off at once, or doesn't travel).
   const [stillLeadIn, setStillLeadIn] = useState(0);
@@ -587,13 +593,19 @@ export default function ProjectModal({
     const start = requestAnimationFrame(() => animations.forEach((animation) => animation.play()));
     Promise.all(animations.map((animation) => animation.finished)).then(
       () => {
-        // The thumbnail's copy gives way to the dialog's own picture as the
-        // frame lands: the close's lead-in, the other way round, at most a
-        // frame's worth at a time (see playFrameByFrame).
-        const handover = carriesThumbnail ? tileStill.current?.animate([{ opacity: 1 }, { opacity: 0 }], STILL_FADE) : undefined;
-        if (handover) {
-          handover.pause();
-          playFrameByFrame(handover);
+        // The tile's still gives way to the dialog's own picture (see
+        // POSTER_SETTLE), held at its start until that picture has loaded (see
+        // the settle effect), then lets go, leaving its class's opacity-0 and
+        // no filter. A close meanwhile takes it from where it stands.
+        const still = tileStill.current;
+        if (still) {
+          const settles = [still.animate(POSTER_SETTLE_FADE, POSTER_SETTLE)];
+          if (tileStillImage.current) settles.push(tileStillImage.current.animate(POSTER_SETTLE_SOFTEN, POSTER_SETTLE));
+          settles.forEach((animation) => {
+            animation.pause();
+            animation.finished.then(() => animation.cancel(), () => undefined);
+          });
+          settle.current = settles;
         }
         setLanded(true);
       },
@@ -604,6 +616,20 @@ export default function ProjectModal({
       animations.forEach((animation) => animation.cancel());
     };
   }, [carriesThumbnail, source, travels]);
+
+  // The settle sets off once the frame has landed and the demo's own picture is
+  // there to dissolve into, or after SETTLE_WAIT_MAX_MS if it never comes.
+  const pictureReady = hasProjectDemo ? demoStillReady : clipHasFrame;
+  useEffect(() => {
+    if (!landed || settle.current.length === 0) return;
+    const play = () => settle.current.forEach((animation) => animation.playState === "paused" && animation.play());
+    if (pictureReady) {
+      play();
+      return;
+    }
+    const cap = window.setTimeout(play, SETTLE_WAIT_MAX_MS);
+    return () => window.clearTimeout(cap);
+  }, [landed, pictureReady]);
 
   // A clip held under the tile's still starts once the frame has landed:
   // autoplay acts only as the clip first becomes playable, which may have passed.
@@ -682,8 +708,13 @@ export default function ProjectModal({
           // From where it stands: a thumbnail's copy still shows on a frame
           // caught on its way in, or part way through giving way as it landed.
           const shown = getComputedStyle(still).opacity;
+          const image = tileStillImage.current;
+          const softened = image ? getComputedStyle(image).filter : "none";
           still.getAnimations().forEach((animation) => animation.cancel());
+          image?.getAnimations().forEach((animation) => animation.cancel());
           fades.push(still.animate([{ opacity: shown }, { opacity: 1 }], STILL_FADE));
+          // Caught mid-settle, it sharpens back as it returns rather than at once.
+          if (image && softened !== "none") fades.push(image.animate([{ filter: softened }, { filter: "blur(0px)" }], STILL_FADE));
           // The tile shows its still over its own ground, not black: dimmed to
           // the tile's strength over the frame's black, the picture would land
           // a shade darker than the tile and lift as the dialog goes.
@@ -855,9 +886,11 @@ export default function ProjectModal({
                     <LiteYouTube
                       src={project.video}
                       title={`${project.name} demo`}
-                      initialPoster={source?.poster}
+                      // A travelling frame carries the tile's still itself (see the settle).
+                      initialPoster={travels ? null : source?.poster}
                       initialPosterStrength={source?.strength}
                       holdInitialPoster={!landed}
+                      onPosterReady={() => setDemoStillReady(true)}
                     />
                   ) : (
                     // Reduced motion: the demo stays paused on its first frame.
@@ -890,7 +923,7 @@ export default function ProjectModal({
                     <div
                       ref={tileStill}
                       aria-hidden="true"
-                      className={`pointer-events-none absolute inset-0 ${carriesThumbnail ? `visible ${THUMBNAIL_MOUNT_CLASS}` : ""} ${carriesThumbnail && !landed ? "" : "opacity-0"}`}
+                      className={`pointer-events-none absolute inset-0 ${carriesThumbnail ? `visible ${THUMBNAIL_MOUNT_CLASS}` : ""} ${landed ? "opacity-0" : ""}`}
                     >
                       {carriesThumbnail ? (
                         <>

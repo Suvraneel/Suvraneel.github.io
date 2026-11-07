@@ -16,14 +16,17 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useId,
   useRef,
   useState,
+  useSyncExternalStore,
   type FocusEvent,
   type PointerEvent,
   type RefObject,
 } from "react";
 import LiftHeading from "@components/LiftHeading";
 import ProjectModal, {
+  dimmedBy,
   isOnScreen,
   THUMBNAIL_BACKDROP_CLASS,
   THUMBNAIL_EDGE_STYLE,
@@ -34,7 +37,7 @@ import ProjectModal, {
 import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
 import { layerPathOf, layoutTop, whenPlaced } from "@components/transition/arrival";
 import { getTransition, isInFlight } from "@components/transition/transitionStore";
-import projectsData from "@data/projectsDat";
+import projectsData, { type ThumbLoop } from "@data/projectsDat";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { useLiftEntrance } from "@hooks/useLiftEntrance";
 import { useReveal } from "@hooks/useReveal";
@@ -50,27 +53,48 @@ function getYouTubeId(url: string) {
   return match?.[1] ?? null;
 }
 
-// Bento rhythm, in gallery order. Rows alternate which side gets the wide card and
-// step down in height toward the end; at lg the last six cards move into two
-// narrower 3-up rows so the final projects are the smallest. Each row sums to 12
-// columns at md and lg. Literal class names keep Tailwind's scanner happy.
+// Bento, in gallery order, by tier. lg: the four flagships in two tall rows
+// (7/5, 8/4), the two featured projects 6/6, then two 6×2 anchors (NFT Haven,
+// LSTM) each beside four 3×1 tiles. md: the flagships 7/5 twice, then 6/6 pairs.
+// Phones: one column at 16:10, Radlet square and SettleX 6:5 like their posters. Each row sums to 12 columns at md
+// and lg. Row heights are in px, not rem (the root is 18px here), so each tile
+// keeps the shape its thumbnail was designed for. Literal class names keep
+// Tailwind's scanner happy.
+const SMALL = "aspect-[16/10] md:aspect-auto md:col-span-6 lg:col-span-3";
+/**
+ * Phones show the first six as cards (the work since 2022); the rest, from NFT
+ * Haven on, wait behind one button as a compact list. The bento on md and up
+ * ranks them by size instead, so it shows all.
+ */
+const FEATURED_ON_PHONES = 6;
+const EARLIER_OPEN_KEY = "projects:earlier-open";
+const subscribeNever = () => () => undefined;
+const readEarlierOpen = () => {
+  try {
+    return sessionStorage.getItem(EARLIER_OPEN_KEY) === "1";
+  } catch {
+    // Storage blocked (a private window): the list starts closed.
+    return false;
+  }
+};
+const ANCHOR = "aspect-[16/10] md:aspect-auto md:col-span-6 lg:col-span-6 lg:row-span-2";
 const cardLayout = [
-  // lg rows: 7/5 · 8/4 · 4/8 · 5/7 · 4/5/3 · 5/3/4
-  // md rows: 7/5 · 8/4 · 4/8 · 5/7 · 7/5 · 4/8 · 7/5
-  "md:col-span-7 lg:col-span-7",
-  "md:col-span-5 lg:col-span-5",
-  "md:col-span-8 lg:col-span-8",
-  "md:col-span-4 lg:col-span-4",
-  "md:col-span-4 lg:col-span-4",
-  "md:col-span-8 lg:col-span-8",
-  "md:col-span-5 lg:col-span-5",
-  "md:col-span-7 lg:col-span-7",
-  "md:col-span-7 lg:col-span-4",
-  "md:col-span-5 lg:col-span-5",
-  "md:col-span-4 lg:col-span-3",
-  "md:col-span-8 lg:col-span-5",
-  "md:col-span-7 lg:col-span-3",
-  "md:col-span-5 lg:col-span-4",
+  "aspect-[16/10] md:aspect-auto md:col-span-7 lg:col-span-7", // Monoma
+  "aspect-[6/5] md:aspect-auto md:col-span-5 lg:col-span-5", // SettleX: its poster is 6:5
+  "aspect-[16/10] md:aspect-auto md:col-span-7 lg:col-span-8", // Sheetah
+  "aspect-square md:aspect-auto md:col-span-5 lg:col-span-4", // Radlet
+  "aspect-[16/10] md:aspect-auto md:col-span-6 lg:col-span-6", // StakeOverflow
+  "aspect-[16/10] md:aspect-auto md:col-span-6 lg:col-span-6", // GSSoC
+  ANCHOR, // NFT Haven
+  SMALL,
+  SMALL,
+  SMALL,
+  SMALL,
+  SMALL,
+  SMALL,
+  ANCHOR, // LSTM
+  SMALL,
+  SMALL,
 ];
 
 export default function ProjectsPage() {
@@ -96,6 +120,21 @@ export default function ProjectsPage() {
   const [playTick, { stop: stopTick }] = useSfx("tick");
   const [playOpen] = useSfx("open");
 
+  // Phones: the earlier projects wait behind one button (see EarlierProjects).
+  // Remembered for the visit, so coming back to the page finds it as it was left.
+  // Read through useSyncExternalStore so the server's closed list hydrates first.
+  const earlierStored = useSyncExternalStore(subscribeNever, readEarlierOpen, () => false);
+  const [earlierOpenedNow, setEarlierOpenedNow] = useState(false);
+  const earlierOpen = earlierStored || earlierOpenedNow;
+  const openEarlier = () => {
+    setEarlierOpenedNow(true);
+    try {
+      sessionStorage.setItem(EARLIER_OPEN_KEY, "1");
+    } catch {
+      // Storage blocked: open for now only.
+    }
+  };
+
   const openProject = (project: Project, time: number, source: ModalSource) => {
     setSelectedProject(project);
     setPreviewTime(time);
@@ -117,13 +156,13 @@ export default function ProjectsPage() {
         </header>
 
         <section className="mt-10 sm:mt-14" aria-label="Project gallery">
-          <div ref={gallery} className="grid grid-cols-1 auto-rows-[15rem] gap-3 sm:auto-rows-[18rem] sm:gap-4 md:grid-cols-12 md:grid-rows-[24rem_20rem_18rem_17rem_16rem_14rem_13rem] lg:grid-rows-[24rem_21rem_19rem_17.5rem_16rem_12.5rem]">
+          <div ref={gallery} className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-12 md:grid-rows-[256px_320px_repeat(6,208px)] lg:grid-rows-[448px_480px_400px_repeat(4,192px)]">
             {projectsData.map((project, index) => (
               // The grid cell carries the scroll reveal and the lift entrance; the card inside keeps its own motion.
               <div
                 key={("id" in project && project.id) || project.name}
                 data-reveal
-                className={`min-h-0 ${cardLayout[index] ?? "md:col-span-6 xl:col-span-4"}`}
+                className={`min-h-0 ${cardLayout[index] ?? SMALL} ${index >= FEATURED_ON_PHONES ? "max-md:hidden" : ""}`}
               >
                 <ProjectTile
                   project={project}
@@ -138,6 +177,13 @@ export default function ProjectsPage() {
               </div>
             ))}
           </div>
+          <EarlierProjects
+            projects={projectsData.slice(FEATURED_ON_PHONES)}
+            open={earlierOpen}
+            onOpenList={openEarlier}
+            reduceMotion={Boolean(reduceMotion)}
+            onOpenProject={(project, source) => openProject(project, 0, source)}
+          />
         </section>
       </div>
 
@@ -440,17 +486,15 @@ function ProjectTile({
   const youtubeId = getYouTubeId(project.video);
   const hasVideoThumbnail = Boolean(youtubeId && youtubeId !== placeholderDemoId && !thumbnailFailed);
   const thumbnail = "thumbnail" in project ? project.thumbnail : undefined;
+  const thumbLoop = "thumbLoop" in project ? project.thumbLoop : undefined;
+  const posterText = "posterText" in project ? project.posterText : undefined;
+  const logo = "logo" in project ? project.logo : undefined;
+  const posterTextId = useId();
   const showsThumbnail = Boolean(thumbnail && !thumbnailFailed);
   const videoPoster = `/images/project-assets/${project.gif.replace(/\.webm$/, ".poster.webp")}`;
   const youtubeStill = `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
   // The still the tile shows, already decoded: the dialog's preview starts on it.
   const still = showsThumbnail ? thumbnail : hasDedicatedPreview ? videoPoster : hasVideoThumbnail ? youtubeStill : undefined;
-  // Plain text here: case-note links ([label](url)) keep only their label on the tile.
-  const overview = project.details
-    .split("|")[0]
-    ?.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, "$1")
-    .trim();
-
   // The clips are 5-16 MB each, so a tile fetches its own only on the first hover
   // or keyboard focus, and never on touch screens or under reduced motion.
   const playPreview = () => {
@@ -487,6 +531,9 @@ function ProjectTile({
       type="button"
       aria-haspopup="dialog"
       aria-label={`Open ${project.name}`}
+      aria-describedby={posterText && showsThumbnail ? posterTextId : undefined}
+      // A designed poster's two-line name sets smaller on short tiles (see globals.css).
+      data-long-name={posterText && showsThumbnail && project.name.length > LONG_NAME_CHARS ? "" : undefined}
       className="project-tile group relative h-full min-h-0 w-full overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#10141c] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
       initial={reduceMotion || !mountEntrance ? false : { opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
@@ -502,7 +549,7 @@ function ProjectTile({
           tile,
           media,
           poster: still ?? null,
-          strength: media ? parseFloat(getComputedStyle(media).opacity) : 1,
+          strength: media ? parseFloat(getComputedStyle(dimmedBy(media)).opacity) : 1,
           // Now, as it is pressed (a click, a key or a tap): before the dialog locks the page.
           onScreen: isOnScreen(tile.getBoundingClientRect()),
         });
@@ -526,16 +573,43 @@ function ProjectTile({
           </motion.div>
           <div className={THUMBNAIL_VEIL_CLASS} />
           <motion.div className="absolute inset-0 z-10" style={depth.front}>
-            {/* Sized and centred like object-contain, so the mask fades the drawn image's own edges. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              ref={stillImage}
-              className="absolute inset-0 m-auto max-h-full max-w-full opacity-95 transition duration-500 ease-out group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
-              src={thumbnail}
-              alt=""
-              onError={() => setThumbnailFailed(true)}
-              style={THUMBNAIL_EDGE_STYLE}
-            />
+            {thumbLoop ? (
+              // A designed thumbnail with footage: the poster and its loop share one
+              // contained frame (a size container, so the loop's cqw radius matches
+              // the poster's), and it carries the poster's dim and hover scale for both.
+              <div
+                data-thumb-frame
+                className="absolute inset-0 m-auto opacity-95 transition duration-500 ease-out [container-type:inline-size] group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
+                style={{
+                  width: `min(100cqw, 100cqh * ${thumbLoop.aspect})`,
+                  height: `min(100cqh, 100cqw / (${thumbLoop.aspect}))`,
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  ref={stillImage}
+                  className="block h-full w-full"
+                  src={thumbnail}
+                  alt=""
+                  onError={() => setThumbnailFailed(true)}
+                  style={THUMBNAIL_EDGE_STYLE}
+                />
+                <ThumbLoopVideo loop={thumbLoop} tileRef={tileRef} paused={holdDepth} />
+              </div>
+            ) : (
+              <>
+                {/* Sized and centred like object-contain, so the mask fades the drawn image's own edges. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  ref={stillImage}
+                  className="absolute inset-0 m-auto max-h-full max-w-full opacity-95 transition duration-500 ease-out group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
+                  src={thumbnail}
+                  alt=""
+                  onError={() => setThumbnailFailed(true)}
+                  style={THUMBNAIL_EDGE_STYLE}
+                />
+              </>
+            )}
           </motion.div>
         </div>
       ) : hasDedicatedPreview ? (
@@ -575,43 +649,269 @@ function ProjectTile({
         className="pointer-events-none absolute left-0 top-0 z-[5] -ml-56 -mt-56 size-[28rem] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.09),transparent_62%)]"
         style={{ x: tilt.sheenX, y: tilt.sheenY, opacity: tilt.sheenOpacity }}
       />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[#07090d] via-[#07090d]/80 to-transparent px-5 pb-5 pt-16 sm:px-6 sm:pb-6">
-        {/* Smaller tiles (see .tile-title-lift in globals.css): the title lifts and one compact row fades in under it. */}
+      {/* The poster's words as text: its pixels say them, but only this reaches screen readers, search and find-in-page. */}
+      {posterText && showsThumbnail && (
+        <span id={posterTextId} className="sr-only">
+          {posterText}
+        </span>
+      )}
+      <div className="tile-shade pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[#07090d] via-[#07090d]/80 to-transparent px-5 pb-5 pt-16 sm:px-6 sm:pb-6">
+        {/* Tiles with room under the poster (see .tile-title-lift in globals.css): the title lifts and one compact row fades in under it. */}
         {/* A span, not a heading: a button may hold only phrasing content. Hidden from
             assistive tech because the button's aria-label already reads "Open <name>". */}
-        <span aria-hidden="true" className="tile-title-lift block max-w-[22ch] text-xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-2xl/tight">
-          {project.name}
+        <span aria-hidden="true" className="tile-title-lift flex max-w-[calc(22ch+1.25em)] items-start gap-[0.4em] text-xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-2xl/tight">
+          {/* The project's own mark, centred on the name's first line and lifting with it. */}
+          {logo && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logo} alt="" className="mt-[0.2em] h-[0.85em] w-auto max-w-[2.1em] shrink-0 object-contain" />
+          )}
+          <span className="min-w-0">{project.name}</span>
         </span>
         <div aria-hidden="true" className="tile-brief-meta absolute inset-x-5 bottom-5 hidden items-center gap-1.5 sm:inset-x-6 sm:bottom-6">
-          {project.tech_stk.slice(0, 3).map((tech) => (
-            <span key={tech} className="tile-brief-chip shrink-0 rounded-full border border-white/15 bg-black/30 px-2.5 py-1 text-[0.65rem] font-medium text-white/75">
-              {tech}
-            </span>
-          ))}
-          <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 pl-2 text-xs font-semibold text-white">
+          {/* Up to three chips, on one row: any that won't fit beside "Case notes" wraps out of sight. */}
+          <span className="tile-brief-chips flex h-[calc(1.5rem+2px)] min-w-0 flex-wrap gap-1.5 overflow-hidden">
+            {project.tech_stk.slice(0, 3).map((tech) => (
+              <span key={tech} className="tile-brief-chip shrink-0 rounded-full border border-white/15 bg-black/30 px-2.5 py-1 text-[0.65rem] font-medium leading-4 text-white/75">
+                {tech}
+              </span>
+            ))}
+          </span>
+          <span className="tile-brief-notes ml-auto inline-flex shrink-0 items-center gap-1.5 pl-2 text-xs font-semibold text-white">
             Case notes
             <ArrowRightIcon aria-hidden="true" size={14} className="transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 motion-reduce:transition-none" />
           </span>
         </div>
       </div>
-      {/* A visual preview of the case notes the dialog opens, so assistive tech skips it. */}
-      <div aria-hidden="true" className="tile-brief-side pointer-events-none absolute inset-y-0 right-0 z-20 hidden w-[52%] translate-x-4 flex-col border-l border-white/10 bg-[#0a0f16]/90 p-5 opacity-0 backdrop-blur-md transition duration-300 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none sm:p-6">
-        <span className="font-mono text-[0.65rem] uppercase tracking-[0.22em] text-accent">Project brief</span>
-        <span className="mt-3 block text-lg font-semibold leading-tight tracking-[-0.025em] text-white lg:text-xl/tight">{project.name}</span>
-        <p className={`mt-3 line-clamp-4 text-sm leading-6 text-white/65 ${tasaOrbiter.className}`}>{overview}</p>
-        <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
-          {project.tech_stk.slice(0, 3).map((tech) => (
-            <span key={tech} className="rounded-full border border-white/10 px-2.5 py-1 text-[0.65rem] font-medium text-white/70">
-              {tech}
-            </span>
-          ))}
-        </div>
-        <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-white">
-          Open case notes
-          <ArrowRightIcon aria-hidden="true" size={14} className="transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 motion-reduce:transition-none" />
-        </span>
-      </div>
     </motion.button>
+  );
+}
+
+const LOOP_VISIBLE_SHARE = 0.25;
+/** Loops play from tablet width up; phones keep the posters, as the hover previews always have. */
+const LOOP_QUERY = "(min-width: 768px)";
+/** Names longer than this wrap to two lines on a short tile. */
+const LONG_NAME_CHARS = 24;
+type NetworkInformation = { saveData?: boolean };
+
+/**
+ * A designed thumbnail's footage, playing over the spot its poster shows on the
+ * first frame, with whatever the poster paints above the footage laid back over
+ * it. Plays only while a quarter of the tile is on screen and the dialog is
+ * closed; never on phones or under reduced motion or Data Saver, where the
+ * poster stands alone. Both layers stay hidden until the first frame plays and go again
+ * (back to frame 0) when the dialog opens, so every hand-over is seamless.
+ */
+function ThumbLoopVideo({
+  loop,
+  tileRef,
+  paused,
+}: {
+  loop: ThumbLoop;
+  tileRef: RefObject<HTMLElement | null>;
+  paused: boolean;
+}) {
+  const video = useRef<HTMLVideoElement>(null);
+  const top = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const clip = video.current;
+    const tile = tileRef.current;
+    if (!clip || !tile) return;
+    // Shown and hidden here rather than in state, so the effect never re-renders the tile.
+    const show = () => {
+      clip.style.visibility = "visible";
+      if (top.current) top.current.style.visibility = "visible";
+    };
+    // Back to the poster alone, on its first frame: the dialog's frame carries the
+    // poster, so it leaves and lands on exactly what the tile shows.
+    const rest = () => {
+      clip.pause();
+      clip.style.visibility = "";
+      if (top.current) top.current.style.visibility = "";
+      if (clip.readyState > 0) clip.currentTime = 0;
+    };
+    if (paused) {
+      rest();
+      return;
+    }
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const wide = window.matchMedia(LOOP_QUERY);
+    const saveData = (navigator as Navigator & { connection?: NetworkInformation }).connection?.saveData;
+    const allowed = () => !reduce.matches && wide.matches && !saveData;
+    // Set as a property too: autoplay without a gesture needs it muted before play().
+    clip.muted = true;
+    clip.addEventListener("playing", show);
+    const inView = new IntersectionObserver(
+      (entries) => {
+        const entry = entries.at(-1);
+        if (!allowed()) rest();
+        // isIntersecting holds for any overlap, whatever the threshold: the ratio says whether a quarter shows.
+        else if (entry?.isIntersecting && entry.intersectionRatio >= LOOP_VISIBLE_SHARE) clip.play().catch(() => undefined);
+        else clip.pause();
+      },
+      { threshold: LOOP_VISIBLE_SHARE }
+    );
+    inView.observe(tile);
+    // Reduced motion switched on, or the window narrowed to a phone's, mid-visit:
+    // back to the poster. Observing afresh reports the tile again, so a change
+    // back resumes it if it is on screen.
+    const recheck = () => {
+      inView.unobserve(tile);
+      inView.observe(tile);
+    };
+    reduce.addEventListener("change", recheck);
+    wide.addEventListener("change", recheck);
+    return () => {
+      inView.disconnect();
+      reduce.removeEventListener("change", recheck);
+      wide.removeEventListener("change", recheck);
+      clip.removeEventListener("playing", show);
+      clip.pause();
+    };
+  }, [paused, tileRef]);
+
+  const box = ([left, top, width, height]: ThumbLoop["rect"]) => ({
+    left: `${left}%`,
+    top: `${top}%`,
+    width: `${width}%`,
+    height: `${height}%`,
+  });
+
+  return (
+    <>
+      <video
+        ref={video}
+        aria-hidden="true"
+        className="invisible absolute object-cover"
+        style={{ ...box(loop.rect), borderRadius: loop.radius, WebkitMaskImage: loop.mask, maskImage: loop.mask }}
+        preload="none"
+        muted
+        loop
+        playsInline
+        disablePictureInPicture
+      >
+        <source src={`${loop.src}.webm`} type="video/webm" />
+        <source src={`${loop.src}.mp4`} type="video/mp4" />
+      </video>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img ref={top} aria-hidden="true" className="pointer-events-none invisible absolute" style={box(loop.topRect)} src={loop.top} alt="" />
+    </>
+  );
+}
+
+/**
+ * Phones only: the projects past the first six, behind one button that says
+ * how many there are, then as a compact list (thumbnail, name, two stack
+ * chips) whose rows open the same dialog. Hidden with display, not removed, so
+ * the cards stay in the page for search on every width; md and up show them
+ * in the bento instead. Opening moves focus to the first row, since the
+ * button it replaces goes.
+ */
+function EarlierProjects({
+  projects,
+  open,
+  onOpenList,
+  reduceMotion,
+  onOpenProject,
+}: {
+  projects: Project[];
+  open: boolean;
+  onOpenList: () => void;
+  reduceMotion: boolean;
+  onOpenProject: (project: Project, source: ModalSource) => void;
+}) {
+  const list = useRef<HTMLUListElement>(null);
+  const focusFirst = useRef(false);
+  const listId = useId();
+
+  useEffect(() => {
+    if (!open || !focusFirst.current) return;
+    focusFirst.current = false;
+    list.current?.querySelector("button")?.focus({ preventScroll: true });
+  }, [open]);
+
+  if (projects.length === 0) return null;
+  return (
+    <div className="mt-6 md:hidden">
+      {!open ? (
+        <button
+          type="button"
+          aria-expanded={false}
+          aria-controls={listId}
+          onClick={() => {
+            focusFirst.current = true;
+            onOpenList();
+          }}
+          className="group flex w-full items-center justify-between rounded-full border border-white/10 bg-white/[0.03] py-2 pl-5 pr-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent active:scale-[0.98] motion-reduce:transition-none"
+        >
+          <span className="text-sm font-semibold text-white">
+            {projects.length} earlier projects
+          </span>
+          <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-full bg-white/10 text-white">
+            <ArrowRightIcon size={16} className="rotate-90" />
+          </span>
+        </button>
+      ) : (
+        <>
+          <h2 className={`px-1 font-mono text-[0.65rem] uppercase tracking-[0.22em] text-white/50`}>Earlier projects</h2>
+          <ul
+            ref={list}
+            id={listId}
+            className="mt-3 divide-y divide-white/[0.07] overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#10141c] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+          >
+            {projects.map((project, index) => {
+              const thumbnail = "thumbnail" in project ? project.thumbnail : undefined;
+              return (
+                <motion.li
+                  key={("id" in project && project.id) || project.name}
+                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1], delay: reduceMotion ? 0 : index * 0.04 }}
+                >
+                  <button
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-label={`Open ${project.name}`}
+                    onClick={(event) => {
+                      const row = event.currentTarget;
+                      const media = row.querySelector("img");
+                      // The thumbnail's rounded box is what the frame grows from and lands on.
+                      const thumb = row.querySelector<HTMLElement>("[data-row-thumb]") ?? row;
+                      onOpenProject(project, {
+                        tile: thumb,
+                        media,
+                        poster: thumbnail ?? null,
+                        strength: 1,
+                        onScreen: isOnScreen(row.getBoundingClientRect()),
+                      });
+                    }}
+                    className="flex w-full items-center gap-4 px-4 py-3 text-left transition-colors duration-200 active:bg-white/[0.04] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+                  >
+                    <span data-row-thumb className="relative h-12 w-[85px] shrink-0 overflow-hidden rounded-lg bg-[#060606]">
+                      {thumbnail && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      )}
+                    </span>
+                    <span aria-hidden="true" className="min-w-0 flex-1">
+                      <span className="block truncate text-[0.95rem] font-semibold leading-tight tracking-[-0.02em] text-white">{project.name}</span>
+                      <span className="mt-1.5 flex gap-1.5 overflow-hidden">
+                        {project.tech_stk.slice(0, 2).map((tech) => (
+                          <span key={tech} className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[0.6rem] font-medium leading-4 text-white/70">
+                            {tech}
+                          </span>
+                        ))}
+                      </span>
+                    </span>
+                    <ArrowRightIcon aria-hidden="true" size={16} className="shrink-0 text-white/45" />
+                  </button>
+                </motion.li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </div>
   );
 }
 

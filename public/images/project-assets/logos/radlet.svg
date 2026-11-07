@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#30344a"/>
+      <stop offset="1" stop-color="#0f1119"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <!-- The app icon's wheel: eight slots, the upper-right one picked. -->
+  <g transform="translate(32 32) scale(1.857) translate(-16 -16)">
+    <circle cx="16" cy="16" r="14" fill="#41455a"/>
+    <path d="M21.36 3.07A14 14 0 0 1 28.93 10.64L22.01 13.51A6.5 6.5 0 0 0 18.49 10Z" fill="#5b9bff"/>
+    <path d="M21.36 3.07 10.64 28.93M28.93 10.64 3.07 21.36M28.93 21.36 3.07 10.64M21.36 28.93 10.64 3.07" stroke="#1b1e2b" stroke-width="1.1"/>
+    <circle cx="16" cy="16" r="6.6" fill="#1b1e2b"/>
+    <circle cx="16" cy="16" r="4.1" fill="#0f1119" stroke="#fff" stroke-width="1.9"/>
+  </g>
+</svg>

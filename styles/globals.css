@@ -431,10 +431,11 @@ a:focus-visible > .link-draw::after {
   }
 }
 
-/* Projects: hover brief adapts to the tile. Most tiles keep the right-hand
-   panel; only very small ones (too short for the panel's overview) keep their
-   image as the hero: the title lifts and one compact row (stack chips +
-   "Case notes") fades in under it. */
+/* Projects: one hover for every tile, sized to its room. The poster stays in
+   full view: no panel slides over it. Tiles with room under the poster (at
+   least 340×300) lift the title and fade in one compact row under it (up to
+   three stack chips, as many as fit, + "Case notes"). Small tiles lift the
+   title less, over compact chips alone. Keyboard focus shows the same. */
 .project-tile {
   container: tile / size;
 }
@@ -452,21 +453,11 @@ a:focus-visible > .link-draw::after {
 }
 
 @media (min-width: 768px) {
-  .tile-brief-meta {
-    display: flex;
-  }
-
-  @container tile (min-width: 400px) and (min-height: 300px) {
-    .tile-brief-side {
+  @container tile (min-width: 340px) and (min-height: 300px) {
+    .tile-brief-meta {
       display: flex;
     }
 
-    .tile-brief-meta {
-      display: none;
-    }
-  }
-
-  @container tile (not ((min-width: 400px) and (min-height: 300px))) {
     .project-tile:is(:hover, :focus-visible) .tile-title-lift {
       transform: translateY(-2.25rem);
     }
@@ -477,11 +468,70 @@ a:focus-visible > .link-draw::after {
     }
   }
 
-  /* Narrow tiles: two chips, so "Case notes" never wraps. */
-  @container tile (max-width: 460px) {
-    .tile-brief-chip:nth-child(n + 3) {
+  /* Small tiles: a shorter lift and a row of compact chips alone (as many as
+     fit), so the name stays clear of the poster's headline. */
+  @container tile (not ((min-width: 340px) and (min-height: 300px))) {
+    .tile-brief-meta {
+      display: flex;
+    }
+
+    .tile-brief-notes {
       display: none;
     }
+
+    .tile-brief-chips {
+      height: calc(1.25rem + 2px);
+    }
+
+    .tile-brief-chip {
+      padding: 0.125rem 0.5rem;
+      font-size: 0.6rem;
+    }
+
+    .project-tile:is(:hover, :focus-visible) .tile-title-lift {
+      transform: translateY(-1.75rem);
+    }
+
+    .project-tile:is(:hover, :focus-visible) .tile-brief-meta {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* A name that would wrap on a short tile sits over its poster's facts: it sets
+   smaller, across the tile's full width, under a shorter shade. That is any
+   name on the narrowest small tiles (laptop widths, ~220-290px), and a long one
+   (data-long-name) on the wider short tiles. */
+@container tile (max-height: 260px) {
+  .project-tile[data-long-name] .tile-title-lift {
+    max-width: none;
+    font-size: 0.9375rem;
+    line-height: 1.2;
+  }
+
+  .project-tile[data-long-name] .tile-shade {
+    padding-top: 1.5rem;
+  }
+}
+
+/* The 3×1 tiles at full desktop width (~300-330px): a name beside its logo
+   fits on one line a size down. */
+@container tile (max-height: 260px) and (min-width: 291px) and (max-width: 330px) {
+  .project-tile .tile-title-lift {
+    font-size: 1.25rem;
+  }
+}
+
+@container tile (max-height: 260px) and (max-width: 290px) {
+  .project-tile .tile-title-lift {
+    max-width: none;
+    font-size: 0.9375rem;
+    line-height: 1.2;
+  }
+
+  .project-tile .tile-shade {
+    padding-top: 1.5rem;
   }
 }
 
