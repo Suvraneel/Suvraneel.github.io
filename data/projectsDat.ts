@@ -12,8 +12,8 @@ type Rect = [number, number, number, number];
  * for this page in its poster's colour (NFT Haven, CrewS, SoLingo, JailBreak,
  * Bounty Gunslinger, CoWIN Clone, Diablo, LSTM).
  *
- * `hero` marks the two flagship tiles (Monoma, SettleX) that break the poster
- * template: full-bleed footage from their teasers under copy set in each brand's
+ * `hero` marks the flagship tiles (Monoma, SettleX, Sheetah) that break the poster
+ * template: full-bleed footage from their teasers or the app under copy set in each brand's
  * own type and palette (see app/projects/ProjectHero.tsx); `thumbnail` is then
  * the footage's first frame.
  *
@@ -90,9 +90,9 @@ const projectsData = [
       "Built Sheetah, a browser spreadsheet that opens CSV, Excel, JSON and Parquet files and queries them with SQL through DuckDB-WASM, with no backend, so the data stays in the browser.|Designed a canvas grid that fetches 200-row windows by rowid range instead of OFFSET, keeps recently fetched chunks in a bounded cache, and maps the scrollbar proportionally past 8M px because browsers cap element height, so a 10-million-row result reaches its last row. Ran DuckDB-WASM in a Web Worker with user queries and UI reads on separate connections, a run lock and send()-based cancellation, so scrolling does not abort a running query.|Sealed the engine before first use (file access limited to a virtual /sheetah/ folder, external access disabled, configuration locked) and added a Content-Security-Policy with connect-src 'self' as a second layer. A Playwright test runs 13 attack queries (URL and S3 reads, ATTACH, COPY TO a URL, remote extensions, path traversal, attempts to switch the locked settings back on) and asserts that each one fails and no request leaves the page.|Turned point-and-click sorts, filters and pivots into readable SQL composed around the last query and shown in the editor; pivots compile to FILTER aggregates with GROUPING SETS totals, and charts aggregate every row in DuckDB rather than a sample. Wrote clean-up steps for messy exports (₹ amounts, Indian 1,00,000 grouping, Cr/Dr), Tally XML import, and bank-to-books payment matching that produces a reconciliation statement.|Set up CI with oxlint, npm audit, Node unit tests that run the generated SQL on the same DuckDB-WASM build, Playwright end-to-end tests and a frame-timing test against the production build under the real CSP, and axe-core WCAG 2.1 A/AA checks. The build checks self-hosted DuckDB extensions against pinned SHA-256 hashes, and CI fails if the initial JavaScript goes over a 180 KB gzip budget.",
     github: "https://github.com/Suvraneel/Sheetah",
     url: "https://sheetah.vercel.app",
-    thumbnail: "/images/project-assets/thumbs/sheetah.webp",
-    posterText: "Sheets × SQL. 10M-row grid · 60 fps scroll · Zero uploads",
-    thumbLoop: loop("sheetah", "16 / 9", [46.901, 11.557, 47.997, 61.751], [46.875, 11.481, 48.073, 61.852]),
+    thumbnail: "/images/project-assets/hero/sheetah.poster.webp",
+    hero: "sheetah",
+    posterText: "Spreadsheet × SQL · In your browser. Open the whole file. 1,048,576 rows is where Excel stops. Sheetah keeps scrolling.",
     gif: "sheetah.webm",
     video: "https://www.youtube.com/embed/EKGJ-pzSEns",
     tech_stk: ["DuckDB-WASM", "TypeScript", "React", "Canvas API", "Web Workers", "Apache Arrow", "CodeMirror", "Playwright"],
