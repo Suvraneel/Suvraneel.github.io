@@ -28,6 +28,15 @@ const PLAYER_SETTLE_MS = 1500;
  */
 const LOADING_OPACITY = 0.01;
 const PLAYER_FADE = `opacity ${FADE_MS}ms ${cssEase(EASE_FADE)}`;
+/**
+ * The initial poster's release: it holds a moment, then dissolves (softening
+ * as it goes) into YouTube's still, which rarely matches it, so a short fade
+ * read as a cut. The same timing as the dialog's own settle.
+ */
+const INITIAL_POSTER_RELEASE = {
+  filter: "blur(6px)",
+  transition: "opacity 720ms cubic-bezier(0.45, 0, 0.2, 1) 280ms, filter 720ms cubic-bezier(0.45, 0, 0.2, 1) 280ms",
+} as const;
 /** The posters' own strength at rest, unhovered (their opacity-90 below). */
 const POSTER_REST_OPACITY = 0.9;
 
@@ -71,12 +80,15 @@ export default function LiteYouTube({
   initialPoster = null,
   initialPosterStrength = 0,
   holdInitialPoster = false,
+  onPosterReady,
 }: Readonly<{
   src: string;
   title: string;
   initialPoster?: string | null;
   initialPosterStrength?: number;
   holdInitialPoster?: boolean;
+  /** YouTube's own still has loaded (the maxres one, or the hq fallback). */
+  onPosterReady?: () => void;
 }>) {
   const id = videoIdOf(src);
   const [stage, setStage] = useState<Stage>("poster");
@@ -86,6 +98,7 @@ export default function LiteYouTube({
   // YouTube's frame has loaded (the maxres one, or the hq fallback), so the initial poster can go once it may.
   const [posterLoaded, setPosterLoaded] = useState(false);
   const initialPosterHeld = Boolean(initialPoster) && holdInitialPoster;
+  const initialPosterReleased = posterLoaded && !initialPosterHeld;
   const [playHovered, setPlayHovered] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const controls = useRef<HTMLDivElement>(null);
@@ -93,6 +106,10 @@ export default function LiteYouTube({
   const loadedAt = useRef<number | null>(null);
   // The Loading button had focus when the stage turned 'failed': the Watch link takes it over.
   const focusFallback = useRef(false);
+
+  useEffect(() => {
+    if (posterLoaded) onPosterReady?.();
+  }, [posterLoaded, onPosterReady]);
 
   // Loading: ask the player to report its state, and show it once it plays.
   useEffect(() => {
@@ -224,10 +241,10 @@ export default function LiteYouTube({
         <img
           src={initialPoster}
           alt=""
-          className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${posterLoaded && !initialPosterHeld ? "opacity-0" : started ? "opacity-100" : "opacity-90 group-hover:opacity-100"}`}
+          className={`pointer-events-none absolute inset-0 h-full w-full object-cover ${initialPosterReleased ? "opacity-0" : `transition-opacity duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${started ? "opacity-100" : "opacity-90 group-hover:opacity-100"}`}`}
           // Held, it keeps the page's strength where that is the stronger, whatever
-          // the pointer does; let go, it eases from there to its own.
-          style={initialPosterHeld ? { opacity: Math.max(initialPosterStrength, POSTER_REST_OPACITY) } : undefined}
+          // the pointer does; let go, it holds a moment and dissolves into YouTube's still.
+          style={initialPosterHeld ? { opacity: Math.max(initialPosterStrength, POSTER_REST_OPACITY) } : initialPosterReleased ? INITIAL_POSTER_RELEASE : undefined}
         />
       )}
       <span

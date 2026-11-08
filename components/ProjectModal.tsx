@@ -42,6 +42,12 @@ export type ModalSource = {
    * every box a scroll's length from where it is drawn.
    */
   onScreen: boolean;
+  /**
+   * A tile whose picture is composed in the page (footage, scrim and type, as
+   * the flagship heroes are) rather than one image: the frame carries a copy
+   * of it, laid over the tile as the tile draws it, so it can still travel.
+   */
+  composite?: HTMLElement | null;
 };
 
 /** At least partly inside the window. */
@@ -107,6 +113,12 @@ function drawnPicture(media: HTMLElement, still: DOMRect, style: CSSStyleDeclara
   return { width: width * scale, height: height * scale };
 }
 
+/**
+ * What carries a still's dim and hover scale: the still itself, or, for a designed
+ * thumbnail whose footage loops over its poster, the frame they share.
+ */
+export const dimmedBy = (media: HTMLElement) => media.closest<HTMLElement>("[data-thumb-frame]") ?? media;
+
 /** The tile as it stands now (with its clip's poster size, where known); null once it is gone. */
 function measureTile(source: ModalSource, poster: Size | null = null): TileRects | null {
   const { tile, media } = source;
@@ -118,7 +130,8 @@ function measureTile(source: ModalSource, poster: Size | null = null): TileRects
   const still = media.getBoundingClientRect();
   const style = getComputedStyle(media);
   const backdrop = thumbnailBackdrop(source)?.getBoundingClientRect() ?? null;
-  return { box, still, picture: drawnPicture(media, still, style, poster), border, radius, strength: parseFloat(style.opacity), backdrop };
+  const strength = parseFloat(getComputedStyle(dimmedBy(media)).opacity);
+  return { box, still, picture: drawnPicture(media, still, style, poster), border, radius, strength, backdrop };
 }
 
 /**
@@ -130,9 +143,10 @@ function measureTile(source: ModalSource, poster: Size | null = null): TileRects
  */
 function settleTile({ media }: ModalSource) {
   if (!media?.isConnected) return;
+  const dimmed = dimmedBy(media);
   // Read first: a hover change becomes a running transition only once style is computed.
-  void getComputedStyle(media).opacity;
-  media.getAnimations().forEach((animation) => {
+  void getComputedStyle(dimmed).opacity;
+  dimmed.getAnimations().forEach((animation) => {
     if (animation instanceof CSSTransition) animation.finish();
   });
 }
@@ -319,6 +333,42 @@ function layThumbnail(frame: HTMLElement, tile: TileRects, { mount, backdrop, im
   });
 }
 
+/**
+ * Lays the frame's copy of a composed tile picture (see ModalSource.composite)
+ * over the tile: in the tile's own px, from the corner inside its border,
+ * scaled into the frame's untransformed px (which the frame's travel scales
+ * back), as layThumbnail lays a thumbnail's mount.
+ */
+function layComposite(frame: HTMLElement, tile: TileRects, mount: HTMLElement | null, element: HTMLElement) {
+  const at = placeOverTile(frame, tile);
+  if (!at || !mount || element.clientWidth === 0) return;
+  const { box, border } = tile;
+  const x = (box.left + border - at.left) / at.scale - frame.clientLeft;
+  const y = (box.top + border - at.top) / at.scale - frame.clientTop;
+  // Laid out at the tile's own layout size (its container queries and px copy
+  // resolve as the tile's do), then scaled to the size it is drawn at, which a
+  // press or tilt still on the tile may make a touch smaller.
+  const drawn = (box.width - 2 * border) / element.clientWidth;
+  Object.assign(mount.style, {
+    width: `${element.clientWidth}px`,
+    height: `${element.clientHeight}px`,
+    transform: `translate(${x}px, ${y}px) scale(${drawn / at.scale})`,
+  });
+}
+
+/**
+ * The copy of a composed tile picture: a clone of the tile's own, in a size
+ * container named like the tile's, so its container queries lay it out as the
+ * tile does. Its video shows its poster, the frame the tile rests on.
+ */
+function copyComposite(composite: HTMLElement, mount: HTMLElement) {
+  const container = document.createElement("div");
+  Object.assign(container.style, { position: "absolute", inset: "0", containerType: "size", containerName: "tile" });
+  container.appendChild(composite.cloneNode(true));
+  mount.replaceChildren(container);
+  return container;
+}
+
 /** The frame's travel runs on the panel's own curve and duration. */
 const FRAME_TRAVEL: KeyframeAnimationOptions = { duration: MODAL_PANEL_S * 1000, easing: cssEase(MODAL_PANEL_EASE) };
 
@@ -326,37 +376,31 @@ const FRAME_TRAVEL: KeyframeAnimationOptions = { duration: MODAL_PANEL_S * 1000,
  * The close's lead-in: the tile's still comes back over the frame's own
  * picture while the panel's fade does most of its work, and only then does the
  * frame set off home. Its own 120 ms, an ease-out: the shortest that still
- * reads as a fade over several frames, never a cut. A thumbnail's copy gives
- * way to the dialog's own picture the same way as the frame lands, the other
- * way round.
+ * reads as a fade over several frames, never a cut.
  */
 const STILL_LEAD_IN_MS = 120;
 const STILL_FADE: KeyframeAnimationOptions = { duration: STILL_LEAD_IN_MS, easing: "ease-out", fill: "forwards" };
 
-/** One frame at 60 Hz: the most a thumbnail's handover moves on in any one frame (see playFrameByFrame). */
-const HANDOVER_FRAME_MS = 1000 / 60;
-
 /**
- * Runs a held fade on a clock of its own, frame by frame, each moving it on by
- * the time the frame took but never more than HANDOVER_FRAME_MS. The landing
- * is where WebKit's frames run long: the dialog's own picture comes in under
- * the copy, and a YouTube poster sets off on its own fade in it. A clock that
- * kept to the time would spend the fade on those few frames, so the copy would
- * drop away rather than fade; held to this one, a long frame slows the fade
- * instead. A fade cancelled meanwhile (the dialog closing) is left as it is.
+ * The open's settle: once the frame has landed, the tile's poster holds a
+ * moment so the arrival reads, then dissolves (softening as it goes) into the
+ * demo's own picture: YouTube's still, or the clip's first frames. The two
+ * rarely match, so a short fade read as a cut. Under reduced motion the frame
+ * never travels, so this never runs.
  */
-function playFrameByFrame(fade: Animation) {
-  let previous: number | null = null;
-  const step = (time: number) => {
-    if (fade.playState !== "paused") return;
-    const elapsed = previous === null ? 0 : Math.min(time - previous, HANDOVER_FRAME_MS);
-    previous = time;
-    fade.currentTime = Number(fade.currentTime ?? 0) + elapsed;
-    if (Number(fade.currentTime) < STILL_LEAD_IN_MS) requestAnimationFrame(step);
-    else fade.finish();
-  };
-  requestAnimationFrame(step);
-}
+const POSTER_SETTLE: KeyframeAnimationOptions = {
+  delay: 280,
+  duration: 720,
+  easing: "cubic-bezier(0.45, 0, 0.2, 1)",
+  // Both: the hold keeps the poster at full strength before the fade begins.
+  fill: "both",
+};
+/** The settle fades the still's whole layer (its mount stays opaque and sharp, so no light rim at the frame's edge)... */
+const POSTER_SETTLE_FADE: Keyframe[] = [{ opacity: 1 }, { opacity: 0 }];
+/** ...and softens only the poster image inside it. */
+const POSTER_SETTLE_SOFTEN: Keyframe[] = [{ filter: "blur(0px)" }, { filter: "blur(6px)" }];
+/** The settle waits for the demo's own picture (YouTube's still, the clip's first frame), but no longer than this after landing. */
+const SETTLE_WAIT_MAX_MS = 1500;
 
 /**
  * Moves the frame from one state to another. Separate animations, so the
@@ -512,6 +556,9 @@ export default function ProjectModal({
   const tileGround = useRef<HTMLDivElement>(null);
   const tileStillImage = useRef<HTMLImageElement>(null);
   const tileMount = useRef<HTMLDivElement>(null);
+  // A composed tile picture's copy (see ModalSource.composite): its mount, and the clone in it.
+  const compositeMount = useRef<HTMLDivElement>(null);
+  const compositeCopy = useRef<HTMLDivElement | null>(null);
   const tileBackdrop = useRef<HTMLDivElement>(null);
   const tileBackdropImage = useRef<HTMLCanvasElement>(null);
   const tileClipFrame = useRef<HTMLCanvasElement>(null);
@@ -546,11 +593,17 @@ export default function ProjectModal({
       Boolean(source.poster) &&
       thumbnailBackdrop(source) !== null
   );
+  // A composed tile picture (see ModalSource.composite) travels as a copy of itself.
+  const [carriesComposite] = useState(() => travels && !carriesThumbnail && Boolean(source?.composite?.isConnected));
   // The frame stands in its place (at once when it doesn't travel). Until then
   // it keeps the tile's still, so the picture never changes mid-travel; the
   // demo's own frame takes over only once it has landed, and gives way to the
   // tile's still again before the frame goes back (see close).
   const [landed, setLanded] = useState(!travels);
+  // The open's settle (see POSTER_SETTLE), made as the frame lands and held until the demo's picture is ready.
+  const settle = useRef<Animation[]>([]);
+  // YouTube's own still has loaded (LiteYouTube reports it).
+  const [demoStillReady, setDemoStillReady] = useState(false);
   // How long the close holds the frame while the tile's still comes back over
   // it (0: it sets off at once, or doesn't travel).
   const [stillLeadIn, setStillLeadIn] = useState(0);
@@ -637,7 +690,9 @@ export default function ProjectModal({
     // A thumbnail's copy draws the tile's strength itself (see layThumbnail),
     // so the picture layer starts at full.
     const from =
-      preview && layer && tile ? frameOverTile(preview, tile, carriesThumbnail ? tile.strength : pictureStrength(layer, tileStill.current)) : null;
+      preview && layer && tile
+        ? frameOverTile(preview, tile, carriesThumbnail || carriesComposite ? tile.strength : pictureStrength(layer, tileStill.current))
+        : null;
     if (!preview || !layer || !source || !tile || !from) {
       // Meant to travel but can't (the tile has gone): it stands in its place already.
       if (travels) queueMicrotask(() => setLanded(true));
@@ -647,6 +702,10 @@ export default function ProjectModal({
       drawThumbnailBackdrop(tile, source.media, tileBackdropImage.current);
       layThumbnail(preview, tile, { mount: tileMount.current, backdrop: tileBackdrop.current, image: tileStillImage.current });
     }
+    if (carriesComposite && source.composite && compositeMount.current) {
+      compositeCopy.current = copyComposite(source.composite, compositeMount.current);
+      layComposite(preview, tile, compositeMount.current, source.tile);
+    }
     const animations = travel(preview, layer, from, frameHome(preview));
     // Held on the tile until the next frame: WebKit starts the clock at once,
     // and would otherwise lose the travel's quick start behind the mount.
@@ -654,13 +713,20 @@ export default function ProjectModal({
     const start = requestAnimationFrame(() => animations.forEach((animation) => animation.play()));
     Promise.all(animations.map((animation) => animation.finished)).then(
       () => {
-        // The thumbnail's copy gives way to the dialog's own picture as the
-        // frame lands: the close's lead-in, the other way round, at most a
-        // frame's worth at a time (see playFrameByFrame).
-        const handover = carriesThumbnail ? tileStill.current?.animate([{ opacity: 1 }, { opacity: 0 }], STILL_FADE) : undefined;
-        if (handover) {
-          handover.pause();
-          playFrameByFrame(handover);
+        // The tile's still gives way to the dialog's own picture (see
+        // POSTER_SETTLE), held at its start until that picture has loaded (see
+        // the settle effect), then lets go, leaving its class's opacity-0 and
+        // no filter. A close meanwhile takes it from where it stands.
+        const still = tileStill.current;
+        if (still) {
+          const settles = [still.animate(POSTER_SETTLE_FADE, POSTER_SETTLE)];
+          const softened = tileStillImage.current ?? compositeCopy.current;
+          if (softened) settles.push(softened.animate(POSTER_SETTLE_SOFTEN, POSTER_SETTLE));
+          settles.forEach((animation) => {
+            animation.pause();
+            animation.finished.then(() => animation.cancel(), () => undefined);
+          });
+          settle.current = settles;
         }
         setLanded(true);
       },
@@ -670,7 +736,21 @@ export default function ProjectModal({
       cancelAnimationFrame(start);
       animations.forEach((animation) => animation.cancel());
     };
-  }, [carriesThumbnail, source, travels]);
+  }, [carriesComposite, carriesThumbnail, source, travels]);
+
+  // The settle sets off once the frame has landed and the demo's own picture is
+  // there to dissolve into, or after SETTLE_WAIT_MAX_MS if it never comes.
+  const pictureReady = hasProjectDemo ? demoStillReady : clipHasFrame;
+  useEffect(() => {
+    if (!landed || settle.current.length === 0) return;
+    const play = () => settle.current.forEach((animation) => animation.playState === "paused" && animation.play());
+    if (pictureReady) {
+      play();
+      return;
+    }
+    const cap = window.setTimeout(play, SETTLE_WAIT_MAX_MS);
+    return () => window.clearTimeout(cap);
+  }, [landed, pictureReady]);
 
   // A clip held under the tile's still starts once the frame has landed:
   // autoplay acts only as the clip first becomes playable, which may have passed.
@@ -750,11 +830,17 @@ export default function ProjectModal({
         if (still) {
           drawClipFrame(source.media, tileClipFrame.current);
           if (carriesThumbnail) layThumbnail(preview, tile, { mount: tileMount.current, backdrop: tileBackdrop.current, image: tileStillImage.current });
+          if (carriesComposite) layComposite(preview, tile, compositeMount.current, source.tile);
           // From where it stands: a thumbnail's copy still shows on a frame
           // caught on its way in, or part way through giving way as it landed.
           const shown = getComputedStyle(still).opacity;
+          const image = tileStillImage.current ?? compositeCopy.current;
+          const softened = image ? getComputedStyle(image).filter : "none";
           still.getAnimations().forEach((animation) => animation.cancel());
+          image?.getAnimations().forEach((animation) => animation.cancel());
           fades.push(still.animate([{ opacity: shown }, { opacity: 1 }], STILL_FADE));
+          // Caught mid-settle, it sharpens back as it returns rather than at once.
+          if (image && softened !== "none") fades.push(image.animate([{ filter: softened }, { filter: "blur(0px)" }], STILL_FADE));
           // The tile shows its still over its own ground, not black: dimmed to
           // the tile's strength over the frame's black, the picture would land
           // a shade darker than the tile and lift as the dialog goes.
@@ -782,7 +868,7 @@ export default function ProjectModal({
     }
     const done = () => safeToRemove?.();
     Promise.all(animations.map((animation) => animation.finished)).then(done, done);
-  }, [carriesThumbnail, isPresent, safeToRemove, source, stillLeadIn, travels]);
+  }, [carriesComposite, carriesThumbnail, isPresent, safeToRemove, source, stillLeadIn, travels]);
 
   return (
     // No opacity on the dialog itself: it would cut the backdrop's blur off
@@ -926,14 +1012,16 @@ export default function ProjectModal({
                     thumbnail's copy on the way in, it is left undrawn under it until
                     the frame has landed: WebKit and Firefox would otherwise draw an
                     SVG thumbnail twice over on every frame of the travel. */}
-                <div ref={picture} className={`relative h-full w-full ${carriesThumbnail && !landed ? "invisible" : ""}`}>
+                <div ref={picture} className={`relative h-full w-full ${(carriesThumbnail || carriesComposite) && !landed ? "invisible" : ""}`}>
                   {hasProjectDemo ? (
                     <LiteYouTube
                       src={project.video}
                       title={`${project.name} demo`}
-                      initialPoster={source?.poster}
+                      // A travelling frame carries the tile's still itself (see the settle).
+                      initialPoster={travels ? null : source?.poster}
                       initialPosterStrength={source?.strength}
                       holdInitialPoster={!landed}
+                      onPosterReady={() => setDemoStillReady(true)}
                     />
                   ) : (
                     // Reduced motion: the demo stays paused on its first frame.
@@ -966,9 +1054,19 @@ export default function ProjectModal({
                     <div
                       ref={tileStill}
                       aria-hidden="true"
-                      className={`pointer-events-none absolute inset-0 ${carriesThumbnail ? `visible ${THUMBNAIL_MOUNT_CLASS}` : ""} ${carriesThumbnail && !landed ? "" : "opacity-0"}`}
+                      className={`pointer-events-none absolute inset-0 ${carriesThumbnail || carriesComposite ? `visible ${THUMBNAIL_MOUNT_CLASS}` : ""} ${landed ? "opacity-0" : ""}`}
                     >
-                      {carriesThumbnail ? (
+                      {carriesComposite ? (
+                        <>
+                          {/* The footage's still, blurred, filling the frame wherever the
+                              copy (the tile's shape) leaves it bare as the frame grows to 16:9. */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={source.poster} alt="" className={THUMBNAIL_BACKDROP_CLASS} />
+                          <div className={THUMBNAIL_VEIL_CLASS} />
+                          {/* The composed picture's copy, cloned in as it opens (see copyComposite). */}
+                          <div ref={compositeMount} className="absolute left-0 top-0 origin-top-left overflow-hidden" />
+                        </>
+                      ) : carriesThumbnail ? (
                         <>
                           {/* The tile's mount, in the tile's own px, its blurred copy drawn
                               from the tile's thumbnail (see drawThumbnailBackdrop). */}

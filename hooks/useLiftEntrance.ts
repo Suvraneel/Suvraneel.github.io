@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, type RefObject } from "react";
-import { arrivalView, whenPlaced } from "@components/transition/arrival";
+import { arrivalView, isUnrendered, whenPlaced } from "@components/transition/arrival";
 import { REVEAL_STAGGER_MS } from "@hooks/useReveal";
 import { EASE_LIFT, cssEase, prefersReducedMotion } from "@lib/pageTransition";
 
@@ -26,7 +26,8 @@ export function useLiftEntrance(containerRef: RefObject<HTMLElement | null>) {
       if (!t || !track) return;
       const view = arrivalView(null, t);
       const cells = Array.from(container.querySelectorAll<HTMLElement>("[data-reveal]")).filter(
-        (cell) => view.side(cell) === 0
+        // Not drawn at all (hidden at this width) reads as in view: left out, so it doesn't shorten the rest's rise.
+        (cell) => !isUnrendered(cell) && view.side(cell) === 0
       );
       const length = Math.max(track.duration - (cells.length - 1) * REVEAL_STAGGER_MS, track.duration / 2);
       cells.forEach((cell, index) => {

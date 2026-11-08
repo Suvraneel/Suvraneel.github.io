@@ -453,10 +453,11 @@ a:focus-visible > .link-draw::after {
   }
 }
 
-/* Projects: hover brief adapts to the tile. Most tiles keep the right-hand
-   panel; only very small ones (too short for the panel's overview) keep their
-   image as the hero: the title lifts and one compact row (stack chips +
-   "Case notes") fades in under it. */
+/* Projects: one hover for every tile, sized to its room. The poster stays in
+   full view: no panel slides over it. Tiles with room under the poster (at
+   least 340×300) lift the title and fade in one compact row under it (as many
+   stack chips as fit, + "Case notes"). Small tiles lift the
+   title less, over compact chips alone. Keyboard focus shows the same. */
 .project-tile {
   container: tile / size;
 }
@@ -474,21 +475,11 @@ a:focus-visible > .link-draw::after {
 }
 
 @media (min-width: 768px) {
-  .tile-brief-meta {
-    display: flex;
-  }
-
-  @container tile (min-width: 400px) and (min-height: 300px) {
-    .tile-brief-side {
+  @container tile (min-width: 340px) and (min-height: 300px) {
+    .tile-brief-meta {
       display: flex;
     }
 
-    .tile-brief-meta {
-      display: none;
-    }
-  }
-
-  @container tile (not ((min-width: 400px) and (min-height: 300px))) {
     .project-tile:is(:hover, :focus-visible) .tile-title-lift {
       transform: translateY(-2.25rem);
     }
@@ -499,11 +490,285 @@ a:focus-visible > .link-draw::after {
     }
   }
 
-  /* Narrow tiles: two chips, so "Case notes" never wraps. */
-  @container tile (max-width: 460px) {
-    .tile-brief-chip:nth-child(n + 3) {
+  /* Small tiles: a shorter lift and a row of compact chips alone (as many as
+     fit), so the name stays clear of the poster's headline. */
+  @container tile (not ((min-width: 340px) and (min-height: 300px))) {
+    .tile-brief-meta {
+      display: flex;
+    }
+
+    .tile-brief-notes {
       display: none;
     }
+
+    .tile-brief-chips {
+      height: calc(1.25rem + 2px);
+    }
+
+    .tile-brief-chip {
+      padding: 0.125rem 0.5rem;
+      font-size: 0.6rem;
+    }
+
+    .project-tile:is(:hover, :focus-visible) .tile-title-lift {
+      transform: translateY(-1.75rem);
+    }
+
+    .project-tile:is(:hover, :focus-visible) .tile-brief-meta {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* A name that would wrap on a short tile sits over its poster's facts: it sets
+   smaller, across the tile's full width, under a shorter shade. That is any
+   name on the narrowest small tiles (laptop widths, ~220-290px), and a long one
+   (data-long-name) on the wider short tiles. */
+@container tile (max-height: 260px) {
+  .project-tile[data-long-name] .tile-title-lift {
+    max-width: none;
+    font-size: 0.9375rem;
+    line-height: 1.2;
+  }
+
+  .project-tile[data-long-name] .tile-shade {
+    padding-top: 1.5rem;
+  }
+}
+
+/* The 3×1 tiles at full desktop width (~300-330px): a name beside its logo
+   fits on one line a size down. */
+@container tile (max-height: 260px) and (min-width: 291px) and (max-width: 330px) {
+  .project-tile .tile-title-lift {
+    font-size: 1.25rem;
+  }
+}
+
+@container tile (max-height: 260px) and (max-width: 290px) {
+  .project-tile .tile-title-lift {
+    max-width: none;
+    font-size: 0.9375rem;
+    line-height: 1.2;
+  }
+
+  .project-tile .tile-shade {
+    padding-top: 1.5rem;
+  }
+}
+
+/* The two flagship tiles (app/projects/ProjectHero.tsx): footage full-bleed,
+   copy in the brand's own type. "Roomy" is the tall desktop tile (448px);
+   smaller ones (tablet 256px, phones) drop the subline and size the rest to
+   the tile's width. The bottom ~120px stays clear for the tile's name row. */
+.project-hero {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: #060606;
+}
+
+.project-hero-footage {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.project-hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.project-hero-copy {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.project-hero-headline {
+  display: block;
+  color: #fff;
+  font-weight: 400;
+}
+
+.project-hero-headline span,
+.project-hero-sub span {
+  display: block;
+}
+
+.project-hero-sub {
+  display: none;
+}
+
+/* Monoma (usemonoma.com): Aoboshi One headline, plain white, -0.02em; JetBrains
+   Mono caps eyebrow in the one cyan; Public Sans muted subline; the company-brain
+   constellation seated low and right, its edges feathered into #060606, under the
+   site's cyan hero glow. */
+.project-hero--monoma .project-hero-footage {
+  transform: translate(18%, 25%) scale(0.87);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16%), linear-gradient(180deg, transparent 0, #000 16%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent 0, #000 16%), linear-gradient(180deg, transparent 0, #000 16%);
+  mask-composite: intersect;
+}
+
+.project-hero--monoma .project-hero-scrim {
+  background:
+    radial-gradient(70% 80% at 6% 0%, rgba(23, 193, 222, 0.16), transparent 70%),
+    radial-gradient(45% 55% at 96% 4%, rgba(23, 193, 222, 0.1), transparent 70%),
+    linear-gradient(90deg, rgba(6, 6, 6, 0.85) 0%, rgba(6, 6, 6, 0.4) 30%, rgba(6, 6, 6, 0) 55%),
+    linear-gradient(180deg, rgba(6, 6, 6, 0.6) 0%, rgba(6, 6, 6, 0) 90px),
+    linear-gradient(0deg, rgba(6, 6, 6, 0.85) 0%, rgba(6, 6, 6, 0) 90px);
+}
+
+.project-hero--monoma .project-hero-copy {
+  left: clamp(20px, 6cqw, 24px);
+  top: clamp(20px, 6cqw, 24px);
+  max-width: 90%;
+  font-family: var(--font-monoma-text), system-ui, sans-serif;
+}
+
+.project-hero--monoma .project-hero-eyebrow {
+  margin-bottom: clamp(8px, 2.5cqw, 10px);
+  font-family: var(--font-monoma-mono), monospace;
+  font-size: clamp(9px, 2.6cqw, 10px);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #18c1de;
+}
+
+.project-hero--monoma .project-hero-headline {
+  font-family: var(--font-monoma-display), serif;
+  font-size: clamp(16px, 5cqw, 20px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+
+.project-hero--monoma .project-hero-sub {
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 1.625;
+  color: #a3a3a3;
+}
+
+/* SettleX (settlex.fi): Helvetica Neue 400 headline, plain white, no tracking;
+   the site's Join Waitlist pill as the eyebrow; light muted subline; the hero's
+   rays, glow and coin tiles up top right, and below them the README's netting
+   demo, one state at a time: 10,000 out and 9,500 back, then 500 net. */
+/* On tiles narrower than the footage (desktop near 1024px, tablets) the crop
+   keeps the netting diagram whole and centred under the copy. */
+.project-hero--settlex .project-hero-footage {
+  object-position: 76% 30%;
+}
+
+.project-hero--settlex .project-hero-scrim {
+  background:
+    linear-gradient(100deg, rgba(6, 6, 6, 0.82) 0%, rgba(6, 6, 6, 0.5) 36%, rgba(6, 6, 6, 0) 60%),
+    linear-gradient(to top, rgba(6, 6, 6, 0.9) 0%, rgba(6, 6, 6, 0) 32%);
+}
+
+.project-hero--settlex .project-hero-copy {
+  left: clamp(20px, 6.5cqw, 22px);
+  top: clamp(20px, 6.5cqw, 22px);
+  font-family: "Helvetica Neue", var(--font-settlex-fallback), sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.project-hero--settlex .project-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border: 1px solid rgba(23, 193, 222, 0.4);
+  border-top: 0;
+  border-bottom-width: 2px;
+  border-radius: 8px;
+  background: linear-gradient(to bottom, rgba(23, 193, 222, 0.1), rgba(23, 193, 222, 0.3));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-size: 11px;
+  font-weight: 300;
+  line-height: 1;
+  color: #17c1de;
+}
+
+.project-hero--settlex .project-hero-eyebrow i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #17c1de;
+  box-shadow: 0 0 8px #17c1de;
+}
+
+.project-hero--settlex .project-hero-headline {
+  margin-top: 12px;
+  font-size: clamp(22px, 7.9cqw, 26px);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.project-hero--settlex .project-hero-sub {
+  margin-top: 14px;
+  max-width: 255px;
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.5;
+  color: #a3a3a3;
+}
+
+@container tile (min-height: 380px) {
+  .project-hero-sub {
+    display: block;
+  }
+
+  .project-hero--monoma .project-hero-footage {
+    transform: translate(17%, 20%) scale(0.78);
+  }
+
+  .project-hero--monoma .project-hero-scrim {
+    background:
+      radial-gradient(60% 70% at 8% 0%, rgba(23, 193, 222, 0.16), transparent 70%),
+      radial-gradient(40% 50% at 96% 4%, rgba(23, 193, 222, 0.1), transparent 70%),
+      linear-gradient(90deg, rgba(6, 6, 6, 0.9) 0%, rgba(6, 6, 6, 0.62) 24%, rgba(6, 6, 6, 0.18) 46%, rgba(6, 6, 6, 0) 62%),
+      linear-gradient(0deg, rgba(6, 6, 6, 0.9) 0%, rgba(6, 6, 6, 0.45) 100px, rgba(6, 6, 6, 0) 170px);
+  }
+
+  .project-hero--monoma .project-hero-copy {
+    left: 40px;
+    top: 40px;
+  }
+
+  .project-hero--monoma .project-hero-eyebrow {
+    margin-bottom: 14px;
+    font-size: 11px;
+  }
+
+  /* Scales down on narrow desktop tiles so the second line never wraps. */
+  .project-hero--monoma .project-hero-headline {
+    font-size: min(32px, 6.2cqw);
+  }
+
+  .project-hero--settlex .project-hero-copy {
+    left: 32px;
+    top: 30px;
+  }
+
+  .project-hero--settlex .project-hero-eyebrow {
+    padding: 7px 11px;
+    font-size: 13px;
+  }
+
+  /* Scales down on narrow desktop tiles (~340px at 1024): its lines never wrap,
+     and Inter (where Helvetica Neue is missing) sets wider. */
+  .project-hero--settlex .project-hero-headline {
+    margin-top: 18px;
+    font-size: min(36px, 9.4cqw);
   }
 }
 
