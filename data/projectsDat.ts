@@ -17,6 +17,9 @@ type Rect = [number, number, number, number];
  * own type and palette (see app/projects/ProjectHero.tsx); `thumbnail` is then
  * the footage's first frame.
  *
+ * `titleLines` breaks a long name the same way on its tile and in its dialog's
+ * title, so the name that flies between them never re-wraps.
+ *
  * `posterText` is what a designed thumbnail (thumbs/) says in its pixels: the tile
  * also carries it as text, for screen readers, search and find-in-page.
  */
@@ -127,7 +130,8 @@ const projectsData = [
   },
   {
     id: "gssoc-website",
-    name: "GirlScript SoC 2022 Official Website",
+    name: "GSSoC 2022 Official Website",
+    titleLines: ["GSSoC 2022", "Official Website"],
     logo: "/images/project-assets/logos/gssoc-website.webp",
     details:
       "The official website for GirlScript Summer of Code 2022, a national open-source programme; 6,000+ contributors applied and registered through it.|Featured a live, paginated contributor leaderboard and on-chain certificate verification.|Prototyped in Figma, then built with Next.js, Tailwind CSS and Chakra UI, and shipped to Vercel through a CI/CD pipeline.|Used in sponsor pitches to show the programme's reach across student communities.|Originally hosted at [gssoc.girlscript.org](https://gssoc.girlscript.org) for GSSoC 2022; the live link is a preserved snapshot of that release.",
@@ -304,6 +308,7 @@ const projectsData = [
   {
     id: "short-term-price-trend-prediction",
     name: "Short‑term Stock Market Price Trend Prediction",
+    titleLines: ["Short‑term Stock", "Market Price", "Trend Prediction"],
     logo: "/images/project-assets/logos/short-term-price-trend-prediction.svg",
     details:
       "Scraping stock price data of various equities from NSE website, preprocessing, normalizing, feature engineering, & finally training an LSTM model on the time-series data using a 4-layered RNN.|Evaluating the accuracy of the model using metrics (like RMSE & MAE) and comparing its hyper-parameters (optimizers & activation functions)",

@@ -528,20 +528,30 @@ a:focus-visible > .link-draw::after {
 @container tile (max-height: 260px) {
   .project-tile[data-long-name] .tile-title-lift {
     max-width: none;
-    font-size: 0.9375rem;
-    line-height: 1.2;
+    font-size: 0.85rem;
+    line-height: 1.08;
   }
 
   .project-tile[data-long-name] .tile-shade {
     padding-top: 1.5rem;
   }
+
+  /* Its lines already reach the poster's facts: it doesn't lift over them, and
+     its chips (which need the lift's room) stay away. */
+  .project-tile[data-long-name]:is(:hover, :focus-visible) .tile-title-lift {
+    transform: none;
+  }
+
+  .project-tile[data-long-name] .tile-brief-meta {
+    display: none;
+  }
 }
 
-/* The 3×1 tiles at full desktop width (~300-330px): a name beside its logo
-   fits on one line a size down. */
+/* The 3×1 tiles at full desktop width (~300-330px): names are set in Space
+   Boards' wide capitals, so a size down keeps most on one line beside the logo. */
 @container tile (max-height: 260px) and (min-width: 291px) and (max-width: 330px) {
   .project-tile .tile-title-lift {
-    font-size: 1.25rem;
+    font-size: 1.05rem;
   }
 }
 

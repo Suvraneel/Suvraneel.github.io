@@ -371,9 +371,6 @@ function copyComposite(composite: HTMLElement, mount: HTMLElement) {
   return container;
 }
 
-/** How long the flown name and the dialog's title take to trade places once it lands. */
-const TITLE_HANDOVER: KeyframeAnimationOptions = { duration: 180, easing: "ease-out", fill: "forwards" };
-
 /**
  * A copy of the tile's name row (logo and name), standing exactly where the
  * tile draws it, in the dialog (the top layer) so it shows over the backdrop.
@@ -432,6 +429,51 @@ function titleInSight(title: HTMLElement, frame: HTMLElement | null) {
   const hit = hits.find((element) => !frame?.contains(element));
   return hit !== undefined && title.contains(hit);
 }
+
+/**
+ * A copy of the dialog's title (or just its words, for a name without its
+ * mark), standing where the title stands, wrapped as the title wraps. It flies
+ * with the tile's copy and the two trade places mid-flight, so neither the
+ * line breaks nor the size change at the end: the tile's copy keeps the
+ * tile's breaks and this one the title's.
+ */
+function makeTitleFlyer(heading: HTMLElement, host: HTMLElement, withLogo: boolean) {
+  const source = withLogo ? heading : (heading.querySelector<HTMLElement>("[data-title-text]") ?? heading);
+  const box = source.getBoundingClientRect();
+  const style = getComputedStyle(source);
+  const flyer = source.cloneNode(true) as HTMLElement;
+  flyer.removeAttribute("id");
+  flyer.setAttribute("aria-hidden", "true");
+  flyer.querySelectorAll(".sr-only").forEach((copy) => copy.remove());
+  Object.assign(flyer.style, {
+    position: "fixed",
+    left: `${box.left}px`,
+    top: `${box.top}px`,
+    width: `${source.offsetWidth || box.width}px`,
+    margin: "0",
+    opacity: "0",
+    transformOrigin: "0 0",
+    transition: "none",
+    pointerEvents: "none",
+    zIndex: "40",
+    fontFamily: style.fontFamily,
+    fontSize: style.fontSize,
+    lineHeight: style.lineHeight,
+    letterSpacing: style.letterSpacing,
+    color: style.color,
+  });
+  host.appendChild(flyer);
+  return { flyer, box, fontSize: parseFloat(style.fontSize) };
+}
+
+/** Where the title's copy stands laid over the tile's name: its corner on the name's, at the name's size. */
+const overName = (title: { box: DOMRect; fontSize: number }, name: { box: DOMRect; fontSize: number }) =>
+  `translate(${name.box.left - title.box.left}px, ${name.box.top - title.box.top}px) scale(${name.fontSize / title.fontSize})`;
+
+/** The two copies trade places through the middle of the flight, so it never shows two names at once for long. */
+const TRADE: KeyframeAnimationOptions = { easing: "linear", fill: "both" };
+const fadingOut: Keyframe[] = [{ opacity: 1, offset: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 0, offset: 0.7 }, { opacity: 0, offset: 1 }];
+const fadingIn: Keyframe[] = [{ opacity: 0, offset: 0 }, { opacity: 0, offset: 0.3 }, { opacity: 1, offset: 0.7 }, { opacity: 1, offset: 1 }];
 
 /** Hides the tile's name row while a copy of it flies (and the dialog is up), or gives it back. */
 function setNameShown(name: HTMLElement | null | undefined, shown: boolean) {
@@ -597,6 +639,7 @@ function noteContent(note: string) {
 type Project = {
   name: string;
   logo?: string;
+  titleLines?: string[];
   details: string;
   github: string;
   url: string;
@@ -649,9 +692,10 @@ export default function ProjectModal({
   const compositeCopy = useRef<HTMLDivElement | null>(null);
   // The dialog's title, and the name flying into it as it opens (see makeFlyer).
   const heading = useRef<HTMLHeadingElement>(null);
-  const openingName = useRef<{ flyer: HTMLElement; flight: Animation; rest: string } | null>(null);
+  const openingName = useRef<{ flyer: HTMLElement; flight: Animation; rest: string; titleFlyer: HTMLElement } | null>(null);
   // The name flying home as the dialog closes, kept over the tile's until it goes.
   const closingName = useRef<HTMLElement | null>(null);
+  const closingTitle = useRef<HTMLElement | null>(null);
   const tileBackdrop = useRef<HTMLDivElement>(null);
   const tileBackdropImage = useRef<HTMLCanvasElement>(null);
   const tileClipFrame = useRef<HTMLCanvasElement>(null);
@@ -709,6 +753,12 @@ export default function ProjectModal({
   const panelMotion = reduceMotion ? MODAL_REDUCED_MOTION : MODAL_PANEL_MOTION;
   const fade: Variants = { hidden: { opacity: 0, transition: panelMotion }, shown: { opacity: 1, transition: panelMotion } };
   const hasProjectDemo = !project.video.includes("EKGJ-pzSEns");
+  // A name set in fixed lines (titleLines) is sized so its longest line fits the
+  // column whole, beside the logo: Space Boards capitals run some 0.86em each
+  // (STAKEOVERFLOW measures 10.9em), the logo and its gap 1.12em.
+  const titleFit = project.titleLines
+    ? (Math.max(...project.titleLines.map((line) => line.length)) * 0.86 + (project.logo ? 1.12 : 0)).toFixed(2)
+    : null;
   const notes = project.details.split("|").map((detail) => detail.trim());
   const hasActions = project.url !== "#" || project.github !== "#";
   const stack =
@@ -807,20 +857,23 @@ export default function ProjectModal({
     const name = source.title;
     const host = dialog.current;
     if (title && name?.isConnected && host && titleInSight(title, preview)) {
-      const { flyer, box, rest, fontSize } = makeFlyer(name, host);
-      const flight = flyer.animate([{ transform: rest }, { transform: overTitle(title, box, fontSize, flyer) }], { ...FRAME_TRAVEL, fill: "forwards" });
+      const tileCopy = makeFlyer(name, host);
+      const titleCopy = makeTitleFlyer(title, host, Boolean(tileCopy.flyer.querySelector("img")));
+      const trade = { ...TRADE, duration: FRAME_TRAVEL.duration as number };
+      const flight = tileCopy.flyer.animate([{ transform: tileCopy.rest }, { transform: overTitle(title, tileCopy.box, tileCopy.fontSize, tileCopy.flyer) }], { ...FRAME_TRAVEL, fill: "forwards" });
+      const landing = titleCopy.flyer.animate([{ transform: overName(titleCopy, tileCopy) }, { transform: "none" }], { ...FRAME_TRAVEL, fill: "forwards" });
+      const out = tileCopy.flyer.animate(fadingOut, trade);
+      const into = titleCopy.flyer.animate(fadingIn, trade);
       setTitleHeld(title, true);
       setNameShown(name, false);
-      animations.push(flight);
-      openingName.current = { flyer, flight, rest };
-      flight.finished.then(
+      animations.push(flight, landing, out, into);
+      openingName.current = { flyer: tileCopy.flyer, flight, rest: tileCopy.rest, titleFlyer: titleCopy.flyer };
+      landing.finished.then(
         () => {
-          const shown = title.animate([{ opacity: 0 }, { opacity: 1 }], TITLE_HANDOVER);
-          shown.finished.then(() => {
-            setTitleHeld(title, false);
-            shown.cancel();
-          }, () => undefined);
-          flyer.animate([{ opacity: 1 }, { opacity: 0 }], TITLE_HANDOVER).finished.then(() => flyer.remove(), () => flyer.remove());
+          // The title's copy stands exactly on the title: they swap without a change.
+          setTitleHeld(title, false);
+          tileCopy.flyer.remove();
+          titleCopy.flyer.remove();
           openingName.current = null;
         },
         () => undefined
@@ -856,6 +909,7 @@ export default function ProjectModal({
       animations.forEach((animation) => animation.cancel());
       // A remount (Strict Mode) starts it all again.
       openingName.current?.flyer.remove();
+      openingName.current?.titleFlyer.remove();
       openingName.current = null;
       setTitleHeld(title, false);
       setNameShown(name, true);
@@ -867,6 +921,7 @@ export default function ProjectModal({
   useLayoutEffect(
     () => () => {
       closingName.current?.remove();
+      closingTitle.current?.remove();
       setNameShown(source?.title, true);
     },
     [source]
@@ -943,6 +998,7 @@ export default function ProjectModal({
     const dropOpeningName = () => {
       openingName.current?.flight.cancel();
       openingName.current?.flyer.remove();
+      openingName.current?.titleFlyer.remove();
       openingName.current = null;
     };
     settleTile(source);
@@ -998,28 +1054,42 @@ export default function ProjectModal({
         const inFlight = openingName.current;
         openingName.current = null;
         if (inFlight && name?.isConnected) {
-          // Caught on its way in: it turns back from where it has got to, with the frame.
+          // Caught on its way in: the tile's copy turns back from where it has
+          // got to, with the frame, and takes over from the title's copy at once.
           const now = getComputedStyle(inFlight.flyer).transform;
-          inFlight.flight.cancel();
-          const home = inFlight.flyer.animate([{ transform: now === "none" ? "scale(1)" : now }, { transform: inFlight.rest }], { ...FRAME_TRAVEL, fill: "both" });
+          inFlight.flyer.getAnimations().forEach((animation) => animation.cancel());
+          inFlight.titleFlyer.remove();
+          const home = inFlight.flyer.animate([{ transform: now === "none" ? "scale(1)" : now, opacity: 1 }, { transform: inFlight.rest, opacity: 1 }], { ...FRAME_TRAVEL, fill: "both" });
           animations.push(home);
           closingName.current = inFlight.flyer;
         } else if (title && name?.isConnected && dialog.current && titleInSight(title, preview)) {
+          // The open's flight, backwards: the title's copy (wrapped as the title)
+          // leaves from the title and hands over mid-flight to the tile's copy
+          // (wrapped as the tile's name), which lands on the name.
           setNameShown(name, false);
-          const { flyer, box, rest, fontSize } = makeFlyer(name, dialog.current);
-          const away = overTitle(title, box, fontSize, flyer);
-          const lead: KeyframeAnimationOptions = { ...STILL_FADE, duration: Math.max(stillLeadIn, 1), fill: "both" };
-          fades.push(flyer.animate([{ opacity: 0, transform: away }, { opacity: 1, transform: away }], lead));
-          fades.push(title.animate([{ opacity: getComputedStyle(title).opacity }, { opacity: 0 }], lead));
-          const home = flyer.animate([{ transform: away }, { transform: rest }], { ...FRAME_TRAVEL, fill: "both", delay: stillLeadIn });
-          animations.push(home);
-          // It stays over the tile's name until the dialog itself goes (see the
-          // unmount effect): taken away as it lands, the name would blink out
-          // under the frame for the frames before the dialog is removed.
-          closingName.current = flyer;
+          const tileCopy = makeFlyer(name, dialog.current);
+          const titleCopy = makeTitleFlyer(title, dialog.current, Boolean(tileCopy.flyer.querySelector("img")));
+          const away = overTitle(title, tileCopy.box, tileCopy.fontSize, tileCopy.flyer);
+          const travelHome: KeyframeAnimationOptions = { ...FRAME_TRAVEL, fill: "both", delay: stillLeadIn };
+          const trade = { ...TRADE, duration: FRAME_TRAVEL.duration as number, delay: stillLeadIn };
+          // The title's copy is the title itself, so it takes over without a change.
+          titleCopy.flyer.style.opacity = "1";
+          fades.push(title.animate([{ opacity: 0 }, { opacity: 0 }], { duration: 1, fill: "forwards" }));
+          animations.push(
+            titleCopy.flyer.animate([{ transform: "none" }, { transform: overName(titleCopy, tileCopy) }], travelHome),
+            tileCopy.flyer.animate([{ transform: away }, { transform: tileCopy.rest }], travelHome),
+            titleCopy.flyer.animate(fadingOut, trade),
+            tileCopy.flyer.animate(fadingIn, trade)
+          );
+          // Both stay until the dialog itself goes (see the unmount effect):
+          // taken away as they land, the name would blink out under the frame
+          // for the frames before the dialog is removed.
+          closingName.current = tileCopy.flyer;
+          closingTitle.current = titleCopy.flyer;
         } else {
           inFlight?.flight.cancel();
           inFlight?.flyer.remove();
+          inFlight?.titleFlyer.remove();
           setNameShown(name, true);
         }
         // With a lead-in, held where they start until the close's first frame
@@ -1294,7 +1364,8 @@ export default function ProjectModal({
             <h2
               ref={heading}
               id="project-dialog-title"
-              className={`flex items-start gap-[0.3em] leading-[1.02] text-white ${project.logo ? "[font-size:min(var(--text-title),7.9cqi)]" : "[font-size:min(var(--text-title),8.8cqi)]"} ${spaceBoards.className}`}
+              className={`flex items-start gap-[0.3em] leading-[1.02] text-white ${titleFit ? "[font-size:min(var(--text-title),calc(100cqi/var(--title-fit)))]" : project.logo ? "[font-size:min(var(--text-title),7.9cqi)]" : "[font-size:min(var(--text-title),8.8cqi)]"} ${spaceBoards.className}`}
+              style={titleFit ? ({ "--title-fit": titleFit } as React.CSSProperties) : undefined}
             >
               {project.logo && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -1302,7 +1373,13 @@ export default function ProjectModal({
               )}
               <span data-title-text className="min-w-0 text-balance">
                 <span aria-hidden="true" className="uppercase">
-                  {project.name}
+                  {project.titleLines
+                    ? project.titleLines.map((line) => (
+                        <span key={line} className="block whitespace-nowrap">
+                          {line}
+                        </span>
+                      ))
+                    : project.name}
                 </span>
                 <span className="sr-only">{project.name}</span>
               </span>
