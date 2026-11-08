@@ -567,7 +567,7 @@ a:focus-visible > .link-draw::after {
   }
 }
 
-/* The two flagship tiles (app/projects/ProjectHero.tsx): footage full-bleed,
+/* The flagship tiles (app/projects/ProjectHero.tsx): footage full-bleed,
    copy in the brand's own type. "Roomy" is the tall desktop tile (448px);
    smaller ones (tablet 256px, phones) drop the subline and size the rest to
    the tile's width. The bottom ~120px stays clear for the tile's name row. */
@@ -732,6 +732,93 @@ a:focus-visible > .link-draw::after {
   color: #a3a3a3;
 }
 
+/* Sheetah (sheetah.vercel.app, dark): Plus Jakarta Sans 800 at -0.06em,
+   "Sheets × SQL" with SQL in the landing's lime, and the thumbnail's ruled
+   stats. No card: the app itself is the backdrop, full
+   bleed, holding on Excel's last row, then panning up as one click writes the
+   WHERE line ("Every click writes SQL."), then a short sweep back to the limit. */
+.project-hero--sheetah {
+  background: #101013;
+}
+
+/* Right-anchored: narrower tiles keep the side with the row numbers and the SQL. */
+.project-hero--sheetah .project-hero-footage {
+  object-position: 100% 0;
+}
+
+/* Only a light fade behind the copy and the name row: the app stays the
+   backdrop, and the copy's soft shadow keeps it readable over it. */
+.project-hero--sheetah .project-hero-scrim {
+  background:
+    radial-gradient(55% 65% at 0% 0%, rgba(143, 156, 255, 0.08), transparent 70%),
+    linear-gradient(90deg, rgba(16, 16, 19, 0.74) 0%, rgba(16, 16, 19, 0.55) 30%, rgba(16, 16, 19, 0) 54%),
+    linear-gradient(0deg, rgba(16, 16, 19, 0.8) 0%, rgba(16, 16, 19, 0) 30%);
+}
+
+/* Phones see only the poster: closer in and lifted clear of the name row, so
+   "Excel stops here 1,048,576" reads. */
+@container tile (max-height: 260px) {
+  .project-hero--sheetah .project-hero-footage {
+    transform: translateY(-14%) scale(1.5);
+    transform-origin: 80% 63%;
+  }
+}
+
+.project-hero--sheetah .project-hero-copy {
+  left: clamp(18px, 5.5cqw, 22px);
+  top: clamp(18px, 5.5cqw, 22px);
+  font-family: var(--font-sheetah), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #eef0f4;
+  text-shadow: 0 1px 14px rgba(16, 16, 19, 0.9), 0 0 4px rgba(16, 16, 19, 0.6);
+}
+
+.project-hero--sheetah .project-hero-headline {
+  font-size: clamp(26px, 8.4cqw, 36px);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.06em;
+  color: #eef0f4;
+  white-space: nowrap;
+}
+
+/* "× SQL": a quiet times sign, then SQL in the landing's lime. */
+.project-hero--sheetah .project-hero-headline i {
+  font-style: normal;
+  font-weight: 600;
+  color: rgba(238, 240, 244, 0.5);
+}
+
+.project-hero--sheetah .project-hero-headline b {
+  font-weight: inherit;
+  color: #d4ff4f;
+}
+
+/* The stats, ruled like the thumbnail's: the figure bright, its noun muted. */
+.project-hero--sheetah .project-hero-sub {
+  margin-top: 22px;
+  width: 210px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: rgba(238, 240, 244, 0.62);
+}
+
+.project-hero--sheetah .project-hero-sub > span {
+  padding: 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.project-hero--sheetah .project-hero-sub > span:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.project-hero--sheetah .project-hero-sub b {
+  font-weight: 800;
+  color: #eef0f4;
+}
+
 @container tile (min-height: 380px) {
   .project-hero-sub {
     display: block;
@@ -772,6 +859,15 @@ a:focus-visible > .link-draw::after {
   .project-hero--settlex .project-hero-eyebrow {
     padding: 7px 11px;
     font-size: 13px;
+  }
+
+  .project-hero--sheetah .project-hero-copy {
+    left: 32px;
+    top: 32px;
+  }
+
+  .project-hero--sheetah .project-hero-headline {
+    font-size: min(68px, 8.6cqw);
   }
 
   /* Scales down on narrow desktop tiles (~340px at 1024): its lines never wrap,
