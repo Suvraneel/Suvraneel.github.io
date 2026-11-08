@@ -138,7 +138,8 @@ function PageLayer({ path, children }: { path: string; children: ReactNode }) {
     }
   }
 
-  const showScrim = Boolean(flight) && role === "under" && flight !== null && isLiftKind(flight);
+  // The avatar flip has no sheet over the page underneath: the scene fades off it instead.
+  const showScrim = Boolean(flight) && role === "under" && flight !== null && isLiftKind(flight) && !flight.avatar;
   // A page that arrives underneath starts dimmed and brightens as the sheet
   // above it lifts; a page that is covered starts clear.
   const scrimStart = showScrim && path === flight?.to ? SCRIM_MAX : 0;

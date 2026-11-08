@@ -15,6 +15,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useId,
   useRef,
@@ -24,6 +25,7 @@ import {
   type PointerEvent,
   type RefObject,
 } from "react";
+import { flushSync } from "react-dom";
 import LiftHeading from "@components/LiftHeading";
 import ProjectModal, {
   dimmedBy,
@@ -33,9 +35,10 @@ import ProjectModal, {
   THUMBNAIL_MOUNT_CLASS,
   THUMBNAIL_VEIL_CLASS,
   type ModalSource,
+  type ProjectModalHandle,
 } from "@components/ProjectModal";
 import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
-import { layerPathOf, layoutTop, whenPlaced } from "@components/transition/arrival";
+import { layerPathOf, layoutTop, whenPlaced, whenSettled } from "@components/transition/arrival";
 import { getTransition, isInFlight } from "@components/transition/transitionStore";
 import projectsData, { type ThumbLoop } from "@data/projectsDat";
 import ProjectHero, { type HeroBrand } from "./ProjectHero";
@@ -43,10 +46,82 @@ import { useLoopPlayback } from "./useLoopPlayback";
 import { spaceBoards, tasaOrbiter } from "@font";
 import { useLiftEntrance } from "@hooks/useLiftEntrance";
 import { useReveal } from "@hooks/useReveal";
+import { hasFastWebGL2 } from "@lib/gpu";
+import { subscribeDeviceTilt } from "@lib/tilt";
 import { useSfx } from "@hooks/useSfx";
-import { prefersReducedMotion } from "@lib/pageTransition";
+import { dismissModalDialogs, isDrawerOpen, prefersReducedMotion } from "@lib/pageTransition";
+import { siteName } from "@lib/seo";
 
 type Project = (typeof projectsData)[number];
+
+/** What a tile opens the dialog from: where its hover preview had got to (0 if it never played) and the tile with its still. */
+type TileOpening = { time: number; source: ModalSource };
+
+// ---------------------------------------------------------------------------
+// An open project is a page of its own as far as history goes. On a phone the
+// dialog fills the screen and reads as one, so Back (an iPhone's edge swipe)
+// is how people try to leave it: opening it pushes a history entry over
+// /projects, carrying the project's id in its state and as its #id, and Back
+// off that entry closes the dialog and leaves the visitor on the gallery,
+// where they were. The #id is also the project's link: /projects#settlex
+// opens SettleX. The pushed state spreads the entry it covers, so it keeps
+// that entry's scroll key (historyScroll) and Next's own state: Next then
+// treats the push as one of its own and leaves the route alone, and the page
+// transitions see the same path and start nothing.
+// ---------------------------------------------------------------------------
+
+const PROJECTS_PATH = "/projects";
+const PROJECT_STATE_KEY = "project";
+
+/** The project id a history entry's state carries, if it is a project's entry. */
+const projectIdOf = (state: unknown) => {
+  const id = typeof state === "object" && state !== null ? (state as Record<string, unknown>)[PROJECT_STATE_KEY] : null;
+  return typeof id === "string" ? id : null;
+};
+
+const projectById = (id: string | null) => (id ? (projectsData.find((project) => project.id === id) ?? null) : null);
+
+/** The project a link's #id names; any case, so #crews finds CrewS. */
+const projectNamed = (hash: string) => {
+  let id: string;
+  try {
+    id = decodeURIComponent(hash.replace(/^#/, "")).toLowerCase();
+  } catch {
+    return null;
+  }
+  return id ? (projectsData.find((project) => project.id.toLowerCase() === id) ?? null) : null;
+};
+
+/** A history state with the project's id taken out, everything else (Next's state, the scroll key) kept. */
+const withoutProject = (state: unknown) => {
+  const rest: Record<string, unknown> = typeof state === "object" && state !== null ? { ...state } : {};
+  delete rest[PROJECT_STATE_KEY];
+  return rest;
+};
+
+/** Gives an open project its history entry and #id link. */
+const pushProjectEntry = (project: Project) => {
+  window.history.pushState({ ...window.history.state, [PROJECT_STATE_KEY]: project.id }, "", `#${project.id}`);
+};
+
+/**
+ * A link's dialog waits this long at most for its tile's still to decode, so
+ * the preview frame sets off from the picture rather than from black. Only a
+ * direct load can find it still loading.
+ */
+const STILL_WAIT_MS = 1200;
+
+/** Resolves once the tile's still has decoded (or failed to), or after STILL_WAIT_MS. */
+function stillDecoded({ media, poster }: ModalSource) {
+  let decoding: Promise<void>;
+  if (media instanceof HTMLImageElement) decoding = media.decode();
+  else if (poster) {
+    const image = new Image();
+    image.src = poster;
+    decoding = image.decode();
+  } else return Promise.resolve();
+  return Promise.race([decoding.catch(() => undefined), new Promise<void>((resolve) => window.setTimeout(resolve, STILL_WAIT_MS))]);
+}
 
 const placeholderDemoId = "EKGJ-pzSEns";
 
@@ -103,10 +178,35 @@ export default function ProjectsPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [previewTime, setPreviewTime] = useState(0);
   const [openedFrom, setOpenedFrom] = useState<ModalSource | null>(null);
+  // Where the dialog hands focus back on close, for a dialog the page opened itself (see showProject).
+  const [returnFocus, setReturnFocus] = useState<HTMLElement | null>(null);
+  // Counts the opens, so each mounts a dialog of its own. A project opened
+  // again as its last dialog finishes leaving (a press or a step queued behind
+  // it, see onDialogGone) would otherwise come back under the same key, and
+  // AnimatePresence would keep that dialog, already closed and hidden, rather
+  // than mount a new one.
+  const [opens, setOpens] = useState(0);
   // The dialog is up, open or still leaving: from the press until its exit has
   // finished and it has unlocked the page.
   const [dialogPresent, setDialogPresent] = useState(false);
+  // The same two, current between renders, for the history handlers below.
+  const selected = useRef<Project | null>(null);
+  const present = useRef(false);
+  const modal = useRef<ProjectModalHandle>(null);
+  // Each tile, by project id: what it would open the dialog from, measured now.
+  const tiles = useRef(new Map<string, () => TileOpening | null>());
+  // Close has stepped back off the project's entry and that step hasn't landed yet.
+  const backPending = useRef(false);
+  // A step onto a project's entry (showWhenGone), or a tile pressed (openProject), while a dialog is still up or leaving: it opens once that one has gone.
+  const queuedOpen = useRef<Project | null>(null);
+  // A tile pressed while a lift is still bringing the page in: the wait for it to land (openProject), to give up on.
+  const landingPress = useRef<(() => void) | null>(null);
+  // The state of the last entry of this page seen (Next's state and the scroll key in it), for an entry that comes without one.
+  const lastState = useRef<unknown>(null);
   const reduceMotion = useReducedMotion();
+  // False once the page is leaving: the copy a page transition keeps on screen
+  // as it goes leaves history to the page that replaces it.
+  const isPresent = useIsPresent();
   const gallery = useRef<HTMLDivElement>(null);
   // The window's scroll, shared by every tile's media drift.
   const { scrollY } = useScroll();
@@ -137,22 +237,347 @@ export default function ProjectsPage() {
     }
   };
 
-  const openProject = (project: Project, time: number, source: ModalSource) => {
+  // The dialog's "Visit project" rim asks hasFastWebGL2() as it mounts, and
+  // the first ask creates a WebGL 2 context to read the renderer: some 25 ms
+  // on a phone, inside the tap that opens the first project. Asked once the
+  // page has settled and gone idle instead, the answer (kept for the page's
+  // life) is ready by then; not during a lift, which a long task would cost
+  // frames. Reduced motion never runs the shader, so it never asks. A page a
+  // newer transition is already taking away again never asks either.
+  useEffect(() => {
+    const container = gallery.current;
+    if (prefersReducedMotion() || !container) return;
+    let cancel = () => {};
+    const stop = whenSettled(container, () => {
+      const warm = () => void hasFastWebGL2();
+      if ("requestIdleCallback" in window) {
+        const idle = window.requestIdleCallback(warm, { timeout: 2000 });
+        cancel = () => window.cancelIdleCallback(idle);
+        return;
+      }
+      // Safari has no idle callback: after the next frame rather than inside it.
+      let timer = 0;
+      const frame = requestAnimationFrame(() => {
+        timer = window.setTimeout(warm, 0);
+      });
+      cancel = () => {
+        cancelAnimationFrame(frame);
+        window.clearTimeout(timer);
+      };
+    });
+    return () => {
+      stop();
+      cancel();
+    };
+  }, []);
+
+  const registerTile = useCallback((id: string, describe: () => TileOpening | null) => {
+    tiles.current.set(id, describe);
+    return () => {
+      if (tiles.current.get(id) === describe) tiles.current.delete(id);
+    };
+  }, []);
+
+  // `returnTo`: a dialog the page opens itself (a link, a reload, a history
+  // step, a #id followed in) was invoked by nothing on the page, so it names
+  // the tile for the dialog to hand focus back to on close, where the visitor
+  // is left; focus as it opens is only on the page, on the <main> a page
+  // transition focuses, or wherever an earlier close left it. A tile's own
+  // press names none: the dialog goes back to what had focus (the tile).
+  const showProject = (project: Project, time: number, source: ModalSource | null, returnTo: HTMLElement | null = null) => {
+    selected.current = project;
+    present.current = true;
     setSelectedProject(project);
     setPreviewTime(time);
     setOpenedFrom(source);
+    setReturnFocus(returnTo);
     setDialogPresent(true);
+    setOpens((count) => count + 1);
+  };
+
+  // A dialog the page opens later, by itself (a press or a step that waited
+  // for a dialog to leave or a lift to land, a link's once its still has
+  // decoded), first checks that it is still wanted: never over a page that
+  // is leaving, nor over the drawer. An open is only
+  // state, though: React rendered it in a task of its own, and the dialog
+  // locked the page and went modal (showModal, in its effect) in another, a
+  // frame or two on. A link followed or the drawer opened in between got past
+  // the checks, and the project opened over the leaving page or the drawer;
+  // meanwhile the dialog stood in the page unopened, drawn over it but not
+  // modal, its preview frame at rest in the panel rather than on the tile.
+  // Rendered at once (flushSync), the dialog is in the page, open and modal,
+  // in the same task as the checks, before any input can come between. A
+  // press or a history step that opens one straight away needs none of
+  // this: React renders what input asks for, effects and all, before the next.
+  const openAtOnce = (open: () => void) => flushSync(open);
+
+  // A tap, a click or a key on a tile. A dialog closed from outside (a back
+  // swipe the browser animated itself) is hidden at once and has let the page
+  // go, but it is still mounted for its exit: a tile pressed meanwhile opens
+  // once that one has gone (onDialogGone), from the tile as it stands then, so
+  // two never overlap. Its entry goes on now, so the address already names
+  // it; a second press before it opens takes the first one's place, entry and
+  // all.
+  //
+  // A lift still bringing the page in takes presses too (the arriving sheet
+  // is live as it moves). Opened then, the dialog locked the page at the top,
+  // where the sheet is framed in flight, rather than at the offset it lands
+  // at, so closing it left the visitor at the top of the gallery, its frame
+  // flying home to a tile now off screen. The press opens once the lift has
+  // landed (whenSettled) instead, from the tile as it stands then, handing
+  // focus back to it (the landing may have focused the page's <main>). Its
+  // entry waits too, so a Back before then still goes back the way the lift
+  // came. A later press takes its place; with the drawer opened meanwhile, or
+  // the page leaving again, it never opens.
+  const openProject = (project: Project, time: number, source: ModalSource, returnTo: HTMLElement | null = null) => {
+    landingPress.current?.();
+    landingPress.current = null;
+    if (present.current) {
+      const queued = queuedOpen.current;
+      queuedOpen.current = project;
+      const top = projectIdOf(window.history.state);
+      if (backPending.current || top === project.id) return;
+      if (queued && top === queued.id) window.history.replaceState({ ...window.history.state, [PROJECT_STATE_KEY]: project.id }, "", `#${project.id}`);
+      else pushProjectEntry(project);
+      return;
+    }
+    const container = gallery.current;
+    const t = getTransition();
+    if (container && isInFlight(t) && t.to === layerPathOf(container)) {
+      landingPress.current = whenSettled(container, () => {
+        landingPress.current = null;
+        const opening = tiles.current.get(project.id)?.();
+        if (opening && !present.current && !isDrawerOpen()) openAtOnce(() => openProject(project, opening.time, opening.source, opening.source.tile));
+      });
+      return;
+    }
+    showProject(project, time, source, returnTo);
+    playOpen();
+    // Not while Close's step back off the last project's entry is still on
+    // its way: that step would take this entry off again. The popstate it
+    // lands with pushes it instead.
+    if (!backPending.current && projectIdOf(window.history.state) !== project.id) pushProjectEntry(project);
+  };
+
+  // Close, Escape, the backdrop, or a history step that has already left the
+  // entry. With the project's own entry still on top (the first three), step
+  // back off it, so the next Back leaves Projects as it would have before the
+  // dialog opened, and Forward opens the project again. Once, however many
+  // closes are asked for on the way out. A Back, a page left through history,
+  // or a step onto another project's entry (a #id followed in, Back or
+  // Forward onto one) has already moved off it: nothing to undo.
+  const closeProject = () => {
+    const closing = selected.current;
+    selected.current = null;
+    setSelectedProject(null);
+    if (backPending.current || window.location.pathname !== PROJECTS_PATH || !closing || projectIdOf(window.history.state) !== closing.id) return;
+    backPending.current = true;
+    window.history.back();
+  };
+
+  // A history step has already left the open dialog's entry: it goes, and
+  // closeProject finds nothing to step back off. An iPhone's edge swipe (or
+  // any back gesture the browser animated itself) has already shown the
+  // gallery coming back: the dialog goes at once, as it does when such a
+  // swipe leaves the page. Otherwise it closes as Close would, its frame
+  // going home to the tile.
+  const dismissProject = (event: PopStateEvent) => {
+    if ((event as PopStateEvent & { hasUAVisualTransition?: boolean }).hasUAVisualTransition) dismissModalDialogs();
+    else if (modal.current) modal.current.close();
+    else closeProject();
+  };
+
+  // A step onto a project's entry (or a #id followed in) while a dialog is
+  // up: the project opens once that dialog has gone (onDialogGone), so two
+  // never overlap. One still open is another project's, on an entry history
+  // has just left: it closes now, so the dialog on screen is always the one
+  // the address names, and Back always closes what is shown.
+  const showWhenGone = (project: Project, event: PopStateEvent) => {
+    queuedOpen.current = project;
+    if (selected.current) dismissProject(event);
+  };
+
+  // Forward onto a project's entry: it opens again, from its tile if that is
+  // on screen (where Back left it), else in place.
+  const reopenProject = (project: Project) => {
+    const opening = tiles.current.get(project.id)?.() ?? null;
+    showProject(project, opening?.time ?? 0, opening?.source ?? null, opening?.source.tile ?? null);
     playOpen();
   };
+
+  // A link to a project (/projects#settlex), a reload of one, or a history
+  // step back onto one from another page (a page still leaving that is
+  // brought back included): it opens once the page has landed. A tile
+  // off-screen is brought to the middle of the view first, so the dialog
+  // grows from it and closes back into it (there the visitor stays, by the
+  // project they came for). A link from elsewhere also puts the bare
+  // /projects under the project's entry, so Back (or Close) lands on the
+  // gallery rather than leaving the site; a reload or a step back onto the
+  // project's own entry already has it. `isCancelled` is asked before any of
+  // that and again once the still has decoded.
+  const openLinkedProject = useEffectEvent(async (project: Project, isCancelled: () => boolean) => {
+    const describe = tiles.current.get(project.id);
+    const first = describe?.();
+    if (!describe || !first || present.current || isCancelled()) return;
+    if (!first.source.onScreen) first.source.tile.scrollIntoView({ block: "center", behavior: "instant" });
+    await stillDecoded(first.source);
+    const opening = describe();
+    if (isCancelled() || present.current || !opening) return;
+    // The page is live while the still decodes (up to STILL_WAIT_MS). A link
+    // followed or a step taken meanwhile is taking the page away, though the
+    // address and isPresent only move once its route commits: nothing opens
+    // over it, and history moves on with the transition. The drawer opened
+    // meanwhile was asked for last: it stays on top and alone, and the address
+    // stops naming the project, as onDialogGone leaves one that waited.
+    const t = getTransition();
+    if (isInFlight(t) && t.from === PROJECTS_PATH) return;
+    const ownEntry = projectIdOf(window.history.state) === project.id;
+    if (isDrawerOpen()) {
+      if (!ownEntry) window.history.replaceState(withoutProject(window.history.state), "", window.location.pathname + window.location.search);
+      else if (!backPending.current) {
+        backPending.current = true;
+        window.history.back();
+      }
+      return;
+    }
+    if (!ownEntry) {
+      window.history.replaceState(withoutProject(window.history.state), "", window.location.pathname + window.location.search);
+      pushProjectEntry(project);
+    }
+    openAtOnce(() => showProject(project, opening.time, opening.source, opening.source.tile));
+  });
+
+  // Back and Forward between /projects and a project's entry (the page
+  // transitions see the same path and do nothing). Leaving for another page
+  // is theirs: they close the dialog on the way (dismissModalDialogs), and
+  // closeProject then finds the entry already left.
+  const onHistoryStep = useEffectEvent((event: PopStateEvent) => {
+    const ownStep = backPending.current;
+    backPending.current = false;
+    if (!isPresent || window.location.pathname !== PROJECTS_PATH) return;
+    const open = selected.current;
+    const project = projectById(projectIdOf(window.history.state));
+    if (ownStep) {
+      // Close's step back landed. A project opened in the meantime gets its entry now.
+      if (open) {
+        if (open.id !== project?.id) pushProjectEntry(open);
+      } else if (project) {
+        // It landed on another project's entry: one a #id followed in while
+        // a dialog was open left underneath. Close goes on back to the
+        // gallery, so the address never names a project that isn't open, and
+        // Forward still opens them again in turn.
+        backPending.current = true;
+        window.history.back();
+      }
+      return;
+    }
+    if (window.history.state !== null) lastState.current = window.history.state;
+    // A #id followed within the page (an edited address, an in-page link):
+    // the browser has added an entry with no state at all, so it is made the
+    // project's own entry here, with the state of the entry it was followed
+    // from, and opens as a link does.
+    const followed = window.history.state === null ? projectNamed(window.location.hash) : null;
+    if (followed && lastState.current !== null) {
+      window.history.replaceState({ ...withoutProject(lastState.current), [PROJECT_STATE_KEY]: followed.id }, "", `#${followed.id}`);
+      if (open?.id === followed.id) return;
+      if (present.current) showWhenGone(followed, event);
+      else void openLinkedProject(followed, () => projectIdOf(window.history.state) !== followed.id);
+      return;
+    }
+    if (!project) {
+      queuedOpen.current = null;
+      if (open) dismissProject(event);
+      return;
+    }
+    if (open?.id === project.id) return;
+    if (present.current) showWhenGone(project, event);
+    else reopenProject(project);
+  });
+
+  useEffect(() => {
+    const listener = (event: PopStateEvent) => onHistoryStep(event);
+    window.addEventListener("popstate", listener);
+    return () => window.removeEventListener("popstate", listener);
+  }, []);
+
+  // A press still waiting for a lift to land goes with the page.
+  useEffect(() => () => landingPress.current?.(), []);
+
+  useEffect(() => {
+    if (isPresent && window.history.state !== null) lastState.current = window.history.state;
+    const project = isPresent ? projectNamed(window.location.hash) : null;
+    const container = gallery.current;
+    if (!project || !container) return;
+    let cancelled = false;
+    // Also given up once history has moved off the project's entry: a Back
+    // pressed while a lift is still bringing the page in lands on the bare
+    // /projects before this runs, and opening then would put the entry back
+    // and undo that Back.
+    const stop = whenSettled(container, () => void openLinkedProject(project, () => cancelled || projectNamed(window.location.hash)?.id !== project.id));
+    return () => {
+      cancelled = true;
+      stop();
+    };
+  }, [isPresent]);
+
+  // The dialog's leave has finished. A step or a press that came while it was
+  // up or leaving opens its project now, a frame on, once this one is gone.
+  // The page is live while it waits, so the visitor may have asked for
+  // something else since. The navigation drawer opened meanwhile was asked
+  // for last: it stays on top and alone, and the project's entry, put on for
+  // it, is stepped back off, so the address never names a project that isn't
+  // open. A page transition under way is taking the page away (a link
+  // followed meanwhile): nothing opens over it, and history has moved on, or
+  // is about to, with the transition.
+  const onDialogGone = () => {
+    present.current = false;
+    setDialogPresent(false);
+    const queued = queuedOpen.current;
+    queuedOpen.current = null;
+    if (!queued) return;
+    window.requestAnimationFrame(() => {
+      if (present.current || projectIdOf(window.history.state) !== queued.id || isInFlight(getTransition())) return;
+      if (!isDrawerOpen()) {
+        openAtOnce(() => reopenProject(queued));
+        return;
+      }
+      if (backPending.current) return;
+      backPending.current = true;
+      window.history.back();
+    });
+  };
+
+  // While a project is open the tab (and the history menu's entry) names it.
+  // Next puts the page's own <title> back once after hydration (a new
+  // element), which a link's dialog opens before: whatever the page's title
+  // becomes while the project is open is the one to put back, and the
+  // project's goes on top again. Put back on close only if it is still the
+  // project's: a page left with the dialog open has its own title by then.
+  useEffect(() => {
+    if (!selectedProject) return;
+    const title = `${selectedProject.name} | Projects | ${siteName}`;
+    let previous = document.title;
+    document.title = title;
+    const keep = new MutationObserver(() => {
+      if (!document.title || document.title === title) return;
+      previous = document.title;
+      document.title = title;
+    });
+    keep.observe(document.head, { childList: true, subtree: true, characterData: true });
+    return () => {
+      keep.disconnect();
+      if (document.title === title) document.title = previous;
+    };
+  }, [selectedProject]);
 
   return (
     <main className="nav-gap min-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[#07090d] text-white">
       <div className="mx-auto max-w-[1500px] px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-24 sm:pt-14 lg:px-14 lg:pt-16">
         <header className="max-w-3xl">
-          <LiftHeading className={`text-4xl leading-[0.95] tracking-[-0.045em] sm:text-6xl ${spaceBoards.className}`}>
+          <LiftHeading className={`text-display leading-[0.95] tracking-[-0.045em] ${spaceBoards.className}`}>
             Projects
           </LiftHeading>
-          <p className={`mt-5 max-w-xl text-base leading-7 text-white/65 sm:text-lg/7 ${tasaOrbiter.className}`}>
+          <p className={`mt-5 max-w-xl text-body leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>
             A selection of web products, open-source tools, and experiments across engineering, community, and Web3.
           </p>
         </header>
@@ -168,10 +593,12 @@ export default function ProjectsPage() {
               >
                 <ProjectTile
                   project={project}
+                  eager={index < 2}
                   reduceMotion={Boolean(reduceMotion)}
                   mountEntrance={!arrivingByTransition}
                   scrollY={scrollY}
                   holdDepth={dialogPresent}
+                  register={registerTile}
                   onOpen={(time, source) => openProject(project, time, source)}
                   onHoverStart={playTick}
                   onHoverEnd={stopTick}
@@ -189,14 +616,16 @@ export default function ProjectsPage() {
         </section>
       </div>
 
-      <AnimatePresence onExitComplete={() => setDialogPresent(false)}>
+      <AnimatePresence onExitComplete={onDialogGone}>
         {selectedProject && (
           <ProjectModal
-            key={("id" in selectedProject && selectedProject.id) || selectedProject.name}
+            ref={modal}
+            key={`${("id" in selectedProject && selectedProject.id) || selectedProject.name}:${opens}`}
             project={selectedProject}
             startAt={previewTime}
             source={openedFrom}
-            handleClose={() => setSelectedProject(null)}
+            returnFocus={returnFocus}
+            handleClose={closeProject}
           />
         )}
       </AnimatePresence>
@@ -213,12 +642,22 @@ const FINE_HOVER_QUERY = "(hover: hover) and (pointer: fine)";
 let fineHoverQuery: MediaQueryList | null = null;
 const hasFineHover = () => (fineHoverQuery ??= window.matchMedia(FINE_HOVER_QUERY)).matches;
 
+/** Touch screens: the device's tilt turns the cards on screen as a pointer would (lib/tilt.ts). */
+const TOUCH_TILT_QUERY = "(hover: none) and (pointer: coarse) and (prefers-reduced-motion: no-preference)";
+/** The light under a phone's tilt: dimmer than a pointer's, as nothing is pointing at it. */
+const TOUCH_SHEEN_OPACITY = 0.75;
+/** Tilt change a card answers (0.12deg of its 3deg): finer, a phone merely held would keep its springs running. */
+const TOUCH_TILT_STEP = 0.04;
+
 /**
- * Fine-pointer hover only: the card tilts toward the pointer (up to 3deg) and
- * a faint light follows it. Springs on transform and opacity; nothing under
- * reduced motion.
+ * Fine-pointer hover: the card tilts toward the pointer (up to 3deg) and a
+ * faint light follows it. On touch screens the device's tilt does the same for
+ * the cards in view. Springs on transform and opacity; nothing under reduced motion.
+ * `held` (the project dialog is up) freezes a phone's tilt where it is: the
+ * cards stay put under the dialog's blur (which would otherwise repaint with
+ * every turn), and the closing dialog lands back on the tile as it left it.
  */
-function useCardTilt(reduceMotion: boolean) {
+function useCardTilt(reduceMotion: boolean, tileRef: RefObject<HTMLElement | null>, held: boolean) {
   const rotateX = useSpring(0, TILT_SPRING);
   const rotateY = useSpring(0, TILT_SPRING);
   const sheenX = useMotionValue(0);
@@ -268,19 +707,72 @@ function useCardTilt(reduceMotion: boolean) {
     releaseWhenFlat();
   };
 
+  // Kept in a layout effect, as useMediaDepth's: set before the dialog's own effects run.
+  const heldRef = useRef(held);
+  // Catches up on whether the card is in view, once the dialog has gone.
+  const syncTouchTilt = useRef<(() => void) | null>(null);
+  useLayoutEffect(() => {
+    heldRef.current = held;
+    if (!held) syncTouchTilt.current?.();
+  }, [held]);
+
+  // Touch: only while the card is on screen, so off-screen cards keep `transform: none`.
+  useEffect(() => {
+    const tile = tileRef.current;
+    const query = window.matchMedia(TOUCH_TILT_QUERY);
+    if (!tile || reduceMotion || !query.matches) return;
+    let stop: (() => void) | null = null;
+    let visible = false;
+    const settle = () => {
+      stop?.();
+      stop = null;
+      rotateX.set(0);
+      rotateY.set(0);
+      sheenOpacity.set(0);
+      if (rotateX.get() === 0 && rotateY.get() === 0) perspective.set(0);
+    };
+    // Under the dialog the page is pinned and cards scroll out of view: they hold until it has gone.
+    const sync = () => {
+      if (heldRef.current) return;
+      if (!visible) return settle();
+      if (stop) return;
+      stop = subscribeDeviceTilt(({ x, y }) => {
+        if (bounds.current || heldRef.current) return;
+        const width = tile.offsetWidth;
+        const height = tile.offsetHeight;
+        perspective.set(TILT_PERSPECTIVE_PX);
+        rotateY.set(x * TILT_MAX_DEG);
+        rotateX.set(-y * TILT_MAX_DEG);
+        sheenX.set(((x + 1) / 2) * width);
+        sheenY.set(((y + 1) / 2) * height);
+        sheenOpacity.set(Math.min(1, Math.hypot(x, y) * 1.6) * TOUCH_SHEEN_OPACITY);
+      }, TOUCH_TILT_STEP);
+    };
+    syncTouchTilt.current = sync;
+    const viewer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      sync();
+    });
+    viewer.observe(tile);
+    return () => {
+      syncTouchTilt.current = null;
+      viewer.disconnect();
+      settle();
+    };
+  }, [reduceMotion, tileRef, perspective, rotateX, rotateY, sheenX, sheenY, sheenOpacity]);
+
   return { rotateX, rotateY, perspective, sheenX, sheenY, sheenOpacity, onPointerMove, onPointerLeave };
 }
 
-// Media depth, on desktops with a fine pointer only: the media shifts against the
-// tilt and drifts inside its frame as the page scrolls, so it reads as sitting
-// behind the tile's glass. The frame, title, chips and brief panel never move.
-const DEPTH_QUERY =
-  "(min-width: 768px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)";
-// The room that needs, under the same query: 8px either side for the pointer shift,
+// Media depth: the media shifts against the tilt (a fine pointer's, or a phone's)
+// and drifts inside its frame as the page scrolls, so it reads as sitting behind
+// the tile's glass. The frame, title, chips and brief panel never move.
+const DEPTH_QUERY = "(prefers-reduced-motion: no-preference)";
+// The room that needs, under the same query: 8px either side for the tilt shift,
 // and 6px plus the drift's reach above and below (.project-tile is a size container,
 // so 6cqh is 6% of the tile). Contained thumbnails need none: their edges are soft.
 const MEDIA_OVERSCAN =
-  "[@media(min-width:768px)_and_(hover:hover)_and_(pointer:fine)_and_(prefers-reduced-motion:no-preference)]:-inset-x-[8px] [@media(min-width:768px)_and_(hover:hover)_and_(pointer:fine)_and_(prefers-reduced-motion:no-preference)]:inset-y-[calc(-6px_-_min(6cqh,24px))]";
+  "motion-safe:-inset-x-[8px] motion-safe:inset-y-[calc(-6px_-_min(6cqh,24px))]";
 /** At full tilt, against it. */
 const POINTER_SHIFT_PX = { x: 8, y: 6 };
 /** The drift's reach either side of centre: 6% of the tile's height, at most 24px. */
@@ -300,8 +792,8 @@ const getDepthQuery = () => (depthQuery ??= window.matchMedia(DEPTH_QUERY));
  * or depth transform touches them). A lift's arriving page drifts as it will
  * stand once settled (a framed sheet at its arrival offset); an exiting page
  * keeps its last frame while the window scrolls on underneath it. Transforms
- * only, with will-change just while they move; touch, phones and reduced
- * motion leave the media where it is. The tile's layout is read once it is
+ * only, with will-change just while they move; reduced motion leaves the media
+ * where it is. The tile's layout is read once it is
  * placed and again only when something could have moved it (a resize, late
  * fonts or images), so a scroll event reads nothing but the scroll offset.
  * `held` (the project dialog is up) keeps the drift where it is until the
@@ -458,21 +950,32 @@ function useMediaDepth(
 
 function ProjectTile({
   project,
+  eager,
   reduceMotion,
   mountEntrance,
   scrollY,
   holdDepth,
+  register,
   onOpen,
   onHoverStart,
   onHoverEnd,
 }: {
   project: Project;
+  /**
+   * One of the first two tiles, in view on every layout as the page opens (the
+   * first is its LCP): its pictures load at once. The rest wait until they near
+   * the view, and decode off the main thread. Video posters can't wait: a
+   * <video> fetches its poster at once.
+   */
+  eager: boolean;
   reduceMotion: boolean;
   /** Direct load: the short entrance on mount. A lift brings the cards in itself. */
   mountEntrance: boolean;
   scrollY: MotionValue<number>;
   /** The project dialog is up: the media's drift holds where it is. */
   holdDepth: boolean;
+  /** Lets the page open the dialog from this tile itself (a project's link, Forward); returns the cleanup. */
+  register: (id: string, describe: () => TileOpening | null) => () => void;
   /** Gets where the hover preview had got to (0 if it never played) and the tile with its still. */
   onOpen: (previewTime: number, source: ModalSource) => void;
   onHoverStart: () => void;
@@ -481,7 +984,7 @@ function ProjectTile({
   const tileRef = useRef<HTMLButtonElement>(null);
   const previewVideo = useRef<HTMLVideoElement>(null);
   const stillImage = useRef<HTMLImageElement>(null);
-  const tilt = useCardTilt(reduceMotion);
+  const tilt = useCardTilt(reduceMotion, tileRef, holdDepth);
   const depth = useMediaDepth(tileRef, tilt, scrollY, holdDepth);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const hasDedicatedPreview = project.gif !== "video-to-be-added.webm";
@@ -498,6 +1001,7 @@ function ProjectTile({
   const youtubeStill = `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
   // The still the tile shows, already decoded: the dialog's preview starts on it.
   const still = showsThumbnail ? thumbnail : hasDedicatedPreview ? videoPoster : hasVideoThumbnail ? youtubeStill : undefined;
+  const lazy = eager ? {} : ({ loading: "lazy", decoding: "async" } as const);
   // The clips are 5-16 MB each, so a tile fetches its own only on the first hover
   // or keyboard focus, and never on touch screens or under reduced motion.
   const playPreview = () => {
@@ -528,6 +1032,29 @@ function ProjectTile({
     previewVideo.current?.pause();
   };
 
+  // The tile and its still as they stand now, for the dialog's preview frame to start from.
+  const describe = (): TileOpening | null => {
+    const tile = tileRef.current;
+    if (!tile) return null;
+    const media = hero ? null : hasDedicatedPreview && !showsThumbnail ? previewVideo.current : stillImage.current;
+    return {
+      // An unplayed preview has no src, so its currentTime reads 0.
+      time: previewVideo.current?.currentTime ?? 0,
+      source: {
+        tile,
+        media,
+        poster: still ?? null,
+        strength: media ? parseFloat(getComputedStyle(dimmedBy(media)).opacity) : 1,
+        onScreen: isOnScreen(tile.getBoundingClientRect()),
+        // A flagship's hero is composed in the page (footage, scrim, brand type):
+        // the dialog's frame carries a copy of it rather than a still.
+        composite: hero ? tile.querySelector<HTMLElement>(".project-hero") : null,
+      },
+    };
+  };
+  // Every commit, so the page always asks with what the tile shows now.
+  useLayoutEffect(() => register(project.id, describe));
+
   return (
     <motion.button
       ref={tileRef}
@@ -544,21 +1071,10 @@ function ProjectTile({
       whileHover={reduceMotion ? undefined : { y: -4 }}
       whileTap={{ scale: 0.985 }}
       style={{ rotateX: tilt.rotateX, rotateY: tilt.rotateY, transformPerspective: tilt.perspective }}
-      onClick={(event) => {
-        const tile = event.currentTarget;
-        const media = hero ? null : hasDedicatedPreview && !showsThumbnail ? previewVideo.current : stillImage.current;
-        // An unplayed preview has no src, so its currentTime reads 0.
-        onOpen(previewVideo.current?.currentTime ?? 0, {
-          tile,
-          media,
-          poster: still ?? null,
-          strength: media ? parseFloat(getComputedStyle(dimmedBy(media)).opacity) : 1,
-          // Now, as it is pressed (a click, a key or a tap): before the dialog locks the page.
-          onScreen: isOnScreen(tile.getBoundingClientRect()),
-          // A flagship's hero is composed in the page (footage, scrim, brand type):
-          // the dialog's frame carries a copy of it rather than a still.
-          composite: hero ? tile.querySelector<HTMLElement>(".project-hero") : null,
-        });
+      onClick={() => {
+        // Now, as it is pressed (a click, a key or a tap): before the dialog locks the page.
+        const opening = describe();
+        if (opening) onOpen(opening.time, opening.source);
       }}
       onHoverStart={startPreview}
       onHoverEnd={stopPreview}
@@ -577,7 +1093,7 @@ function ProjectTile({
           {/* Depth layers (useMediaDepth): the backdrop sits furthest back, the crisp copy moves at the full rate. */}
           <motion.div className="absolute inset-0" style={depth.back}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className={THUMBNAIL_BACKDROP_CLASS} src={thumbnail} alt="" aria-hidden="true" data-thumbnail-backdrop />
+            <img className={THUMBNAIL_BACKDROP_CLASS} src={thumbnail} alt="" aria-hidden="true" data-thumbnail-backdrop {...lazy} />
           </motion.div>
           <div className={THUMBNAIL_VEIL_CLASS} />
           <motion.div className="absolute inset-0 z-10" style={depth.front}>
@@ -599,6 +1115,7 @@ function ProjectTile({
                   className="block h-full w-full"
                   src={thumbnail}
                   alt=""
+                  {...lazy}
                   onError={() => setThumbnailFailed(true)}
                   style={THUMBNAIL_EDGE_STYLE}
                 />
@@ -613,6 +1130,7 @@ function ProjectTile({
                   className="absolute inset-0 m-auto max-h-full max-w-full opacity-95 transition duration-500 ease-out group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
                   src={thumbnail}
                   alt=""
+                  {...lazy}
                   onError={() => setThumbnailFailed(true)}
                   style={THUMBNAIL_EDGE_STYLE}
                 />
@@ -645,13 +1163,14 @@ function ProjectTile({
             className="h-full w-full object-cover opacity-80 transition duration-500 ease-out group-hover:scale-[1.035] group-hover:opacity-100 motion-reduce:transition-none"
             src={youtubeStill}
             alt=""
+            {...lazy}
             onError={() => setThumbnailFailed(true)}
           />
         </motion.div>
       ) : (
         <ProjectArchivePreview project={project} />
       )}
-      {/* Soft light that follows the pointer (fine-pointer hover only), above the media and below the title. */}
+      {/* Soft light that follows the pointer (fine-pointer hover) or a phone's tilt, above the media and below the title. */}
       <motion.span
         aria-hidden="true"
         className="pointer-events-none absolute left-0 top-0 z-[5] -ml-56 -mt-56 size-[28rem] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.09),transparent_62%)]"
@@ -667,7 +1186,7 @@ function ProjectTile({
         {/* Tiles with room under the poster (see .tile-title-lift in globals.css): the title lifts and one compact row fades in under it. */}
         {/* A span, not a heading: a button may hold only phrasing content. Hidden from
             assistive tech because the button's aria-label already reads "Open <name>". */}
-        <span aria-hidden="true" className="tile-title-lift flex max-w-[calc(22ch+1.25em)] items-start gap-[0.4em] text-xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-2xl/tight">
+        <span aria-hidden="true" className="tile-title-lift flex max-w-[calc(22ch+1.25em)] items-start gap-[0.4em] text-lead font-semibold leading-tight tracking-[-0.025em] text-white">
           {/* The project's own mark, centred on the name's first line and lifting with it. */}
           {logo && (
             // eslint-disable-next-line @next/next/no-img-element

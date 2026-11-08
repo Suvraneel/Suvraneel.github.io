@@ -116,8 +116,8 @@ const panelFade: Variants = {
 
 // An area's copy, the same in the switcher's panel (lg) and stacked below lg.
 const AREA_LABEL_CLASS = "flex items-center gap-3 font-mono text-xs uppercase tracking-[0.14em]";
-const AREA_TITLE_CLASS = "mt-7 max-w-3xl text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-4xl/[1.08] lg:text-5xl/[1.08]";
-const AREA_DESCRIPTION_CLASS = "mt-6 max-w-2xl text-base leading-7 text-white/70 sm:text-lg sm:leading-8";
+const AREA_TITLE_CLASS = "mt-7 max-w-3xl text-headline font-semibold leading-[1.08] tracking-[-0.035em] text-white";
+const AREA_DESCRIPTION_CLASS = "mt-6 max-w-2xl text-body leading-[1.65] text-white/70";
 
 /** Window scroll that holds each area while the switcher is pinned, as a share of the viewport's height. */
 const STEP_VH = 55;
@@ -552,17 +552,17 @@ export default function SkillsPage() {
     <main className="nav-gap min-h-[100dvh] overflow-x-clip bg-black text-white">
       <div className="mx-auto max-w-[1440px] px-5 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:px-14 lg:pt-16 xl:px-20">
         <header className="max-w-4xl">
-          <LiftHeading className={`text-4xl leading-none tracking-[-0.04em] sm:text-6xl ${spaceBoards.className}`}>
+          <LiftHeading className={`text-display leading-none tracking-[-0.04em] ${spaceBoards.className}`}>
             Skills
           </LiftHeading>
-          <p className={`mt-5 max-w-2xl text-base leading-7 text-white/65 sm:text-lg/7 ${tasaOrbiter.className}`}>
+          <p className={`mt-5 max-w-2xl text-body leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>
             Skills matter only when they help a team ship, operate, and improve a real system.
           </p>
         </header>
 
         {/* Below lg, where a switcher could only sit above its panel, every area shows in full. */}
         <section className="mt-10 border-t border-white/15 pt-8 sm:mt-12 sm:pt-10 lg:hidden" aria-label="Engineering capabilities">
-          <h2 className={`text-xl font-semibold text-white sm:text-2xl ${tasaOrbiter.className}`}>
+          <h2 className={`text-lead font-semibold text-white ${tasaOrbiter.className}`}>
             Areas of practice
           </h2>
           <div ref={stackedAreas} className="mt-2 divide-y divide-white/10">
@@ -593,7 +593,7 @@ export default function SkillsPage() {
             className="top-16 grid grid-cols-[minmax(18rem,0.72fr)_minmax(0,1.28fr)] gap-16 group-data-[stepped]/capabilities:sticky"
           >
             <aside className="min-w-0" aria-label="Capability areas">
-              <h2 className={`text-2xl font-semibold text-white ${tasaOrbiter.className}`}>
+              <h2 className={`text-lead font-semibold text-white ${tasaOrbiter.className}`}>
                 Areas of practice
               </h2>
               <div className="relative mt-6">
@@ -680,7 +680,7 @@ export default function SkillsPage() {
           <div className="grid gap-7 lg:grid-cols-[minmax(18rem,0.72fr)_minmax(0,1.28fr)] lg:gap-16">
             <h2
               id="practice-heading"
-              className={`max-w-sm pt-0 text-2xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-3xl/tight lg:pt-5 ${tasaOrbiter.className}`}
+              className={`max-w-sm pt-0 text-subtitle font-semibold leading-tight tracking-[-0.025em] text-white lg:pt-5 ${tasaOrbiter.className}`}
             >
               How I build
             </h2>
@@ -692,10 +692,10 @@ export default function SkillsPage() {
                   className="grid gap-x-5 gap-y-2 py-5 sm:grid-cols-[3rem_minmax(11rem,0.7fr)_minmax(0,1.3fr)] sm:items-baseline sm:gap-y-0"
                 >
                   <span className="font-mono text-xs tabular-nums text-accent">{index}</span>
-                  <h3 className={`text-base font-semibold text-white sm:text-lg ${tasaOrbiter.className}`}>
+                  <h3 className={`text-body font-semibold text-white ${tasaOrbiter.className}`}>
                     {title}
                   </h3>
-                  <p className={`text-sm leading-6 text-white/55 sm:text-base/6 ${tasaOrbiter.className}`}>
+                  <p className={`text-body-sm leading-[1.6] text-white/55 ${tasaOrbiter.className}`}>
                     {description}
                   </p>
                 </li>
@@ -768,7 +768,7 @@ function AreaLabel({ area }: Readonly<{ area: CapabilityArea }>) {
 function AreaEvidence({ area, Heading }: Readonly<{ area: CapabilityArea; Heading: "h3" | "h4" }>) {
   return (
     <>
-      <p className={`mt-5 max-w-2xl text-sm leading-6 text-white/70 sm:text-base/6 ${tasaOrbiter.className}`}>
+      <p className={`mt-5 max-w-2xl text-body-sm leading-[1.6] text-white/70 ${tasaOrbiter.className}`}>
         {area.proof}
       </p>
       <div className="mt-9 border-t border-white/10 pt-5">

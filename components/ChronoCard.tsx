@@ -11,7 +11,7 @@ const ChronoCard = ({
   variant?: "work" | "community";
 }) => {
   const isWork = variant === "work";
-  const isRoundMark = ["Web3ConfIndia23.png", "HyperEdgeWoB23.png"].includes(
+  const isRoundMark = ["Web3ConfIndia23.webp", "HyperEdgeWoB23.webp"].includes(
     curElem.image ?? ""
   );
   // Dates | details from sm, once Work's text column (a size container) has room;
@@ -34,6 +34,9 @@ const ChronoCard = ({
               alt={`${curElem.company} mark`}
               width={56}
               height={56}
+              // The current role's mark is the first on the page; the community
+              // marks below it wait until they near the view.
+              {...(isWork ? {} : ({ loading: "lazy", decoding: "async" } as const))}
             />
           </div>
         )}
@@ -65,13 +68,13 @@ const ChronoCard = ({
         <p className={`hidden text-[0.68rem] font-medium uppercase tracking-[0.2em] sm:[@container(min-width:28rem)]:block ${isWork ? "text-accent/70" : "text-white/55"} ${tasaOrbiter.className}`}>
           {curElem.company}
         </p>
-        <h3 className={`mt-2 max-w-3xl font-semibold leading-tight tracking-[-0.035em] text-white ${isWork ? "text-2xl sm:text-3xl/tight" : "text-xl sm:text-2xl/tight"}`}>
+        <h3 className={`mt-2 max-w-3xl font-semibold leading-tight tracking-[-0.035em] text-white ${isWork ? "text-subtitle" : "text-lead"}`}>
           {curElem.role}
         </h3>
-        <p className={`mt-4 max-w-2xl text-[0.98rem] leading-7 text-white/70 ${tasaOrbiter.className}`}>
+        <p className={`mt-4 max-w-[62ch] text-[0.98rem] leading-7 text-white/70 ${tasaOrbiter.className}`}>
           {curElem.summary}
         </p>
-        <ul className={`mt-5 max-w-3xl space-y-2 text-sm leading-6 text-white/55 ${tasaOrbiter.className}`}>
+        <ul className={`mt-5 max-w-[62ch] space-y-2 text-sm leading-6 text-white/55 ${tasaOrbiter.className}`}>
           {curElem.highlights.map((highlight) => (
             <li key={highlight} className="flex gap-3">
               <div aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-white/30" />

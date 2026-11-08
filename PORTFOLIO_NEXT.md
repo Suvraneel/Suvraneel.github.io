@@ -4,7 +4,9 @@ Working notes, October 2026. Companion to `PORTFOLIO_FIX_SPEC.md` (IDs in bracke
 
 ---
 
-## 1. Dead project links — in progress [K-1]
+## 1. Dead project links — done [K-1]
+
+All four are dealt with in `data/projectsDat.ts`: CrewS and Diablo now have `url: "#"` (2026-11-05); DeStackOverflow is listed as StakeOverflow with its Vercel deployment; GSSoC points at your fork and a preserved snapshot (`gssoc-2022.vercel.app`). The links couldn't be re-checked from the build sandbox, so re-run the check below once.
 
 Checked 2026-10-15 with a browser user agent, following redirects. Four projects have broken links; every other link returns 200.
 
@@ -189,8 +191,8 @@ Fixed so far: dropped-click confirm sound, wheel cooldown, sound loading/queuein
 | Touch throw at finger speed | The page always leaves at ~5,500 px/s; a quick flick never commits (no momentum projection). |
 | Reversible transitions | Phase 0: queue clicks made in flight. 1: Back reverses in place. 2: reverse wheel/pull/click. 3: velocity-continuous reversal. |
 | Root font size (item 9) | `112.5%` / `calc(15rem/18)` respects the browser's text size but needs heading caps and a rem rail first (overflow at 125%+). |
-| No-GPU desktop Home | The static fallback shows the phone hero, sparse at desktop width. Needs a design. |
-| Smaller | Pointer-down feedback on rail/tabs; rail shows two current items mid-lift; modal origin barely moves; heading drift repaints forever and jumps at its loop seam; no reduced-transparency/contrast handling; reduced-motion hover cuts; rail opens by animating width; pre-tilt velocity dropped at the flip; wheel edge hint doesn't move the page; About→Work takes one notch vs 520 px back; hover sounds have no mute; phone "Contact me" leaves the site without saying so. |
+| No-GPU desktop Home | The static fallback shows the phone hero, sparse at desktop width. Its Work/Resume buttons now show and fit windows down to ~575px tall; the wide layout still needs a design. |
+| Smaller | Pointer-down feedback on rail/tabs; rail shows two current items mid-lift; modal origin barely moves; heading drift jumps at its loop seam (it now pauses off-screen and after 5 s idle, but still repaints while running); no reduced-transparency/contrast handling; reduced-motion hover cuts; rail opens by animating width; pre-tilt velocity dropped at the flip; wheel edge hint doesn't move the page; About→Work takes one notch vs 520 px back; hover sounds have no mute; phone "Contact me" leaves the site without saying so. |
 
 ## Decided / dropped
 

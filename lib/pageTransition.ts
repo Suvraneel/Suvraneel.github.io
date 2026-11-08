@@ -8,11 +8,54 @@ export type PagePath = (typeof pageOrder)[number];
 export const isPagePath = (path: string | null | undefined): path is PagePath =>
   typeof path === "string" && (pageOrder as readonly string[]).includes(path);
 
+/**
+ * Phones (up to DashboardScene's SPLINE_MIN_WIDTH, where Home is the portrait hero, not the 3D
+ * dashboard) step past About: what makes it a page of its own is desktop's (the dashboard's flip,
+ * the portrait in relief), its copy is on Work and Skills, and its resume is on Home and in the
+ * drawer. /about still opens from a link, and steps on from there to its neighbours.
+ */
+export const PHONE_SEQUENCE_QUERY = "(max-width: 550px)";
+const skipsAbout = () => typeof window !== "undefined" && window.matchMedia(PHONE_SEQUENCE_QUERY).matches;
+
+/**
+ * The page a step in `direction` leads to from `pathname`. The 404 page has
+ * no place in the sequence: its bottom edge leads Home, its top edge nowhere.
+ */
+export const stepFrom = (pathname: string, direction: 1 | -1): PagePath | undefined => {
+  const index = pageOrder.indexOf(pathname as PagePath);
+  if (index === -1) return direction === 1 ? "/" : undefined;
+  let next = index + direction;
+  if (pageOrder[next] === "/about" && skipsAbout()) next += direction;
+  return pageOrder[next];
+};
+
 // Native <dialog> elements (ProjectModal) expose their role implicitly, so match
 // open dialogs as well as explicit ARIA modals (the mobile drawer sheet).
+const MODAL_SELECTOR = "dialog[open], [role='dialog'][aria-modal='true']";
 export const isDialogOpen = () =>
+  typeof document !== "undefined" && Boolean(document.querySelector(MODAL_SELECTOR));
+
+/**
+ * An event's target is inside an open modal (see isDialogOpen): input on the
+ * dialog, not on the page under it. Its ancestors only, so it is cheap enough
+ * for every pointermove.
+ */
+export const isInDialog = (target: EventTarget | null) => target instanceof Element && target.closest(MODAL_SELECTOR) !== null;
+
+/**
+ * A field marked data-draft (Contact's name, email and message) holds typed
+ * text. The page sequence's own steps (pull, wheel, keys) hold back while it
+ * does: a phone's rubber-band overscroll at the top of the form is enough to
+ * pull the visitor to Skills, and a drafted message is the costliest thing on
+ * the site to lose. Links, the drawer and browser history still go, as a
+ * deliberate choice; ContactPage keeps a copy of the draft for the tab, so it
+ * is there again on the way back. Whitespace alone is not a draft.
+ */
+export const isFormDirty = () =>
   typeof document !== "undefined" &&
-  Boolean(document.querySelector("dialog[open], [role='dialog'][aria-modal='true']"));
+  Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[data-draft]")).some(
+    (field) => field.value.trim() !== ""
+  );
 
 /**
  * Browser history (or a page link) leaving a page with a modal <dialog> open:
@@ -34,6 +77,33 @@ export const dismissModalDialogs = () => {
 
 export const isDrawerOpen = () =>
   typeof document !== "undefined" && Boolean(document.querySelector("[data-drawer-open]"));
+
+// <html>'s overflow, held hidden by two owners that know nothing of each
+// other: a project dialog's page lock, and a lift a finger pulled, which
+// freezes the page under the sheet. Each saved the value it found and put it
+// back as it let go, so one taken over the other (a dialog opened mid-lift)
+// saved the other's "hidden" as the page's own and left the whole site
+// unscrollable once both had gone. Counted instead: the first hold saves the
+// page's own value, the last release puts it back.
+let rootOverflowHolds = 0;
+let rootOverflowOwn = "";
+
+/** Holds <html> at overflow: hidden. Returns its release, which acts once. */
+export const holdRootOverflow = () => {
+  const root = document.documentElement;
+  rootOverflowHolds += 1;
+  if (rootOverflowHolds === 1) {
+    rootOverflowOwn = root.style.overflow;
+    root.style.overflow = "hidden";
+  }
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    rootOverflowHolds -= 1;
+    if (rootOverflowHolds === 0) root.style.overflow = rootOverflowOwn;
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Motion tokens. One ease and one duration for every layer of a lift, so the
@@ -80,6 +150,29 @@ export const FLIP_LEAD_MS = 200;
  * over the same share at its end, so Home lands exactly as it rests.
  */
 export const BLOB_PULL_SPAN = 0.45;
+
+/*
+ * Home ↔ About where About's portrait column shows (lg) and the dashboard's
+ * avatar is in view: the avatar opens into the portrait (components/
+ * transition/avatarPortrait.ts) instead of Home lifting away as a sheet.
+ * Shares are of the lift's duration, from the transition's start.
+ */
+/** The card tips back to here, edge-on (past it, its back would show), and comes up from it. */
+export const AVATAR_TURN = -1.92;
+/** Flip: the scene (card and its black backing) dims away over this span, as the card tips back. */
+export const AVATAR_SCENE_OUT = [0.14, 0.55] as const;
+/** Flip: About's copy enters from here, over AVATAR_TEXT_SPAN, once the card is all but gone. */
+export const AVATAR_TEXT_AT = 0.35;
+export const AVATAR_TEXT_SPAN = 0.75;
+/** Unflip: About's copy goes over this span, then the scene comes back over the next. */
+export const AVATAR_TEXT_OUT = 0.3;
+export const AVATAR_SCENE_IN = [0.2, 0.6] as const;
+/** Unflip: the travelling photo fades in over the live portrait (maybe its turned relief) first. */
+export const AVATAR_HANDIN = 0.1;
+/** Unflip: the landed copy fades into the avatar drawn again under it. */
+export const AVATAR_HANDOFF_MS = 120;
+/** The scene's fades: an even in-out, so the card neither drops out nor lingers. */
+export const EASE_SCENE_FADE = [0.37, 0, 0.63, 1] as const;
 
 export const FADE_MS = 200;
 export const EASE_FADE = [0.32, 0.72, 0, 1] as const;
@@ -136,8 +229,9 @@ export const DEPTH_SELECTORS: Record<PagePath, string | null> = {
   // Text column only; the black root and the portrait's frame stay with the
   // sheet (the photo inside it trails instead: LAG_SELECTOR).
   "/about": "section > div",
-  // Text column inside the <main> scroller; the sticky plant aside stays.
-  "/work": "main > div > div:last-child",
+  // Text column inside the <main> scroller; the sticky plant aside stays, and so does the
+  // phone plant's stage (main's first child, whose box would match a looser selector).
+  "/work": "main > [data-work-content] > div:last-child",
   // <main> paints the background on these pages; its inner wrapper is content.
   "/projects": "main > div:first-child",
   "/skills": "main > div:first-child",
@@ -195,6 +289,11 @@ export type PageTransition = {
   flipDuration: number;
   /** Home's desktop visual is the fixed 3D scene, so it rides on Home's sheet. */
   homeVisualIsScene: boolean;
+  /**
+   * A flip or unflip where the dashboard's avatar opens into About's portrait
+   * (or closes back into it): no sheet lifts, the scene fades instead.
+   */
+  avatar: boolean;
   /** Scroll offset captured at popstate, before the router swaps the page. */
   popScrollY?: number;
   /** Window scroll the arriving sheet is framed at; applied once it settles. */

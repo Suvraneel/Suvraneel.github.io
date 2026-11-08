@@ -154,7 +154,7 @@ const projectsData = [
     name: "NFT Haven",
     logo: "/images/project-assets/logos/nft-haven.svg",
     details:
-      "A multi-chain DeFi Dashboard which allows minting & tracking of assets across multiple ecosystems (Ethereum, Binance Smart Chain, Polygon).|Allows users to mint their own NFTs or gift NFTs to their loved ones on the Polygon network via a very friendly user interface.|Soulbound Token NFT Minter - Any digital asset important to you (eg, Certificates, Important Documents) can be attached to wallet forever|Any media you hold - a Video, an Image, an Audio track can be converted to an NFT.|The gas fees for minting are minimal thanks to the Polygon Network. Currently the minter is on Polygon testnet, so the NFT collection of an wallet is also viewable on testnets.opensea.io.",
+      "A multi-chain DeFi Dashboard which allows minting & tracking of assets across multiple ecosystems (Ethereum, Binance Smart Chain, Polygon).|Allows users to mint their own NFTs or gift NFTs to their loved ones on the Polygon network via a very friendly user interface.|Soulbound Token NFT Minter - Any digital asset important to you (e.g., Certificates, Important Documents) can be attached to wallet forever|Any media you hold - a Video, an Image, an Audio track can be converted to an NFT.|The gas fees for minting are minimal thanks to the Polygon Network. Currently the minter is on Polygon testnet, so the NFT collection of a wallet is also viewable on testnets.opensea.io.",
     github: "https://github.com/Suvraneel/Instant-Soulbound-NFT-Minter",
     url: "https://nft-haven.vercel.app/",
     thumbnail: "/images/project-assets/thumbs/nft-haven.webp",
@@ -204,7 +204,7 @@ const projectsData = [
     details:
       "CrewS is a No Code Tool to create Data DAOs. |With CrewS you can take your crew on chain quickly to manage data along with governance. |Features include managing proposals, on-chain voting, execution of proposals, storing data as per the voting results. |FVM enables a new kind of data-centric DAO that has heretofore been impossible. |DataDAOs are DAOs whose mission revolves around the preservation, curation, augmentation, and promotion of datasets considered valuable by their stakeholders.",
     github: "https://github.com/Open-Sorcerer/CrewS",
-    url: "https://bafybeiblkpu3lbde4jgopk36e2y5ggcti6olyzgpdisgcblcem24ls5cku.ipfs.gateway.valist.io/",
+    url: "#",
     thumbnail: "/images/project-assets/thumbs/CrewS.webp",
     posterText: "No-code Data DAOs",
     gif: "video-to-be-added.webm",
@@ -260,7 +260,7 @@ const projectsData = [
     name: "Bounty Gunslinger",
     logo: "/images/project-assets/logos/bounty-gunslinger.svg",
     details:
-      "Blockchain Games are the next big thing. Play to Earn is a great incentive for the gamers to get rewarded for the time they invest in a game.|Each game can create exclusive swags/air-drops such as NFTs for players which will act as trophies forever as they are on the chain. These NFTs can have a materialistic value and this way they have utility as well.|The idea consists of a website to mint limited & exclusive access NFTs. Only the people who own one fromm the collection get access to the game and/or exclusive DLCs to the game.|Once they're bored of the game, they can then sell/trade the NFT hence passing on the game access to the new owner",
+      "Blockchain Games are the next big thing. Play to Earn is a great incentive for the gamers to get rewarded for the time they invest in a game.|Each game can create exclusive swags/air-drops such as NFTs for players which will act as trophies forever as they are on the chain. These NFTs can have a materialistic value and this way they have utility as well.|The idea consists of a website to mint limited & exclusive access NFTs. Only the people who own one from the collection get access to the game and/or exclusive DLCs to the game.|Once they're bored of the game, they can then sell/trade the NFT hence passing on the game access to the new owner",
     github: "https://github.com/Suvraneel/Bounty-Gunslinger",
     url: "https://open-sorcerer-nft-game-token.vercel.app/",
     thumbnail: "/images/project-assets/thumbs/bounty-gunslinger.webp",
@@ -283,7 +283,7 @@ const projectsData = [
     name: "CoWIN Clone",
     logo: "/images/project-assets/logos/cowin-clone.svg",
     details:
-      "A fully functional clone of [cowin.gov.in](https://www.cowin.gov.in/), built using the MERN Stack|Backend consists of an API built using Node, Express & prototyped using Postman API testing tool and the frontend consumes that API & lets the users book the vaccination slots based on availability & location of slots mass-fed by administration (ie, vaccination centers).|CoWIN API - provides API endpoints for all the components involved in a COVID-19 vaccination service|Registration of new beneficiaries, book appointments, expiry notification|Administration - CRUD vaccination centres & available slots in batches|Vaccination Centres - complete Appointments & update Doses",
+      "A fully functional clone of [cowin.gov.in](https://www.cowin.gov.in/), built using the MERN Stack|Backend consists of an API built using Node, Express & prototyped using Postman API testing tool and the frontend consumes that API & lets the users book the vaccination slots based on availability & location of slots mass-fed by administration (i.e., vaccination centres).|CoWIN API - provides API endpoints for all the components involved in a COVID-19 vaccination service|Registration of new beneficiaries, book appointments, expiry notification|Administration - CRUD vaccination centres & available slots in batches|Vaccination Centres - complete Appointments & update Doses",
     github: "https://github.com/Suvraneel/cowin-clone-ui",
     url: "https://cowin-clone-ui.vercel.app/",
     thumbnail: "/images/project-assets/thumbs/cowin-clone.webp",
@@ -324,18 +324,19 @@ const projectsData = [
       "Minimalist Weather Forecasting Web Application Dashboard that fetches & visualizes data using a collection of APIs.|Fetches detailed current weather data or 7 day forecast using OpenWeatherMap API, GoogleMapEmbed API, and visualizations using Chart.js|Manifests all weather data by Geolocation, Top Searched Cities or City Search",
     github: "https://github.com/Suvraneel/Meteorologyly",
     url: "https://suvraneel.github.io/Meteorologyly/",
-    thumbnail: "/images/project-assets/meteorologyly.png",
+    thumbnail: "/images/project-assets/meteorologyly-thumbnail.webp",
     gif: "meteorologyly.webm",
     video: "https://www.youtube.com/embed/EKGJ-pzSEns",
     tech_stk: ["HTML5", "CSS3", "Javascript", "BootStrap", "Chart.js", "APIs"],
   },
   {
+    id: "diablo-music",
     name: "Diablo Music App",
     logo: "/images/project-assets/logos/diablo-music-app.svg",
     details:
       "Minimalistic Music Player with a dark UI especially-curated for the nocturnal.| Utilises Firebase-authenticated login.| Doubles as local & online music player",
     github: "https://github.com/Suvraneel/Diablo-Music",
-    url: "https://suvraneel.github.io/pages/diablo-music.html",
+    url: "#",
     thumbnail: "/images/project-assets/thumbs/diablo-music-app.webp",
     posterText: "For the nocturnal.",
     gif: "video-to-be-added.webm",
