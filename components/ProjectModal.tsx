@@ -7,6 +7,7 @@ import LiquidMetalButton from "@components/LiquidMetalButton";
 import LiteYouTube from "@components/LiteYouTube";
 import ModalTeaser, { TEASERS } from "@components/ModalTeaser";
 import PillButton from "@components/PillButton";
+import { PlayIcon } from "@components/animate-ui/icons/play";
 import { AnimateIcon } from "@components/animate-ui/icons/icon";
 import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
 import { XIcon } from "@components/animate-ui/icons/x";
@@ -766,7 +767,9 @@ export default function ProjectModal({
     ? (Math.max(...project.titleLines.map((line) => line.length)) * 0.86 + (project.logo ? 1.12 : 0)).toFixed(2)
     : null;
   const notes = project.details.split("|").map((detail) => detail.trim());
-  const hasActions = project.url !== "#" || project.github !== "#";
+  // A narrated walkthrough on YouTube behind a teaser: offered among the actions, out of the running teaser's way.
+  const offersWalkthrough = Boolean(project.teaser) && hasProjectDemo && !walkthrough;
+  const hasActions = project.url !== "#" || project.github !== "#" || offersWalkthrough;
   const stack =
     project.tech_stk.length > 0 ? (
       <section aria-label="Technology stack">
@@ -1272,7 +1275,6 @@ export default function ProjectModal({
                       name={project.name}
                       active={landed && isPresent}
                       onFrame={() => setTeaserHasFrame(true)}
-                      onWalkthrough={hasProjectDemo ? () => setWalkthrough(true) : undefined}
                     />
                   ) : hasProjectDemo ? (
                     <LiteYouTube
@@ -1431,6 +1433,7 @@ export default function ProjectModal({
                   href={project.url}
                   target="_blank"
                   rel="noreferrer"
+                  ariaLabel={`Visit project: ${project.name}`}
                   onMouseEnter={() => {
                     setVisitHovered(true);
                     playTick();
@@ -1441,7 +1444,9 @@ export default function ProjectModal({
                   }}
                   onClick={playPress}
                 >
-                  <span>Visit project</span>
+                  {/* "Visit" on phones, so Walkthrough fits beside it, icon and all. */}
+                  <span className="sm:hidden">Visit</span>
+                  <span className="max-sm:hidden">Visit project</span>
                   <SquareArrowOutUpRightIcon aria-hidden="true" size={16} animate={visitHovered} />
                 </LiquidMetalButton>
               )}
@@ -1455,6 +1460,29 @@ export default function ProjectModal({
                   onClick={playPress}
                 >
                   View source
+                </PillButton>
+              )}
+              {offersWalkthrough && (
+                <PillButton
+                  icon={<PlayIcon aria-hidden="true" size={16} />}
+                  ariaLabel={`Watch walkthrough: ${project.name}, narrated`}
+                  onMouseEnter={playTick}
+                  onMouseLeave={stopTick}
+                  onClick={() => {
+                    playPress();
+                    setWalkthrough(true);
+                    // The frame plays it: on phones, where the actions bar sits far below
+                    // it, scroll it back into view, clear of the sticky header.
+                    const box = frame.current?.getBoundingClientRect();
+                    const view = scroller.current;
+                    const header = view?.querySelector("header")?.getBoundingClientRect();
+                    if (box && view && header && (box.top < header.bottom || box.bottom > view.getBoundingClientRect().bottom)) {
+                      view.scrollBy({ top: box.top - header.bottom - 12, behavior: reduceMotion ? "auto" : "smooth" });
+                    }
+                  }}
+                >
+                  <span className="sm:hidden">Walkthrough</span>
+                  <span className="max-sm:hidden">Watch walkthrough</span>
                 </PillButton>
               )}
             </motion.footer>
