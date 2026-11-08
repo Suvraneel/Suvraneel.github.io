@@ -1049,6 +1049,7 @@ function ProjectTile({
         // A flagship's hero is composed in the page (footage, scrim, brand type):
         // the dialog's frame carries a copy of it rather than a still.
         composite: hero ? tile.querySelector<HTMLElement>(".project-hero") : null,
+        title: tile.querySelector<HTMLElement>(".tile-title-lift"),
       },
     };
   };
@@ -1343,6 +1344,7 @@ function EarlierProjects({
                       // The thumbnail's rounded box is what the frame grows from and lands on.
                       const thumb = row.querySelector<HTMLElement>("[data-row-thumb]") ?? row;
                       onOpenProject(project, {
+                        title: row.querySelector<HTMLElement>("[data-row-title]"),
                         tile: thumb,
                         media,
                         poster: thumbnail ?? null,
@@ -1359,7 +1361,7 @@ function EarlierProjects({
                       )}
                     </span>
                     <span aria-hidden="true" className="min-w-0 flex-1">
-                      <span className="block truncate text-[0.95rem] font-semibold leading-tight tracking-[-0.02em] text-white">{project.name}</span>
+                      <span data-row-title className="block truncate text-[0.95rem] font-semibold leading-tight tracking-[-0.02em] text-white">{project.name}</span>
                       <span className="mt-1.5 flex gap-1.5 overflow-hidden">
                         {project.tech_stk.slice(0, 2).map((tech) => (
                           <span key={tech} className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[0.6rem] font-medium leading-4 text-white/70">

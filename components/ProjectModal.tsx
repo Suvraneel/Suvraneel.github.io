@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, usePresence, useReducedMotion, type Variants } from "motion/react";
-import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
+import { useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { spaceBoards, tasaOrbiter } from "@font";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import LiteYouTube from "@components/LiteYouTube";
@@ -48,6 +48,8 @@ export type ModalSource = {
    * of it, laid over the tile as the tile draws it, so it can still travel.
    */
   composite?: HTMLElement | null;
+  /** The tile's name row (logo and name): it flies into the dialog's title and back. */
+  title?: HTMLElement | null;
 };
 
 /** At least partly inside the window. */
@@ -369,6 +371,91 @@ function copyComposite(composite: HTMLElement, mount: HTMLElement) {
   return container;
 }
 
+/** How long the flown name and the dialog's title take to trade places once it lands. */
+const TITLE_HANDOVER: KeyframeAnimationOptions = { duration: 180, easing: "ease-out", fill: "forwards" };
+
+/**
+ * A copy of the tile's name row (logo and name), standing exactly where the
+ * tile draws it, in the dialog (the top layer) so it shows over the backdrop.
+ * Its type is frozen as the tile sets it, so it flies at the tile's size and
+ * the travel scales it from there.
+ */
+function makeFlyer(name: HTMLElement, host: HTMLElement) {
+  // Where its hover lift is taking it (Chrome on touch keeps a tapped tile
+  // hovered until the next tap), so it is measured as it will stand.
+  void getComputedStyle(name).transform;
+  name.getAnimations().forEach((animation) => {
+    if (animation instanceof CSSTransition) animation.finish();
+  });
+  const box = name.getBoundingClientRect();
+  const style = getComputedStyle(name);
+  // Laid out at the row's own width (so it wraps as the tile's does), then
+  // scaled to the size it is drawn at, which a press or tilt may shrink a touch.
+  const layoutWidth = name.offsetWidth || box.width;
+  const rest = `scale(${box.width / layoutWidth})`;
+  const flyer = name.cloneNode(true) as HTMLElement;
+  flyer.setAttribute("aria-hidden", "true");
+  Object.assign(flyer.style, {
+    position: "fixed",
+    left: `${box.left}px`,
+    top: `${box.top}px`,
+    width: `${layoutWidth}px`,
+    maxWidth: "none",
+    margin: "0",
+    transform: rest,
+    transformOrigin: "0 0",
+    transition: "none",
+    pointerEvents: "none",
+    zIndex: "40",
+    visibility: "visible",
+    fontFamily: style.fontFamily,
+    fontSize: style.fontSize,
+    fontWeight: style.fontWeight,
+    lineHeight: style.lineHeight,
+    letterSpacing: style.letterSpacing,
+    color: style.color,
+  });
+  host.appendChild(flyer);
+  return { flyer, box, rest, fontSize: parseFloat(style.fontSize) };
+}
+
+/**
+ * The dialog's title as seen: inside the window, its scroller's clip and clear
+ * of the sticky header over it, read as what the browser would hit at its
+ * first line. A title scrolled out of sight is never flown to or from.
+ */
+function titleInSight(title: HTMLElement, frame: HTMLElement | null) {
+  const at = title.getBoundingClientRect();
+  if (!isOnScreen(at)) return false;
+  // The preview frame, laid over the tile as it opens, may stand over the title: looked past.
+  const hits = document.elementsFromPoint(at.left + Math.min(12, at.width / 2), at.top + Math.min(at.height / 2, 16));
+  const hit = hits.find((element) => !frame?.contains(element));
+  return hit !== undefined && title.contains(hit);
+}
+
+/** Hides the tile's name row while a copy of it flies (and the dialog is up), or gives it back. */
+function setNameShown(name: HTMLElement | null | undefined, shown: boolean) {
+  if (!name) return;
+  if (shown) name.style.removeProperty("visibility");
+  else name.style.visibility = "hidden";
+}
+
+/** Holds the dialog's title clear while the name flies into it, or lets go. */
+function setTitleHeld(title: HTMLElement | null | undefined, held: boolean) {
+  if (!title) return;
+  if (held) title.style.opacity = "0";
+  else title.style.removeProperty("opacity");
+}
+
+/** Where the flown name stands laid over the dialog's title: its corner on the title's, at the title's size. */
+const overTitle = (heading: HTMLElement, box: DOMRect, fontSize: number, flyer: HTMLElement) => {
+  // A name without its mark (a phone list row's) lands on the title's words, not its logo.
+  const target = flyer.querySelector("img") ? heading : (heading.querySelector<HTMLElement>("[data-title-text]") ?? heading);
+  const at = target.getBoundingClientRect();
+  const scale = parseFloat(getComputedStyle(heading).fontSize) / fontSize;
+  return `translate(${at.left - box.left}px, ${at.top - box.top}px) scale(${scale})`;
+};
+
 /** The frame's travel runs on the panel's own curve and duration. */
 const FRAME_TRAVEL: KeyframeAnimationOptions = { duration: MODAL_PANEL_S * 1000, easing: cssEase(MODAL_PANEL_EASE) };
 
@@ -509,6 +596,7 @@ function noteContent(note: string) {
 
 type Project = {
   name: string;
+  logo?: string;
   details: string;
   github: string;
   url: string;
@@ -559,6 +647,11 @@ export default function ProjectModal({
   // A composed tile picture's copy (see ModalSource.composite): its mount, and the clone in it.
   const compositeMount = useRef<HTMLDivElement>(null);
   const compositeCopy = useRef<HTMLDivElement | null>(null);
+  // The dialog's title, and the name flying into it as it opens (see makeFlyer).
+  const heading = useRef<HTMLHeadingElement>(null);
+  const openingName = useRef<{ flyer: HTMLElement; flight: Animation; rest: string } | null>(null);
+  // The name flying home as the dialog closes, kept over the tile's until it goes.
+  const closingName = useRef<HTMLElement | null>(null);
   const tileBackdrop = useRef<HTMLDivElement>(null);
   const tileBackdropImage = useRef<HTMLCanvasElement>(null);
   const tileClipFrame = useRef<HTMLCanvasElement>(null);
@@ -707,6 +800,32 @@ export default function ProjectModal({
       layComposite(preview, tile, compositeMount.current, source.tile);
     }
     const animations = travel(preview, layer, from, frameHome(preview));
+    // The tile's name row flies with the frame into the dialog's title (when the
+    // title stands on screen), then they trade places: the name was set in the
+    // tile's face and the title in the dialog's, so it crossfades as it lands.
+    const title = heading.current;
+    const name = source.title;
+    const host = dialog.current;
+    if (title && name?.isConnected && host && titleInSight(title, preview)) {
+      const { flyer, box, rest, fontSize } = makeFlyer(name, host);
+      const flight = flyer.animate([{ transform: rest }, { transform: overTitle(title, box, fontSize, flyer) }], { ...FRAME_TRAVEL, fill: "forwards" });
+      setTitleHeld(title, true);
+      setNameShown(name, false);
+      animations.push(flight);
+      openingName.current = { flyer, flight, rest };
+      flight.finished.then(
+        () => {
+          const shown = title.animate([{ opacity: 0 }, { opacity: 1 }], TITLE_HANDOVER);
+          shown.finished.then(() => {
+            setTitleHeld(title, false);
+            shown.cancel();
+          }, () => undefined);
+          flyer.animate([{ opacity: 1 }, { opacity: 0 }], TITLE_HANDOVER).finished.then(() => flyer.remove(), () => flyer.remove());
+          openingName.current = null;
+        },
+        () => undefined
+      );
+    }
     // Held on the tile until the next frame: WebKit starts the clock at once,
     // and would otherwise lose the travel's quick start behind the mount.
     animations.forEach((animation) => animation.pause());
@@ -735,8 +854,23 @@ export default function ProjectModal({
     return () => {
       cancelAnimationFrame(start);
       animations.forEach((animation) => animation.cancel());
+      // A remount (Strict Mode) starts it all again.
+      openingName.current?.flyer.remove();
+      openingName.current = null;
+      setTitleHeld(title, false);
+      setNameShown(name, true);
     };
   }, [carriesComposite, carriesThumbnail, source, travels]);
+
+  // However the dialog goes, the tile gets its name back once it has.
+  // In a layout effect, so it lands in the same commit that removes the dialog (and the copy with it), before paint.
+  useLayoutEffect(
+    () => () => {
+      closingName.current?.remove();
+      setNameShown(source?.title, true);
+    },
+    [source]
+  );
 
   // The settle sets off once the frame has landed and the demo's own picture is
   // there to dissolve into, or after SETTLE_WAIT_MAX_MS if it never comes.
@@ -805,6 +939,12 @@ export default function ProjectModal({
       return;
     }
     let animations: Animation[] = [];
+    // A name still flying in, when the frame doesn't go home: it stops and goes.
+    const dropOpeningName = () => {
+      openingName.current?.flight.cancel();
+      openingName.current?.flyer.remove();
+      openingName.current = null;
+    };
     settleTile(source);
     // The still the frame carries home is the poster a clip that hasn't loaded
     // draws, so its size lays the frame exactly over it.
@@ -850,6 +990,38 @@ export default function ProjectModal({
           }
         }
         animations = travel(preview, layer, from, to, "both", stillLeadIn);
+        // The name flies home with it: a copy in the tile's face takes over from
+        // the dialog's title during the lead-in, then lands on the tile's own,
+        // which comes back as it does. One still on its way in is dropped.
+        const title = heading.current;
+        const name = source.title;
+        const inFlight = openingName.current;
+        openingName.current = null;
+        if (inFlight && name?.isConnected) {
+          // Caught on its way in: it turns back from where it has got to, with the frame.
+          const now = getComputedStyle(inFlight.flyer).transform;
+          inFlight.flight.cancel();
+          const home = inFlight.flyer.animate([{ transform: now === "none" ? "scale(1)" : now }, { transform: inFlight.rest }], { ...FRAME_TRAVEL, fill: "both" });
+          animations.push(home);
+          closingName.current = inFlight.flyer;
+        } else if (title && name?.isConnected && dialog.current && titleInSight(title, preview)) {
+          setNameShown(name, false);
+          const { flyer, box, rest, fontSize } = makeFlyer(name, dialog.current);
+          const away = overTitle(title, box, fontSize, flyer);
+          const lead: KeyframeAnimationOptions = { ...STILL_FADE, duration: Math.max(stillLeadIn, 1), fill: "both" };
+          fades.push(flyer.animate([{ opacity: 0, transform: away }, { opacity: 1, transform: away }], lead));
+          fades.push(title.animate([{ opacity: getComputedStyle(title).opacity }, { opacity: 0 }], lead));
+          const home = flyer.animate([{ transform: away }, { transform: rest }], { ...FRAME_TRAVEL, fill: "both", delay: stillLeadIn });
+          animations.push(home);
+          // It stays over the tile's name until the dialog itself goes (see the
+          // unmount effect): taken away as it lands, the name would blink out
+          // under the frame for the frames before the dialog is removed.
+          closingName.current = flyer;
+        } else {
+          inFlight?.flight.cancel();
+          inFlight?.flyer.remove();
+          setNameShown(name, true);
+        }
         // With a lead-in, held where they start until the close's first frame
         // has been drawn: that frame (the panel starting its fade) can take
         // most of the lead-in, and a clock started before it (WebKit starts it
@@ -862,8 +1034,11 @@ export default function ProjectModal({
           held.forEach((animation) => animation.pause());
           requestAnimationFrame(() => requestAnimationFrame(() => held.forEach((animation) => animation.play())));
         }
+      } else {
+        dropOpeningName();
       }
     } else {
+      dropOpeningName();
       animations = [preview.animate([{ opacity: 1 }, { opacity: 0 }], { ...FRAME_TRAVEL, fill: "forwards" })];
     }
     const done = () => safeToRemove?.();
@@ -1113,13 +1288,24 @@ export default function ProjectModal({
                 from assistive tech and a visually hidden copy gives the name as written,
                 as the tab and the tile have it. Capitals run wider, so the title is never
                 larger than lets its longest word fit the column (STAKEOVERFLOW and
-                METEOROLOGYLY, some 10.9em each): the notes column at 1200px and up, and
-                the narrowest phones. */}
-            <h2 id="project-dialog-title" className={`text-balance leading-[1.02] text-white [font-size:min(var(--text-title),8.8cqi)] ${spaceBoards.className}`}>
-              <span aria-hidden="true" className="uppercase">
-                {project.name}
+                METEOROLOGYLY, some 10.9em each, plus the logo's 1.1em when it has one):
+                the notes column at 1200px and up, and the narrowest phones. */}
+            {/* The project's mark leads the title as it leads the tile's name, which flies into it as the dialog opens. */}
+            <h2
+              ref={heading}
+              id="project-dialog-title"
+              className={`flex items-start gap-[0.3em] leading-[1.02] text-white ${project.logo ? "[font-size:min(var(--text-title),7.9cqi)]" : "[font-size:min(var(--text-title),8.8cqi)]"} ${spaceBoards.className}`}
+            >
+              {project.logo && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={project.logo} alt="" aria-hidden="true" className="mt-[0.06em] h-[0.82em] w-auto max-w-[2.1em] shrink-0 object-contain" />
+              )}
+              <span data-title-text className="min-w-0 text-balance">
+                <span aria-hidden="true" className="uppercase">
+                  {project.name}
+                </span>
+                <span className="sr-only">{project.name}</span>
               </span>
-              <span className="sr-only">{project.name}</span>
             </h2>
 
             {stack && <div className="mt-6 min-[1200px]:hidden">{stack}</div>}
