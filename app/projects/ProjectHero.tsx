@@ -1,7 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
-import { monomaDisplay, monomaMono, monomaText, settlexFallback, sheetahText } from "./heroFonts";
+import { monomaDisplay, monomaText, settlexFallback, sheetahText } from "./heroFonts";
 import { useLoopPlayback } from "./useLoopPlayback";
 
 export type HeroBrand = "monoma" | "settlex" | "sheetah";
@@ -29,7 +29,7 @@ export default function ProjectHero({
   const { video } = useLoopPlayback(tileRef, paused);
   const fonts =
     brand === "monoma"
-      ? `${monomaDisplay.variable} ${monomaText.variable} ${monomaMono.variable}`
+      ? `${monomaDisplay.variable} ${monomaText.variable}`
       : brand === "settlex"
         ? settlexFallback.variable
         : sheetahText.variable;
@@ -52,7 +52,6 @@ export default function ProjectHero({
       <div className="project-hero-scrim" />
       {brand === "monoma" ? (
         <div className="project-hero-copy">
-          <span className="project-hero-eyebrow">Organizational memory</span>
           <span className="project-hero-headline">
             Company brain <span>that evolves with every action</span>
           </span>
