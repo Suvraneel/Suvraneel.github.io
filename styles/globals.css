@@ -617,12 +617,13 @@ a:focus-visible > .link-draw::after {
   display: none;
 }
 
-/* Monoma (usemonoma.com): Aoboshi One headline, plain white, -0.02em; JetBrains
-   Mono caps eyebrow in the one cyan; Public Sans muted subline; the company-brain
-   constellation seated low and right, its edges feathered into #060606, under the
-   site's cyan hero glow. */
+/* Monoma (usemonoma.com): Aoboshi One headline, plain white, -0.02em; Public
+   Sans muted subline; the company-brain
+   constellation seated small in the bottom-right, just reaching under the copy,
+   its edges feathered into #060606, under the site's cyan hero glow. The copy
+   sits on a dark fade and a soft shadow. */
 .project-hero--monoma .project-hero-footage {
-  transform: translate(18%, 25%) scale(0.87);
+  transform: translate(20%, 20%) scale(0.74);
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16%), linear-gradient(180deg, transparent 0, #000 16%);
   -webkit-mask-composite: source-in;
   mask-image: linear-gradient(90deg, transparent 0, #000 16%), linear-gradient(180deg, transparent 0, #000 16%);
@@ -633,8 +634,8 @@ a:focus-visible > .link-draw::after {
   background:
     radial-gradient(70% 80% at 6% 0%, rgba(23, 193, 222, 0.16), transparent 70%),
     radial-gradient(45% 55% at 96% 4%, rgba(23, 193, 222, 0.1), transparent 70%),
-    linear-gradient(90deg, rgba(6, 6, 6, 0.85) 0%, rgba(6, 6, 6, 0.4) 30%, rgba(6, 6, 6, 0) 55%),
-    linear-gradient(180deg, rgba(6, 6, 6, 0.6) 0%, rgba(6, 6, 6, 0) 90px),
+    linear-gradient(90deg, rgba(6, 6, 6, 0.94) 0%, rgba(6, 6, 6, 0.82) 30%, rgba(6, 6, 6, 0.4) 46%, rgba(6, 6, 6, 0) 60%),
+    linear-gradient(180deg, rgba(6, 6, 6, 0.65) 0%, rgba(6, 6, 6, 0) 45%),
     linear-gradient(0deg, rgba(6, 6, 6, 0.85) 0%, rgba(6, 6, 6, 0) 90px);
 }
 
@@ -643,21 +644,15 @@ a:focus-visible > .link-draw::after {
   top: clamp(20px, 6cqw, 24px);
   max-width: 90%;
   font-family: var(--font-monoma-text), system-ui, sans-serif;
-}
-
-.project-hero--monoma .project-hero-eyebrow {
-  margin-bottom: clamp(8px, 2.5cqw, 10px);
-  font-family: var(--font-monoma-mono), monospace;
-  font-size: clamp(9px, 2.6cqw, 10px);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: #18c1de;
+  text-shadow: 0 1px 14px rgba(6, 6, 6, 0.9), 0 0 4px rgba(6, 6, 6, 0.6);
 }
 
 .project-hero--monoma .project-hero-headline {
   font-family: var(--font-monoma-display), serif;
-  font-size: clamp(16px, 5cqw, 20px);
+  /* Its second line runs some 13.4em: sized to the tile so it never wraps. */
+  font-size: min(26px, calc(7cqw - 4px));
   line-height: 1.12;
+  white-space: nowrap;
   letter-spacing: -0.02em;
 }
 
@@ -670,12 +665,23 @@ a:focus-visible > .link-draw::after {
 
 /* SettleX (settlex.fi): Helvetica Neue 400 headline, plain white, no tracking;
    the site's Join Waitlist pill as the eyebrow; light muted subline; the hero's
-   rays, glow and coin tiles up top right, and below them the README's netting
-   demo, one state at a time: 10,000 out and 9,500 back, then 500 net. */
+   glow and star dust, and the netting across the five chains it targets: twelve
+   transfers drain into the clearing pill and two settlements come out (20,000
+   gross, 2,000 net, -90%). */
 /* On tiles narrower than the footage (desktop near 1024px, tablets) the crop
    keeps the netting diagram whole and centred under the copy. */
 .project-hero--settlex .project-hero-footage {
   object-position: 76% 30%;
+}
+
+/* Narrow desktop tiles (taller than wide, at 1024-1200px viewports): the
+   five-chain diagram shrinks and settles lower, clear of the subline and whole. */
+@container tile (max-aspect-ratio: 1/1) and (min-height: 380px) {
+  .project-hero--settlex .project-hero-footage {
+    object-position: 100% 30%;
+    transform: translate(-3%, 10%) scale(0.76);
+    transform-origin: 72% 60%;
+  }
 }
 
 .project-hero--settlex .project-hero-scrim {
@@ -751,7 +757,8 @@ a:focus-visible > .link-draw::after {
 .project-hero--sheetah .project-hero-scrim {
   background:
     radial-gradient(55% 65% at 0% 0%, rgba(143, 156, 255, 0.08), transparent 70%),
-    linear-gradient(90deg, rgba(16, 16, 19, 0.74) 0%, rgba(16, 16, 19, 0.55) 30%, rgba(16, 16, 19, 0) 54%),
+    linear-gradient(90deg, rgba(16, 16, 19, 0.86) 0%, rgba(16, 16, 19, 0.7) 30%, rgba(16, 16, 19, 0) 56%),
+    linear-gradient(180deg, rgba(16, 16, 19, 0.45) 0%, rgba(16, 16, 19, 0) 40%),
     linear-gradient(0deg, rgba(16, 16, 19, 0.8) 0%, rgba(16, 16, 19, 0) 30%);
 }
 
@@ -825,14 +832,15 @@ a:focus-visible > .link-draw::after {
   }
 
   .project-hero--monoma .project-hero-footage {
-    transform: translate(17%, 20%) scale(0.78);
+    transform: translate(22%, 17%) scale(0.7);
   }
 
   .project-hero--monoma .project-hero-scrim {
     background:
       radial-gradient(60% 70% at 8% 0%, rgba(23, 193, 222, 0.16), transparent 70%),
       radial-gradient(40% 50% at 96% 4%, rgba(23, 193, 222, 0.1), transparent 70%),
-      linear-gradient(90deg, rgba(6, 6, 6, 0.9) 0%, rgba(6, 6, 6, 0.62) 24%, rgba(6, 6, 6, 0.18) 46%, rgba(6, 6, 6, 0) 62%),
+      linear-gradient(90deg, rgba(6, 6, 6, 0.95) 0%, rgba(6, 6, 6, 0.85) 30%, rgba(6, 6, 6, 0.4) 48%, rgba(6, 6, 6, 0) 62%),
+      linear-gradient(180deg, rgba(6, 6, 6, 0.65) 0%, rgba(6, 6, 6, 0) 45%),
       linear-gradient(0deg, rgba(6, 6, 6, 0.9) 0%, rgba(6, 6, 6, 0.45) 100px, rgba(6, 6, 6, 0) 170px);
   }
 
@@ -841,14 +849,14 @@ a:focus-visible > .link-draw::after {
     top: 40px;
   }
 
-  .project-hero--monoma .project-hero-eyebrow {
-    margin-bottom: 14px;
-    font-size: 11px;
+  /* Scales down on narrow desktop tiles so the second line (some 13.4em) never wraps. */
+  .project-hero--monoma .project-hero-headline {
+    font-size: min(46px, calc(7cqw - 4px));
   }
 
-  /* Scales down on narrow desktop tiles so the second line never wraps. */
-  .project-hero--monoma .project-hero-headline {
-    font-size: min(32px, 6.2cqw);
+  .project-hero--monoma .project-hero-sub {
+    margin-top: 18px;
+    font-size: 16px;
   }
 
   .project-hero--settlex .project-hero-copy {
