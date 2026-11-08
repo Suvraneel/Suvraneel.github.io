@@ -994,6 +994,7 @@ function ProjectTile({
   const thumbLoop = "thumbLoop" in project ? project.thumbLoop : undefined;
   const posterText = "posterText" in project ? project.posterText : undefined;
   const logo = "logo" in project ? project.logo : undefined;
+  const titleLines = "titleLines" in project ? project.titleLines : undefined;
   const hero = "hero" in project ? (project.hero as HeroBrand) : undefined;
   const posterTextId = useId();
   const showsThumbnail = Boolean(thumbnail && !thumbnailFailed);
@@ -1049,6 +1050,7 @@ function ProjectTile({
         // A flagship's hero is composed in the page (footage, scrim, brand type):
         // the dialog's frame carries a copy of it rather than a still.
         composite: hero ? tile.querySelector<HTMLElement>(".project-hero") : null,
+        title: tile.querySelector<HTMLElement>(".tile-title-lift"),
       },
     };
   };
@@ -1186,13 +1188,24 @@ function ProjectTile({
         {/* Tiles with room under the poster (see .tile-title-lift in globals.css): the title lifts and one compact row fades in under it. */}
         {/* A span, not a heading: a button may hold only phrasing content. Hidden from
             assistive tech because the button's aria-label already reads "Open <name>". */}
-        <span aria-hidden="true" className="tile-title-lift flex max-w-[calc(22ch+1.25em)] items-start gap-[0.4em] text-lead font-semibold leading-tight tracking-[-0.025em] text-white">
+        {/* In the dialog title's own face (Space Boards, in capitals: its lowercase f, p
+            and d read as "=" and hooks), so the name that flies into the title is the
+            title from the start. The button's aria-label gives the name as written. */}
+        <span aria-hidden="true" className={`tile-title-lift flex items-start gap-[0.3em] uppercase [font-size:calc(var(--text-lead)*0.9)] leading-[1.08] text-white ${spaceBoards.className}`}>
           {/* The project's own mark, centred on the name's first line and lifting with it. */}
           {logo && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt="" className="mt-[0.2em] h-[0.85em] w-auto max-w-[2.1em] shrink-0 object-contain" />
+            <img src={logo} alt="" className="mt-[0.06em] h-[0.82em] w-auto max-w-[2.1em] shrink-0 object-contain" />
           )}
-          <span className="min-w-0">{project.name}</span>
+          <span className="min-w-0">
+            {titleLines
+              ? titleLines.map((line) => (
+                  <span key={line} className="block whitespace-nowrap">
+                    {line}
+                  </span>
+                ))
+              : project.name}
+          </span>
         </span>
         <div aria-hidden="true" className="tile-brief-meta absolute inset-x-5 bottom-5 hidden items-center gap-1.5 sm:inset-x-6 sm:bottom-6">
           {/* The whole stack, on one row, in the project's own order: whole chips that won't fit beside "Case notes" wrap out of sight. */}
@@ -1343,6 +1356,7 @@ function EarlierProjects({
                       // The thumbnail's rounded box is what the frame grows from and lands on.
                       const thumb = row.querySelector<HTMLElement>("[data-row-thumb]") ?? row;
                       onOpenProject(project, {
+                        title: row.querySelector<HTMLElement>("[data-row-title]"),
                         tile: thumb,
                         media,
                         poster: thumbnail ?? null,
@@ -1359,7 +1373,7 @@ function EarlierProjects({
                       )}
                     </span>
                     <span aria-hidden="true" className="min-w-0 flex-1">
-                      <span className="block truncate text-[0.95rem] font-semibold leading-tight tracking-[-0.02em] text-white">{project.name}</span>
+                      <span data-row-title className={`line-clamp-2 text-[0.82rem] uppercase leading-[1.15] text-white ${spaceBoards.className}`}>{project.name}</span>
                       <span className="mt-1.5 flex gap-1.5 overflow-hidden">
                         {project.tech_stk.slice(0, 2).map((tech) => (
                           <span key={tech} className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[0.6rem] font-medium leading-4 text-white/70">
