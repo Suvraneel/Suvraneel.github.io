@@ -17,6 +17,10 @@ type Rect = [number, number, number, number];
  * own type and palette (see app/projects/ProjectHero.tsx); `thumbnail` is then
  * the footage's first frame.
  *
+ * `teaser` names a self-hosted teaser (public/images/project-assets/teasers/),
+ * the dialog's first picture, played in full with its soundtrack; a narrated
+ * walkthrough on YouTube (`video`), where there is one, is a press away.
+ *
  * `titleLines` breaks a long name the same way on its tile and in its dialog's
  * title, so the name that flies between them never re-wraps.
  *
@@ -64,6 +68,7 @@ const projectsData = [
     hero: "monoma",
     posterText: "Organizational memory. Company brain that evolves with every action. Scoped to your permissions. Approval-gated before every write.",
     gif: "video-to-be-added.webm",
+    teaser: "monoma",
     video: "https://www.youtube.com/embed/1yD7N6u9MG8",
     tech_stk: ["FastAPI", "Celery", "PostgreSQL", "pgvector", "Redis", "MCP"],
   },
@@ -79,6 +84,7 @@ const projectsData = [
     hero: "settlex",
     posterText: "Multi-chain testnets. The Clearing Layer for Crypto. Settles only the net delta, cutting bridging costs by up to 90%.",
     gif: "video-to-be-added.webm",
+    teaser: "settlex",
     video: "https://www.youtube.com/embed/2CyxdCe9RD8",
     tech_stk: ["Bun", "Elysia", "AWS", "PostgreSQL", "WebSockets", "Next.js"],
   },
@@ -94,6 +100,7 @@ const projectsData = [
     hero: "sheetah",
     posterText: "Sheets × SQL. 10M-row grid · 60 fps scroll · Zero uploads",
     gif: "sheetah.webm",
+    teaser: "sheetah",
     video: "https://www.youtube.com/embed/EKGJ-pzSEns",
     tech_stk: ["DuckDB-WASM", "TypeScript", "React", "Canvas API", "Web Workers", "Apache Arrow", "CodeMirror", "Playwright"],
   },
@@ -112,6 +119,7 @@ const projectsData = [
       mask: "radial-gradient(closest-side, #000 87.7%, transparent 88.5%)",
     }),
     gif: "radlet.webm",
+    teaser: "radlet",
     video: "https://www.youtube.com/embed/EKGJ-pzSEns",
     tech_stk: ["Rust", "Swift", "SwiftUI", "AppKit", "MCP", "Vision framework", "PDFium", "FFmpeg"],
   },
@@ -125,6 +133,7 @@ const projectsData = [
     url: "https://stake-overflow.vercel.app/",
     thumbnail: "/images/project-assets/stakeoverflow-thumbnail.webp",
     gif: "destackoverflow.webm",
+    teaser: "stake-overflow",
     video: "https://www.youtube.com/embed/unKt1LBCh7I",
     tech_stk: ["IPFS", "React", "AntDesign", "Solidity"],
   },
@@ -141,6 +150,7 @@ const projectsData = [
     posterText: "6,000+ contributors. 14+ countries · 4,836 merged PRs · On-chain certificate verifier",
     thumbLoop: loop("gssoc-website", "16 / 9", [42.501, 11.557, 51.997, 46.22], [42.5, 11.481, 52.031, 46.296]),
     gif: "gssoc-website.webm",
+    teaser: "gssoc-website",
     video: "https://www.youtube.com/embed/EKGJ-pzSEns",
     tech_stk: [
       "NextJS",

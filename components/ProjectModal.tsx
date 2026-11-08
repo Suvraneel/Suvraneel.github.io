@@ -5,6 +5,7 @@ import { useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type
 import { spaceBoards, tasaOrbiter } from "@font";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import LiteYouTube from "@components/LiteYouTube";
+import ModalTeaser, { TEASERS } from "@components/ModalTeaser";
 import PillButton from "@components/PillButton";
 import { AnimateIcon } from "@components/animate-ui/icons/icon";
 import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
@@ -645,6 +646,8 @@ type Project = {
   url: string;
   gif: string;
   video: string;
+  /** A self-hosted teaser (see ModalTeaser), the dialog's first picture where there is one. */
+  teaser?: string;
   tech_stk: string[];
 };
 
@@ -741,6 +744,9 @@ export default function ProjectModal({
   const settle = useRef<Animation[]>([]);
   // YouTube's own still has loaded (LiteYouTube reports it).
   const [demoStillReady, setDemoStillReady] = useState(false);
+  // The teaser has a frame to show; the viewer has handed the frame to the narrated walkthrough.
+  const [teaserHasFrame, setTeaserHasFrame] = useState(false);
+  const [walkthrough, setWalkthrough] = useState(false);
   // How long the close holds the frame while the tile's still comes back over
   // it (0: it sets off at once, or doesn't travel).
   const [stillLeadIn, setStillLeadIn] = useState(0);
@@ -929,7 +935,7 @@ export default function ProjectModal({
 
   // The settle sets off once the frame has landed and the demo's own picture is
   // there to dissolve into, or after SETTLE_WAIT_MAX_MS if it never comes.
-  const pictureReady = hasProjectDemo ? demoStillReady : clipHasFrame;
+  const pictureReady = project.teaser ? teaserHasFrame : hasProjectDemo ? demoStillReady : clipHasFrame;
   useEffect(() => {
     if (!landed || settle.current.length === 0) return;
     const play = () => settle.current.forEach((animation) => animation.playState === "paused" && animation.play());
@@ -1258,14 +1264,26 @@ export default function ProjectModal({
                     the frame has landed: WebKit and Firefox would otherwise draw an
                     SVG thumbnail twice over on every frame of the travel. */}
                 <div ref={picture} className={`relative h-full w-full ${(carriesThumbnail || carriesComposite) && !landed ? "invisible" : ""}`}>
-                  {hasProjectDemo ? (
+                  {project.teaser && !walkthrough ? (
+                    // The teaser first, with its soundtrack, once the frame has landed;
+                    // a narrated walkthrough, where there is one, a press away.
+                    <ModalTeaser
+                      id={project.teaser}
+                      name={project.name}
+                      active={landed && isPresent}
+                      onFrame={() => setTeaserHasFrame(true)}
+                      onWalkthrough={hasProjectDemo ? () => setWalkthrough(true) : undefined}
+                    />
+                  ) : hasProjectDemo ? (
                     <LiteYouTube
                       src={project.video}
                       title={`${project.name} demo`}
                       // A travelling frame carries the tile's still itself (see the settle).
-                      initialPoster={travels ? null : source?.poster}
+                      // Handed over from the teaser: its still covers the frame until YouTube's own has loaded.
+                      initialPoster={walkthrough ? `${TEASERS}/${project.teaser}.teaser.webp` : travels ? null : source?.poster}
                       initialPosterStrength={source?.strength}
                       holdInitialPoster={!landed}
+                      autoStart={walkthrough}
                       onPosterReady={() => setDemoStillReady(true)}
                     />
                   ) : (

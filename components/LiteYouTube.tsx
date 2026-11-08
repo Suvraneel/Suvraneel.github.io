@@ -80,6 +80,7 @@ export default function LiteYouTube({
   initialPoster = null,
   initialPosterStrength = 0,
   holdInitialPoster = false,
+  autoStart = false,
   onPosterReady,
 }: Readonly<{
   src: string;
@@ -87,11 +88,13 @@ export default function LiteYouTube({
   initialPoster?: string | null;
   initialPosterStrength?: number;
   holdInitialPoster?: boolean;
+  /** Starts at once, as if Play had been pressed (the viewer asked for it elsewhere: the teaser's Watch walkthrough). */
+  autoStart?: boolean;
   /** YouTube's own still has loaded (the maxres one, or the hq fallback). */
   onPosterReady?: () => void;
 }>) {
   const id = videoIdOf(src);
-  const [stage, setStage] = useState<Stage>("poster");
+  const [stage, setStage] = useState<Stage>(autoStart ? "loading" : "poster");
   // The player has answered: its frame has painted, so the poster can go once it is shown.
   const [heard, setHeard] = useState(false);
   const [poster, setPoster] = useState(id ? `https://i.ytimg.com/vi/${id}/maxresdefault.jpg` : "");
@@ -110,6 +113,15 @@ export default function LiteYouTube({
   useEffect(() => {
     if (posterLoaded) onPosterReady?.();
   }, [posterLoaded, onPosterReady]);
+
+  // Started for the viewer: the music fades as Play would fade it, and focus,
+  // left on the button that asked (now gone), comes to the player's stage so
+  // Escape still closes the dialog around it.
+  useEffect(() => {
+    if (!autoStart) return;
+    stopMusic();
+    root.current?.focus({ preventScroll: true });
+  }, [autoStart]);
 
   // Loading: ask the player to report its state, and show it once it plays.
   useEffect(() => {
