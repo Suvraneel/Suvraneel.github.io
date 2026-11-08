@@ -732,9 +732,9 @@ a:focus-visible > .link-draw::after {
   color: #a3a3a3;
 }
 
-/* Sheetah (sheetah.vercel.app, dark): Plus Jakarta Sans 800 at -0.06em, the
-   landing's "whole" in its lime marker, its caps eyebrow pill and its struck-out
-   Excel limit in the accent. No card: the app itself is the backdrop, full
+/* Sheetah (sheetah.vercel.app, dark): Plus Jakarta Sans 800 at -0.06em,
+   "Sheets × SQL" with SQL in the landing's lime, and the thumbnail's ruled
+   stats. No card: the app itself is the backdrop, full
    bleed, holding on Excel's last row, then panning up as one click writes the
    WHERE line ("Every click writes SQL."), then a short sweep back to the limit. */
 .project-hero--sheetah {
@@ -773,68 +773,50 @@ a:focus-visible > .link-draw::after {
   text-shadow: 0 1px 14px rgba(16, 16, 19, 0.9), 0 0 4px rgba(16, 16, 19, 0.6);
 }
 
-.project-hero--sheetah .project-hero-eyebrow {
-  display: none;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: #15171b;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07);
-  color: rgba(238, 240, 244, 0.72);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
 .project-hero--sheetah .project-hero-headline {
-  font-size: clamp(22px, 7.4cqw, 34px);
+  font-size: clamp(26px, 8.4cqw, 36px);
   font-weight: 800;
-  line-height: 0.92;
+  line-height: 0.9;
   letter-spacing: -0.06em;
   color: #eef0f4;
   white-space: nowrap;
 }
 
-/* The landing's .hl in dark: lime type on a skewed, faint lime marker. */
+/* "× SQL": a quiet times sign, then SQL in the landing's lime. */
+.project-hero--sheetah .project-hero-headline i {
+  font-style: normal;
+  font-weight: 600;
+  color: rgba(238, 240, 244, 0.5);
+}
+
 .project-hero--sheetah .project-hero-headline b {
-  position: relative;
-  z-index: 0;
-  display: inline-block;
-  padding: 0 0.06em;
   font-weight: inherit;
   color: #d4ff4f;
 }
 
-.project-hero--sheetah .project-hero-headline b::before {
-  content: "";
-  position: absolute;
-  inset: 0.18em -0.02em 0.06em;
-  z-index: -1;
-  border-radius: 0.12em;
-  background: rgba(212, 255, 79, 0.14);
-  transform: skewX(-6deg);
+/* The stats, ruled like the thumbnail's: the figure bright, its noun muted. */
+.project-hero--sheetah .project-hero-sub {
+  margin-top: 22px;
+  width: 210px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: rgba(238, 240, 244, 0.62);
 }
 
-.project-hero--sheetah .project-hero-sub {
-  margin-top: 18px;
-  max-width: 220px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
-  color: rgba(238, 240, 244, 0.72);
+.project-hero--sheetah .project-hero-sub > span {
+  padding: 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.project-hero--sheetah .project-hero-sub > span:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .project-hero--sheetah .project-hero-sub b {
   font-weight: 800;
-  letter-spacing: -0.02em;
   color: #eef0f4;
-  font-variant-numeric: tabular-nums;
-  text-decoration: line-through;
-  text-decoration-color: #8f9cff;
-  text-decoration-thickness: 1.5px;
-  text-decoration-skip-ink: none;
 }
 
 @container tile (min-height: 380px) {
@@ -884,14 +866,8 @@ a:focus-visible > .link-draw::after {
     top: 32px;
   }
 
-  .project-hero--sheetah .project-hero-eyebrow {
-    display: inline-flex;
-    margin-bottom: 20px;
-    font-size: 10.5px;
-  }
-
   .project-hero--sheetah .project-hero-headline {
-    font-size: min(48px, 6.2cqw);
+    font-size: min(68px, 8.6cqw);
   }
 
   /* Scales down on narrow desktop tiles (~340px at 1024): its lines never wrap,

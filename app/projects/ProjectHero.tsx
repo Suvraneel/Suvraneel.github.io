@@ -62,15 +62,22 @@ export default function ProjectHero({
         </div>
       ) : brand === "sheetah" ? (
         <div className="project-hero-copy">
-          <span className="project-hero-eyebrow">Spreadsheet × SQL · In your browser</span>
           <span className="project-hero-headline">
-            Open the{" "}
+            Sheets{" "}
             <span>
-              <b>whole</b> file.
+              <i>×</i> <b>SQL</b>
             </span>
           </span>
           <span className="project-hero-sub">
-            <b>1,048,576</b> rows is where Excel stops. Sheetah keeps scrolling.
+            <span>
+              <b>10M-row</b> grid
+            </span>
+            <span>
+              <b>60 fps</b> scroll
+            </span>
+            <span>
+              <b>Zero</b> uploads
+            </span>
           </span>
         </div>
       ) : (

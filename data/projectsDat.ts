@@ -92,7 +92,7 @@ const projectsData = [
     url: "https://sheetah.vercel.app",
     thumbnail: "/images/project-assets/hero/sheetah.poster.webp",
     hero: "sheetah",
-    posterText: "Spreadsheet × SQL · In your browser. Open the whole file. 1,048,576 rows is where Excel stops. Sheetah keeps scrolling.",
+    posterText: "Sheets × SQL. 10M-row grid · 60 fps scroll · Zero uploads",
     gif: "sheetah.webm",
     video: "https://www.youtube.com/embed/EKGJ-pzSEns",
     tech_stk: ["DuckDB-WASM", "TypeScript", "React", "Canvas API", "Web Workers", "Apache Arrow", "CodeMirror", "Playwright"],
