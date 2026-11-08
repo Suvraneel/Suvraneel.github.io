@@ -554,9 +554,10 @@ function ProjectTile({
           poster: still ?? null,
           strength: media ? parseFloat(getComputedStyle(dimmedBy(media)).opacity) : 1,
           // Now, as it is pressed (a click, a key or a tap): before the dialog locks the page.
-          // A flagship's composed hero (footage, scrim, brand type) has no still that
-          // matches it, so its dialog fades in place rather than growing from the tile.
-          onScreen: !hero && isOnScreen(tile.getBoundingClientRect()),
+          onScreen: isOnScreen(tile.getBoundingClientRect()),
+          // A flagship's hero is composed in the page (footage, scrim, brand type):
+          // the dialog's frame carries a copy of it rather than a still.
+          composite: hero ? tile.querySelector<HTMLElement>(".project-hero") : null,
         });
       }}
       onHoverStart={startPreview}
