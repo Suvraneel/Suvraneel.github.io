@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react";
-import { Suspense, SyntheticEvent, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, SyntheticEvent, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { preconnect, prefetchDNS } from "react-dom";
 import { useSfx, warmSfx } from "@hooks/useSfx";
 import { spaceBoards, tasaOrbiter } from "@font";
 import LiftHeading from "@components/LiftHeading";
 import LiquidMetalButton from "@components/LiquidMetalButton";
 import PillButton from "@components/PillButton";
+import Signature from "@components/Signature";
 import { AnimateIcon } from "@components/animate-ui/icons/icon";
 import { CalendarDaysIcon } from "@components/animate-ui/icons/calendar-days";
 import { CheckIcon } from "@components/animate-ui/icons/check";
@@ -17,6 +18,7 @@ import { SendIcon } from "@components/animate-ui/icons/send";
 import { SquareArrowOutUpRightIcon } from "@components/animate-ui/icons/square-arrow-out-up-right";
 import type { ModalOrigin } from "@lib/modalMotion";
 import { EASE_FADE } from "@lib/pageTransition";
+import { signAgain } from "@lib/signature";
 import { REVEAL_DISTANCE_PX, REVEAL_MS, REVEAL_STAGGER_MS } from "@hooks/useReveal";
 
 // One loader for the click and the warm-up: next/dynamic would wrap its import() in a separate chunk.
@@ -99,6 +101,37 @@ function validateForm(formElement: HTMLFormElement): FieldErrors {
 }
 
 const EMAIL = "bsuvraneel@gmail.com";
+const currentYear = new Date().getFullYear();
+
+/*
+ * My local time beside the copyright, so a visitor can tell when a reply is
+ * likely. Client only: the site is a static build, so a server-rendered time
+ * would be the build's. Checked every 15 s, so a new minute shows within that.
+ */
+const LOCAL_TIME = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const subscribeToClock = (onTick: () => void) => {
+  const timer = window.setInterval(onTick, 15000);
+  return () => window.clearInterval(timer);
+};
+const readLocalTime = () => LOCAL_TIME.format(new Date());
+const noLocalTime = () => "";
+
+function LocalTime() {
+  const time = useSyncExternalStore(subscribeToClock, readLocalTime, noLocalTime);
+  if (!time) return null;
+  return (
+    <>
+      {" · "}
+      <span className="sr-only">my local time </span>
+      <time>{time} IST</time>
+    </>
+  );
+}
+
+/** The send shortcut's modifier as the visitor's keyboard labels it; null on the server. */
+const subscribeToNothing = () => () => undefined;
+const readSendModifier = () => (/Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent) ? "⌘" : "Ctrl");
+const noSendModifier = () => null;
 
 /*
  * The draft: what the visitor has typed, kept for the tab (sessionStorage)
@@ -226,6 +259,18 @@ export default function ContactPage() {
     if (message instanceof HTMLTextAreaElement) growToFit(message);
   }, []);
 
+  // The message field's room changes with the window and with the send error's
+  // line: fit it again then, before paint.
+  useLayoutEffect(() => {
+    const refit = () => {
+      const message = form.current?.elements.namedItem("message");
+      if (message instanceof HTMLTextAreaElement) growToFit(message);
+    };
+    refit();
+    window.addEventListener("resize", refit);
+    return () => window.removeEventListener("resize", refit);
+  }, [submissionState]);
+
   // The modal dialog leaves focus on <body> when it closes, so hand it back to
   // the button that opened it. The dialog calls this once it has closed, after
   // its exit (the page is inert until then). Stable, so the dialog's open
@@ -244,6 +289,13 @@ export default function ContactPage() {
     if (submissionState !== "success") return;
     const active = document.activeElement;
     if (active === null || active === document.body || active.tagName === "MAIN") sentHeading.current?.focus();
+  }, [submissionState]);
+
+  // The reply is signed off: the signature under the confirmation writes itself
+  // again. Once the confirmation has replaced the form, not at the send: a long
+  // message can have filled the signature's row and stepped it aside until then.
+  useEffect(() => {
+    if (submissionState === "success") signAgain();
   }, [submissionState]);
 
   // "Send another message" removes the focused button with the confirmation:
@@ -307,12 +359,12 @@ export default function ContactPage() {
 
   return (
     <main className="nav-gap min-h-[100dvh] overflow-x-hidden bg-black text-white">
-      <div className="mx-auto max-w-[1440px] px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:px-14 lg:pb-12 lg:pt-16 xl:px-20">
+      <div className="mx-auto max-w-[1440px] px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-28 sm:pt-14 lg:grid lg:min-h-[100dvh] lg:grid-rows-[auto_minmax(0,1fr)] lg:px-14 lg:pb-6 lg:pt-16 xl:px-20">
         {/* Editorial split: intro and direct options on the left, the form from the top on the right, so Send stays above the fold. */}
         <div className="grid gap-12 lg:grid-cols-[minmax(17rem,0.95fr)_minmax(0,1.05fr)] lg:gap-0 min-[1440px]:grid-cols-[minmax(17rem,0.72fr)_minmax(0,1.28fr)]">
           <div className="min-w-0 lg:pr-8 min-[1440px]:pr-12">
             <header className="max-w-4xl">
-              <LiftHeading className={`w-max text-display leading-none tracking-[-0.04em] lg:text-[length:min(var(--text-display),3rem)] min-[1440px]:text-display ${spaceBoards.className}`}>
+              <LiftHeading className={`w-max text-display leading-none tracking-[-0.04em] ${spaceBoards.className}`}>
                 Contact
               </LiftHeading>
               <p className={`mt-5 max-w-2xl text-body leading-[1.6] text-white/65 ${tasaOrbiter.className}`}>
@@ -320,7 +372,7 @@ export default function ContactPage() {
               </p>
             </header>
 
-            <section className="mt-12 min-w-0 border-t border-white/15 pt-8 sm:mt-14 sm:pt-10 lg:mt-10 lg:pt-6" aria-label="Direct contact options">
+            <section className="mt-12 min-w-0 border-t border-white/15 pt-8 sm:mt-14 sm:pt-10 lg:mt-8 lg:pt-5" aria-label="Direct contact options">
               {/* The address row and its trailing icon trade roles by input. With a
                   pointer that hovers, the row copies the address and the icon opens
                   the mail app. On touch screens (touch:) the row opens a new email,
@@ -423,7 +475,7 @@ export default function ContactPage() {
 
           <section className="min-w-0 lg:flex lg:flex-col lg:border-l lg:border-white/15 lg:pl-8 min-[1440px]:pl-12" aria-labelledby="message-heading">
             <div className="border-b border-white/15 pb-5">
-              <h2 id="message-heading" className={`text-lead font-semibold tracking-[-0.025em] text-white ${tasaOrbiter.className}`}>
+              <h2 id="message-heading" className={`text-lead font-semibold leading-none tracking-[-0.025em] text-white ${tasaOrbiter.className}`}>
                 Start with the context.
               </h2>
             </div>
@@ -486,7 +538,7 @@ export default function ContactPage() {
                 <Field label="Your name" name="user_name" autoComplete="name" maxLength={100} error={errors.user_name} />
                 <Field label="Email address" name="user_email" type="email" autoComplete="email" maxLength={254} error={errors.user_email} />
               </div>
-              <Field label="What are you working on?" name="message" textarea maxLength={5000} className="lg:flex lg:flex-1 lg:flex-col" error={errors.message} />
+              <Field label="What are you working on?" name="message" textarea maxLength={5000} className="lg:flex lg:flex-1 lg:flex-col" error={errors.message} hint={<SendShortcut />} />
 
               <div className="flex flex-col gap-4 pt-1 sm:flex-row sm:items-center sm:justify-between">
                 <LiquidMetalButton
@@ -508,7 +560,7 @@ export default function ContactPage() {
                     <SendIcon aria-hidden="true" size={16} animate={sendHovered} />
                   )}
                 </LiquidMetalButton>
-                <p className={`max-w-xs text-sm leading-5 text-white/60 ${tasaOrbiter.className}`}>A short note is enough. I&apos;ll reply by email.</p>
+                <p className={`max-w-xs text-balance text-sm leading-5 text-white/60 sm:text-right ${tasaOrbiter.className}`}>A short note is enough. I&apos;ll reply by email.</p>
               </div>
 
               {submissionState === "error" && (
@@ -535,6 +587,32 @@ export default function ContactPage() {
             )}
           </section>
         </div>
+
+        {/* Sign-off under the closing note, on the form's right edge. On wide screens it
+            takes whatever height the first view has left under the columns (up to
+            9.5rem), so it never needs a scroll: its grid row takes the remainder, and
+            when that is too short to read (a short window, a long message) the
+            signature steps aside instead of shrinking to a scribble. Absolutely
+            placed, so it never props the row open. A grid row, not a flex item:
+            Chrome measures a size container that is flexed in an auto-height
+            column as zero, so the query would always hide it. The offsets cancel the
+            viewBox margin (about 4.7% of the height on each side), so the ink, not the
+            box, meets the column edge and keeps the 3rem gap above it. */}
+        <div data-signature-row className="mt-[2.5rem] flex flex-col sm:mt-[2.44rem] sm:flex-row-reverse sm:items-end sm:justify-between lg:relative lg:mt-0 lg:block lg:[container-type:size]">
+          <Signature className="-ml-[0.49rem] w-[15rem] text-white/85 sm:-mr-[0.54rem] sm:w-[17rem] lg:absolute lg:right-[calc(min(100cqh_-_1.5rem,9.5rem)*-0.046)] lg:top-6 lg:mr-0 lg:h-[calc(100%-1.5rem)] lg:max-h-[9.5rem] lg:w-auto lg:[@container(max-height:6.25rem)]:hidden" />
+          {/* The page's footer line, bottom left, its baseline level with the signature's
+              underline at every size (the ink ends about 4.8% of the signature's height
+              above its box; on wide screens the signature hangs from the row's top, so the
+              line is placed from its height). With the signature stepped aside it sits at
+              the row's foot, and where the row is too short to hold it, it drops into the
+              page's bottom padding. */}
+          <small className="mt-8 block self-start whitespace-nowrap font-mono text-[0.58rem] leading-[1.5] tracking-[0.12em] text-white/50 sm:mb-[0.34rem] sm:mt-0 sm:self-auto lg:absolute lg:bottom-[calc(100cqh_-_1.5rem_-_min(100cqh_-_1.5rem,9.5rem)*0.952_-_0.22rem)] lg:left-0 lg:mb-0 lg:[@container(max-height:1.5rem)]:bottom-auto lg:[@container(max-height:1.5rem)]:top-full">
+            Suvraneel Bhuin{" "}
+            {/* Static build year can differ from the visitor's clock. */}
+            <span suppressHydrationWarning>&copy; {currentYear}</span>
+            <LocalTime />
+          </small>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -551,11 +629,38 @@ export default function ContactPage() {
 // Grow with the message instead of exposing the browser's resize grip, up to
 // the max-h cap, then scroll inside. The cap is applied here because CSS lets
 // a min-height above max-height win, so an uncapped one grows without limit.
-// Also run for a restored draft, which arrives without an input event.
+// On wide screens the page fits its window: the field grows only into the free
+// row under the columns (the signature's, which steps aside), never into a
+// page scroll. Also run for a restored draft, which arrives without an input
+// event, and whenever that free room changes (a resize, the send error).
 function growToFit(field: HTMLTextAreaElement) {
   field.style.minHeight = "";
-  const cap = Number.parseFloat(getComputedStyle(field).maxHeight) || Infinity;
+  const row = field.closest("main")?.querySelector<HTMLElement>("[data-signature-row]");
+  const fitsWindow = row?.parentElement && getComputedStyle(row.parentElement).display === "grid";
+  const room = fitsWindow ? field.clientHeight + row.getBoundingClientRect().height : Infinity;
+  const cap = Math.min(Number.parseFloat(getComputedStyle(field).maxHeight) || Infinity, room);
   field.style.minHeight = `${Math.min(cap, Math.max(field.clientHeight, field.scrollHeight))}px`;
+}
+
+/**
+ * "⌘ ↵ to send", on the message label's line: shown where a keyboard is likely
+ * (a fine pointer that hovers), brighter while the message has focus. Read out
+ * through the field's aria-keyshortcuts instead, so the label stays its words.
+ */
+function SendShortcut() {
+  const modifier = useSyncExternalStore(subscribeToNothing, readSendModifier, noSendModifier);
+  if (!modifier) return null;
+  const key = "rounded-[0.3rem] border border-white/15 px-1.5 py-px font-sans text-[0.7rem] leading-4 text-white/60";
+  return (
+    <span
+      aria-hidden="true"
+      className="hidden items-center gap-1 whitespace-nowrap text-xs font-normal text-white/40 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-focus-within:text-white/65 [@media(hover:hover)_and_(pointer:fine)]:flex"
+    >
+      <kbd className={key}>{modifier}</kbd>
+      <kbd className={key}>↵</kbd>
+      <span className="ml-1">to send</span>
+    </span>
+  );
 }
 
 function Field({
@@ -567,6 +672,7 @@ function Field({
   maxLength,
   className: wrapperClassName = "",
   error,
+  hint,
 }: Readonly<{
   label: string;
   name: string;
@@ -576,6 +682,8 @@ function Field({
   maxLength?: number;
   className?: string;
   error?: string;
+  /** Beside the label, on its line (the message's send shortcut). */
+  hint?: ReactNode;
 }>) {
   // Underline fields: focus thickens the rule to 2px accent instead of drawing a box.
   // Resting rule at white/40, the lightest step with 3:1 on black (white/35 is 2.998:1).
@@ -590,13 +698,37 @@ function Field({
   // data-draft: typed text here holds the page sequence's steps (isFormDirty).
 
   return (
-    <label className={`block text-sm font-medium text-white/75 ${wrapperClassName}`}>
-      {label}
+    <label className={`group block text-sm font-medium text-white/75 ${wrapperClassName}`}>
+      {hint ? (
+        <span className="flex items-center justify-between gap-4">
+          {label}
+          {hint}
+        </span>
+      ) : (
+        label
+      )}
       {textarea ? (
         // overflow-y-auto spelled out: Firefox computes a textarea's overflow as
         // visible, so the page-sequence wheel handler would not see the capped box
         // as a scroller and would spend an upward wheel on leaving the page.
-        <textarea name={name} required rows={3} maxLength={maxLength} onInput={(event) => growToFit(event.currentTarget)} data-draft {...a11y} className={`${fieldClassName} max-h-[40vh] resize-none overflow-y-auto lg:flex-1`} placeholder="A few lines about the problem, scope, or idea…" />
+        <textarea
+          name={name}
+          required
+          rows={3}
+          maxLength={maxLength}
+          onInput={(event) => growToFit(event.currentTarget)}
+          // ⌘/Ctrl+Enter sends; a plain Enter is a new line. Not mid-composition (an IME's Enter confirms a word).
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey) || event.nativeEvent.isComposing) return;
+            event.preventDefault();
+            event.currentTarget.form?.requestSubmit();
+          }}
+          aria-keyshortcuts="Meta+Enter Control+Enter"
+          data-draft
+          {...a11y}
+          className={`${fieldClassName} max-h-[40vh] resize-none overflow-y-auto lg:flex-1`}
+          placeholder="A few lines about the problem, scope, or idea…"
+        />
       ) : (
         <input name={name} type={type} required autoComplete={autoComplete} maxLength={maxLength} data-draft {...a11y} className={fieldClassName} />
       )}

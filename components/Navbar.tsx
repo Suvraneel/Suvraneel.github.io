@@ -40,8 +40,6 @@ const railItems: RailItem[] = [
   { name: "Contact", href: "/contact", icon: MessageCircleMoreIcon },
 ];
 
-const currentYear = new Date().getFullYear();
-
 /** Rail rows are a fixed grid (.rail-link min-height), so item i sits at i * RAIL_ROW_PX. */
 const RAIL_ROW_PX = 42;
 
@@ -185,15 +183,6 @@ export default function Navbar() {
             closed rail: nothing in the footer moves as the rail opens, so the
             toggle holds still under the pointer. */}
         <RailSoundToggle reduceMotion={reduceMotion} onTick={playTick} onStopTick={stopTick} onConfirm={playConfirm} />
-        <small className="rail-copyright">
-          <span className="rail-label rail-copyright-text">
-            <span>Suvraneel Bhuin</span>
-            {/* Static build year can differ from the visitor's clock. */}
-            <span suppressHydrationWarning>
-              <span className="rail-copyright-symbol">&copy;</span> {currentYear}
-            </span>
-          </span>
-        </small>
       </div>
     </nav>
   );
