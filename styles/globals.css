@@ -211,7 +211,7 @@ a:hover {
 
 /* 132px wherever the rail fits. On windows too short for it (down to the
    drawer's 520px breakpoint) this space gives way first, so the footer's
-   sound toggle and copyright stay on screen instead of being clipped. */
+   sound toggle stays on screen instead of being clipped. */
 .rail-divider {
   height: 132px;
   flex: 0 1 132px;
@@ -329,33 +329,6 @@ a:hover {
     opacity: 1;
     transform: translateX(0);
   }
-}
-
-.rail-copyright {
-  display: flex;
-  min-height: 24px;
-  align-items: center;
-  gap: 12px;
-  overflow: hidden;
-  padding: 0 10px;
-  color: rgba(255, 255, 255, 0.3);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.58rem;
-  letter-spacing: 0.12em;
-  white-space: nowrap;
-}
-
-.rail-copyright-text {
-  display: grid;
-  font-family: inherit;
-  font-size: inherit;
-  line-height: 1.5;
-}
-
-.rail-copyright-symbol {
-  font-size: 0.85rem;
-  line-height: 0;
-  vertical-align: -0.1em;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1087,4 +1060,13 @@ a:focus-visible > .link-draw::after {
 .phone-plant {
   -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent);
   mask-image: radial-gradient(closest-side, #000 72%, transparent);
+}
+
+/* Signature (components/Signature.tsx): held unseen from the first paint while
+   JavaScript runs and motion is allowed, until the component takes over and
+   writes it in. Without JS or with reduced motion it shows finished. */
+@media (prefers-reduced-motion: no-preference) {
+  .js [data-pen-pending] {
+    opacity: 0;
+  }
 }

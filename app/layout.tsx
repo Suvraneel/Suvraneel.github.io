@@ -71,6 +71,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     // can't take next/font's generated class names (the rail labels).
     <html lang="en" className={`${tasaOrbiter.variable} ${spaceBoards.variable}`} suppressHydrationWarning>
       <head>
+        {/* Before first paint: marks that JavaScript runs, so motion that starts hidden
+            (the Contact signature) can hold from the first frame instead of flashing
+            its finished state until hydration. No JS, no class: it stays shown. */}
+        <script dangerouslySetInnerHTML={{ __html: `document.documentElement.classList.add("js")` }} />
         {/* Without JavaScript the Home preloader's cover would never lift: never show it. */}
         <noscript>
           <style>{`.preloader{display:none}`}</style>
