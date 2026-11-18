@@ -20,7 +20,6 @@ import {
   stepFrom,
   type PagePath,
 } from "@lib/pageTransition";
-import { canSignAgain, signAgain } from "@lib/signature";
 
 const intentThreshold = 520;
 const intentWindowMs = 500;
@@ -92,24 +91,6 @@ const pageLabels: Record<(typeof pageOrder)[number], string> = {
   "/skills": "Skills",
   "/contact": "Contact",
 };
-
-/**
- * What a pull past the sequence's far end does in place of a step, where the
- * last page offers something: Contact's signature is written again, the pill
- * reading "Pull to Sign". Only while it can be (written, shown, motion
- * allowed), so the pill never promises what will not happen. A message being
- * typed does not hold it: signing never leaves the page.
- */
-type EndAction = { title: string; run: () => void };
-/** `scroller`, where known, is the one at its edge: only the page's own counts, not a field scrolled to its end. */
-const endActionAt = (pathname: string, direction: 1 | -1 | null, scroller?: Element): EndAction | undefined =>
-  direction === 1 &&
-  pathname === "/contact" &&
-  !stepFrom(pathname, 1) &&
-  (!scroller || isDocumentScroller(scroller)) &&
-  canSignAgain(pathname)
-    ? { title: "Sign", run: signAgain }
-    : undefined;
 
 /**
  * The 404 page's step on. navigate() goes nowhere from a route off the
@@ -205,11 +186,6 @@ const PageSequenceScroll = () => {
   const cooldownSpringShownFor = useRef<number | null>(null);
   const lastWheelAt = useRef(0);
   const isNavigating = useRef(false);
-  // The wheel ran the end action this gesture: the next one waits for a pause,
-  // timed from the last wheel at the sequence's end (endWheelAt), whether or not
-  // the action could run then (it cannot while the signature is writing).
-  const endActionSpent = useRef(false);
-  const endWheelAt = useRef(Number.NEGATIVE_INFINITY);
   // The touch pull's hint, as the wheel (and a key held back) shows it (set up with the hint below).
   const wheelHint = useRef<((direction: 1 | -1, distance: number) => void) | null>(null);
   // A polite live region for a key step held back (isFormDirty). The pill is
@@ -274,12 +250,6 @@ const PageSequenceScroll = () => {
       const scrollContainer = findScrollContainer(event.target);
       const movingForward = event.deltaY > 0;
       const nextPath = stepFrom(pathname, movingForward ? 1 : -1);
-      const endAction = nextPath ? undefined : endActionAt(pathname, movingForward ? 1 : -1, scrollContainer);
-      if (!nextPath && movingForward) {
-        const at = window.performance.now();
-        if (at - endWheelAt.current > intentWindowMs) endActionSpent.current = false;
-        endWheelAt.current = at;
-      }
 
       const isAtBoundary = isAtEdge(scrollContainer, movingForward ? 1 : -1);
 
@@ -289,7 +259,7 @@ const PageSequenceScroll = () => {
         return;
       }
 
-      if ((!nextPath && !endAction) || !isAtBoundary) {
+      if (!nextPath || !isAtBoundary) {
         boundaryReachedAt.current = null;
         edgeTail.disarm();
         hideHint();
@@ -339,10 +309,6 @@ const PageSequenceScroll = () => {
       }
 
       lastWheelAt.current = now;
-      if (!nextPath && endActionSpent.current) {
-        hideHint();
-        return;
-      }
       scrollDirection.current = direction;
       scrollIntent.current += Math.abs(event.deltaY);
       scrollIntentEvents.current += 1;
@@ -352,16 +318,6 @@ const PageSequenceScroll = () => {
         scrollIntentEvents.current < minimumIntentEvents
       ) {
         paintHint(direction, scrollIntent.current);
-        return;
-      }
-
-      // At the sequence's end: run the end action once, in place of a step.
-      if (!nextPath) {
-        endActionSpent.current = true;
-        scrollIntent.current = 0;
-        scrollIntentEvents.current = 0;
-        hideHint();
-        endAction?.run();
         return;
       }
 
@@ -597,8 +553,6 @@ const PageSequenceScroll = () => {
       stallMoves: number;
       stallDirection: 1 | -1 | null;
       distance: number;
-      /** The sequence's end action was on offer at the last move (its pill shown), so a release past the threshold runs it. */
-      endOffered: boolean;
     };
     let pull: Pull | null = null;
     let frame = 0;
@@ -655,11 +609,9 @@ const PageSequenceScroll = () => {
     const showHint = (direction: 1 | -1 | null, distance: number, input: "touch" | "wheel" = "touch") => {
       const wheel = input === "wheel";
       const nextPath = direction ? stepFrom(pathname, direction) : undefined;
-      // The wheel only paints the pill once it has checked its scroller; a pull checks its own.
-      const endAction = nextPath ? undefined : endActionAt(pathname, direction, wheel ? undefined : pull?.scroller);
       // Under reduced motion the wheel's pill only fades, without the slide.
       const away = wheel && prefersReducedMotion() ? 0 : direction === -1 ? -1 : 1;
-      if ((!nextPath && !endAction) || distance < (wheel ? wheelHintFrom * pullThreshold : pullHintFrom)) {
+      if (!nextPath || distance < (wheel ? wheelHintFrom * pullThreshold : pullHintFrom)) {
         const shown = hint.style.opacity === "1";
         hint.style.opacity = "0";
         hint.style.transform = `translate(-50%, ${away * 0.5}rem) scale(${hintScale})`;
@@ -669,17 +621,14 @@ const PageSequenceScroll = () => {
 
       const forward = direction === 1;
       // Held: the pill says why, with nothing to fill towards or release for.
-      const held = !endAction && isFormDirty();
+      const held = isFormDirty();
       const ready = !held && distance >= pullThreshold;
       hintAction.style.display = wheel || held ? "none" : "";
       hintTitle.style.display = held ? "none" : "";
       heldLabel.style.display = held ? "" : "none";
       pullLabel.style.opacity = ready ? "0" : "1";
       releaseLabel.style.opacity = ready ? "1" : "0";
-      // A page is pulled "for"; an end action, "to".
-      pullLabel.textContent = endAction ? "Pull to" : "Pull for";
-      releaseLabel.textContent = endAction ? "Release to" : "Release for";
-      hintTitle.textContent = nextPath ? pageLabels[nextPath] : (endAction?.title ?? "");
+      hintTitle.textContent = pageLabels[nextPath];
       hintFill.style.transform = `scaleX(${held ? 0 : Math.min(1, distance / pullThreshold)})`;
 
       // At the edge being pulled. Going forward: the bottom, over the page's
@@ -816,7 +765,6 @@ const PageSequenceScroll = () => {
         stallMoves: 0,
         stallDirection: null,
         distance: 0,
-        endOffered: false,
       };
     };
 
@@ -874,8 +822,7 @@ const PageSequenceScroll = () => {
         pull.edgeFromStall = !atEdge;
         // A stretch caught mid spring-back carries on from where it was, if this
         // pull goes the same way (offsets are opposite to the pull's direction).
-        const follows = stepFrom(pathname, moving) ? !isFormDirty() : Boolean(endActionAt(pathname, moving, scroller));
-        const follow = follows ? pullFollow : pullFollowAtEnd;
+        const follow = stepFrom(pathname, moving) && !isFormDirty() ? pullFollow : pullFollowAtEnd;
         const carried = travelFor(Math.abs(pull.carry), follow);
         if (pull.carry && Math.sign(pull.carry) === -moving && Number.isFinite(carried)) {
           pull.edgeY = y + moving * carried;
@@ -893,16 +840,13 @@ const PageSequenceScroll = () => {
         return;
       }
       const hasNext = Boolean(stepFrom(pathname, direction));
-      // The sequence's end, where its last page offers an action, pulls like a step.
-      const hasEndAction = !hasNext && Boolean(endActionAt(pathname, direction, pull.scroller));
-      pull.endOffered = hasEndAction;
       // A step held back resists as the sequence's end does, and never ticks:
       // its pill says why (showHint), with nothing to release for.
       const held = hasNext && isFormDirty();
       const offset = prefersReducedMotion()
         ? 0
-        : -direction * rubberband(pull.distance, (hasNext && !held) || hasEndAction ? pullFollow : pullFollowAtEnd);
-      const distance = hasNext || hasEndAction ? pull.distance : 0;
+        : -direction * rubberband(pull.distance, hasNext && !held ? pullFollow : pullFollowAtEnd);
+      const distance = hasNext ? pull.distance : 0;
       tick(!held && distance >= pullThreshold);
 
       cancelAnimationFrame(frame);
@@ -947,12 +891,6 @@ const PageSequenceScroll = () => {
           return;
         }
         pull = ended;
-      }
-      // Let go past the threshold at the sequence's end: its action, and the page springs back.
-      const endAction =
-        ended?.direction && ended.endOffered && !nextPath ? endActionAt(pathname, ended.direction, ended.scroller) : undefined;
-      if (endAction && ended && ended.distance >= pullThreshold && !isDialogOpen() && !isTransitionLocked()) {
-        endAction.run();
       }
       release();
     };
