@@ -27,7 +27,8 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import LiftHeading from "@components/LiftHeading";
-import ProjectModal, {
+import type { ProjectModalHandle } from "@components/ProjectModal";
+import {
   dimmedBy,
   isOnScreen,
   THUMBNAIL_BACKDROP_CLASS,
@@ -35,8 +36,7 @@ import ProjectModal, {
   THUMBNAIL_MOUNT_CLASS,
   THUMBNAIL_VEIL_CLASS,
   type ModalSource,
-  type ProjectModalHandle,
-} from "@components/ProjectModal";
+} from "@components/projectTile";
 import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
 import { layerPathOf, layoutTop, whenPlaced, whenSettled } from "@components/transition/arrival";
 import { getTransition, isInFlight } from "@components/transition/transitionStore";
@@ -70,6 +70,49 @@ type TileOpening = { time: number; source: ModalSource };
 // treats the push as one of its own and leaves the route alone, and the page
 // transitions see the same path and start nothing.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// The dialog's code is split from the page's, so a visit that never opens a
+// project never parses it. It is fetched once the page has settled and gone
+// idle, or at the first pointer or focus in the gallery, whichever is first,
+// so a press almost always finds it here. One that doesn't opens the moment
+// it arrives, with the same checks as any open the page makes later (the
+// dialog is still wanted), rendered at once (openAtOnce) as those are. No
+// React.lazy: a lazy component suspends on its first render even once its
+// code is in, so a flushSync open would draw nothing.
+// ---------------------------------------------------------------------------
+
+type ProjectModalComponent = typeof import("@components/ProjectModal").default;
+/** The dialog, once its code is in; null until then. */
+let ProjectModal: ProjectModalComponent | null = null;
+let modalLoad: Promise<void> | null = null;
+/** Fetches the dialog's code, once (a failed fetch is tried again on the next ask). */
+const loadProjectModal = () =>
+  (modalLoad ??= import("@components/ProjectModal").then(
+    (module) => {
+      ProjectModal = module.default;
+    },
+    (error: unknown) => {
+      modalLoad = null;
+      throw error;
+    },
+  ));
+const warmProjectModal = () => void loadProjectModal().catch(() => {});
+/** After a lift has landed (1100 ms) and the page has settled, as Contact warms its sounds. */
+const MODAL_WARM_AFTER_MS = 1600;
+/** Runs `then` once the dialog's code is in (never inside the caller, even when it already is); returns its cancel. */
+const whenModalLoaded = (then: () => void) => {
+  let cancelled = false;
+  loadProjectModal().then(
+    () => {
+      if (!cancelled) then();
+    },
+    () => {},
+  );
+  return () => {
+    cancelled = true;
+  };
+};
 
 const PROJECTS_PATH = "/projects";
 const PROJECT_STATE_KEY = "project";
@@ -272,6 +315,30 @@ export default function ProjectsPage() {
     };
   }, []);
 
+  // The dialog's code, fetched a beat after the page has landed, when the
+  // main thread is idle: clear of the lift and of the first paint's images
+  // (see loadProjectModal). A press or a hover fetches it sooner.
+  useEffect(() => {
+    const container = gallery.current;
+    if (!container) return;
+    let cancel = () => {};
+    const stop = whenSettled(container, () => {
+      const timer = window.setTimeout(() => {
+        if (!("requestIdleCallback" in window)) {
+          warmProjectModal();
+          return;
+        }
+        const idle = window.requestIdleCallback(warmProjectModal, { timeout: 2000 });
+        cancel = () => window.cancelIdleCallback(idle);
+      }, MODAL_WARM_AFTER_MS);
+      cancel = () => window.clearTimeout(timer);
+    });
+    return () => {
+      stop();
+      cancel();
+    };
+  }, []);
+
   const registerTile = useCallback((id: string, describe: () => TileOpening | null) => {
     tiles.current.set(id, describe);
     return () => {
@@ -352,6 +419,19 @@ export default function ProjectsPage() {
       });
       return;
     }
+    // The dialog's code isn't in yet: the press opens the moment it is, from
+    // the tile as it stands then, if nothing else was asked for meanwhile (a
+    // later press takes its place; the drawer, or a page leaving, wins).
+    if (!ProjectModal) {
+      landingPress.current = whenModalLoaded(() => {
+        landingPress.current = null;
+        const t = getTransition();
+        if (present.current || isDrawerOpen() || window.location.pathname !== PROJECTS_PATH || (isInFlight(t) && t.from === PROJECTS_PATH)) return;
+        const opening = tiles.current.get(project.id)?.();
+        openAtOnce(() => openProject(project, opening?.time ?? time, opening?.source ?? source, returnTo));
+      });
+      return;
+    }
     showProject(project, time, source, returnTo);
     playOpen();
     // Not while Close's step back off the last project's entry is still on
@@ -401,6 +481,16 @@ export default function ProjectsPage() {
   // Forward onto a project's entry: it opens again, from its tile if that is
   // on screen (where Back left it), else in place.
   const reopenProject = (project: Project) => {
+    // The dialog's code isn't in yet (a step soon after a load): it opens the
+    // moment it is, if the entry still names the project and nothing else was
+    // asked for meanwhile.
+    if (!ProjectModal) {
+      whenModalLoaded(() => {
+        const stillNamed = window.location.pathname === PROJECTS_PATH && projectIdOf(window.history.state) === project.id;
+        if (stillNamed && !present.current && !isDrawerOpen() && !isInFlight(getTransition())) openAtOnce(() => reopenProject(project));
+      });
+      return;
+    }
     const opening = tiles.current.get(project.id)?.() ?? null;
     showProject(project, opening?.time ?? 0, opening?.source ?? null, opening?.source.tile ?? null);
     playOpen();
@@ -421,9 +511,10 @@ export default function ProjectsPage() {
     const first = describe?.();
     if (!describe || !first || present.current || isCancelled()) return;
     if (!first.source.onScreen) first.source.tile.scrollIntoView({ block: "center", behavior: "instant" });
-    await stillDecoded(first.source);
+    // The dialog's code comes in alongside (a failed fetch leaves the project closed).
+    await Promise.all([stillDecoded(first.source), loadProjectModal().catch(() => {})]);
     const opening = describe();
-    if (isCancelled() || present.current || !opening) return;
+    if (isCancelled() || present.current || !opening || !ProjectModal) return;
     // The page is live while the still decodes (up to STILL_WAIT_MS). A link
     // followed or a step taken meanwhile is taking the page away, though the
     // address and isPresent only move once its route commits: nothing opens
@@ -572,7 +663,12 @@ export default function ProjectsPage() {
   }, [selectedProject]);
 
   return (
-    <main className="nav-gap min-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[#07090d] text-white">
+    <main
+      className="nav-gap min-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[#07090d] text-white"
+      // A press or focus anywhere on the page fetches the dialog's code, if the idle warm-up hasn't.
+      onPointerDown={warmProjectModal}
+      onFocus={warmProjectModal}
+    >
       <div className="mx-auto max-w-[1500px] px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-24 sm:pt-14 lg:px-14 lg:pt-16">
         <header className="max-w-3xl">
           <LiftHeading className={`text-display leading-[0.95] tracking-[-0.045em] ${spaceBoards.className}`}>
@@ -601,7 +697,11 @@ export default function ProjectsPage() {
                   holdDepth={dialogPresent}
                   register={registerTile}
                   onOpen={(time, source) => openProject(project, time, source)}
-                  onHoverStart={playTick}
+                  onHoverStart={() => {
+                    // A pointer on a tile is the surest sign a press is coming.
+                    warmProjectModal();
+                    playTick();
+                  }}
                   onHoverEnd={stopTick}
                 />
               </div>
@@ -618,7 +718,7 @@ export default function ProjectsPage() {
       </div>
 
       <AnimatePresence onExitComplete={onDialogGone}>
-        {selectedProject && (
+        {selectedProject && ProjectModal && (
           <ProjectModal
             ref={modal}
             key={`${("id" in selectedProject && selectedProject.id) || selectedProject.name}:${opens}`}
