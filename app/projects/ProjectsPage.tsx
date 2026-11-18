@@ -47,6 +47,7 @@ import { spaceBoards, tasaOrbiter } from "@font";
 import { useLiftEntrance } from "@hooks/useLiftEntrance";
 import { useReveal } from "@hooks/useReveal";
 import { hasFastWebGL2 } from "@lib/gpu";
+import { intrinsicSize } from "@lib/imageSize";
 import { subscribeDeviceTilt } from "@lib/tilt";
 import { useSfx } from "@hooks/useSfx";
 import { dismissModalDialogs, isDrawerOpen, prefersReducedMotion } from "@lib/pageTransition";
@@ -1062,8 +1063,10 @@ function ProjectTile({
       ref={tileRef}
       type="button"
       aria-haspopup="dialog"
-      aria-label={`Open ${project.name}`}
-      aria-describedby={posterText && showsThumbnail ? posterTextId : undefined}
+      // A flagship's hero copy is on screen (ProjectHero), so its name says it, then the
+      // project's: a name must hold the words a sighted visitor reads (WCAG 2.5.3).
+      aria-label={hero && posterText ? `${posterText} ${project.name}` : `Open ${project.name}`}
+      aria-describedby={posterText && showsThumbnail && !hero ? posterTextId : undefined}
       // A designed poster's two-line name sets smaller on short tiles (see globals.css).
       data-long-name={posterText && showsThumbnail && project.name.length > LONG_NAME_CHARS ? "" : undefined}
       className="project-tile group relative h-full min-h-0 w-full overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#10141c] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
@@ -1095,7 +1098,7 @@ function ProjectTile({
           {/* Depth layers (useMediaDepth): the backdrop sits furthest back, the crisp copy moves at the full rate. */}
           <motion.div className="absolute inset-0" style={depth.back}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className={THUMBNAIL_BACKDROP_CLASS} src={thumbnail} alt="" aria-hidden="true" data-thumbnail-backdrop {...lazy} />
+            <img className={THUMBNAIL_BACKDROP_CLASS} src={thumbnail} alt="" aria-hidden="true" data-thumbnail-backdrop {...intrinsicSize(thumbnail)} {...lazy} />
           </motion.div>
           <div className={THUMBNAIL_VEIL_CLASS} />
           <motion.div className="absolute inset-0 z-10" style={depth.front}>
@@ -1117,6 +1120,7 @@ function ProjectTile({
                   className="block h-full w-full"
                   src={thumbnail}
                   alt=""
+                  {...intrinsicSize(thumbnail)}
                   {...lazy}
                   onError={() => setThumbnailFailed(true)}
                   style={THUMBNAIL_EDGE_STYLE}
@@ -1129,9 +1133,10 @@ function ProjectTile({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   ref={stillImage}
-                  className="absolute inset-0 m-auto max-h-full max-w-full opacity-95 transition duration-500 ease-out group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
+                  className="absolute inset-0 m-auto h-auto max-h-full w-auto max-w-full opacity-95 transition duration-500 ease-out group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
                   src={thumbnail}
                   alt=""
+                  {...intrinsicSize(thumbnail)}
                   {...lazy}
                   onError={() => setThumbnailFailed(true)}
                   style={THUMBNAIL_EDGE_STYLE}
@@ -1178,9 +1183,10 @@ function ProjectTile({
         className="pointer-events-none absolute left-0 top-0 z-[5] -ml-56 -mt-56 size-[28rem] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.09),transparent_62%)]"
         style={{ x: tilt.sheenX, y: tilt.sheenY, opacity: tilt.sheenOpacity }}
       />
-      {/* The poster's words as text: its pixels say them, but only this reaches screen readers, search and find-in-page. */}
+      {/* The poster's words as text: its pixels say them, but only this reaches screen readers (as the
+          tile's description), search and find-in-page. Hidden from the name, which is "Open <name>". */}
       {posterText && showsThumbnail && (
-        <span id={posterTextId} className="sr-only">
+        <span id={posterTextId} aria-hidden="true" className="sr-only">
           {posterText}
         </span>
       )}
@@ -1195,7 +1201,7 @@ function ProjectTile({
           {/* The project's own mark, centred on the name's first line and lifting with it. */}
           {logo && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt="" className="mt-[0.06em] h-[0.82em] w-auto max-w-[2.1em] shrink-0 object-contain" />
+            <img src={logo} alt="" {...intrinsicSize(logo)} className="mt-[0.06em] h-[0.82em] w-auto max-w-[2.1em] shrink-0 object-contain" />
           )}
           <span className="min-w-0">
             {titleLines
@@ -1272,7 +1278,7 @@ function ThumbLoopVideo({
         <source src={`${loop.src}.mp4`} type="video/mp4" />
       </video>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img ref={top} aria-hidden="true" className="pointer-events-none invisible absolute" style={box(loop.topRect)} src={loop.top} alt="" />
+      <img ref={top} aria-hidden="true" className="pointer-events-none invisible absolute" style={box(loop.topRect)} src={loop.top} alt="" {...intrinsicSize(loop.top)} />
     </>
   );
 }
@@ -1369,7 +1375,7 @@ function EarlierProjects({
                     <span data-row-thumb className="relative h-12 w-[85px] shrink-0 overflow-hidden rounded-lg bg-[#060606]">
                       {thumbnail && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />
+                        <img src={thumbnail} alt="" loading="lazy" {...intrinsicSize(thumbnail)} className="h-full w-full object-cover" />
                       )}
                     </span>
                     <span aria-hidden="true" className="min-w-0 flex-1">

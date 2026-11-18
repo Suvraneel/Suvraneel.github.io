@@ -626,7 +626,7 @@ function noteContent(note: string) {
         key={match.index}
         href={match[2]}
         target="_blank"
-        rel="noreferrer"
+        rel="noopener noreferrer"
         className="text-white/85 underline decoration-white/30 underline-offset-[3px] transition-colors duration-200 hover:text-accent hover:decoration-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         {match[1]}
@@ -1432,7 +1432,7 @@ export default function ProjectModal({
                 <LiquidMetalButton
                   href={project.url}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   ariaLabel={`Visit project: ${project.name}`}
                   onMouseEnter={() => {
                     setVisitHovered(true);
@@ -1454,7 +1454,7 @@ export default function ProjectModal({
                 <PillButton
                   href={project.github}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   onMouseEnter={playTick}
                   onMouseLeave={stopTick}
                   onClick={playPress}

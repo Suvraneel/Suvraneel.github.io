@@ -282,7 +282,7 @@ export default function LiteYouTube({
             key="watch"
             href={`https://www.youtube.com/watch?v=${id}`}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             ariaLabel={`Watch on YouTube: ${title}`}
             circleBelowSm
           >

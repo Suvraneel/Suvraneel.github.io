@@ -227,7 +227,7 @@ const About = () => {
                 <LiquidMetalButton
                   href="/docs/Suvraneel_Bhuin_Resume.pdf"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   onMouseEnter={() => playTick()}
                   onMouseLeave={() => stopTick()}
                   onClick={() => {

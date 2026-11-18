@@ -38,7 +38,7 @@ function AnimatedSocialLink({ name, href, brandColor, icon: Icon }: AnimatedSoci
     <Link
       href={href}
       target="_blank"
-      rel="noreferrer"
+      rel="noopener noreferrer"
       aria-label={name}
       // A click leaves no focus behind: back from the new tab, a scroll key would
       // turn it into keyboard focus and hold the rail open.

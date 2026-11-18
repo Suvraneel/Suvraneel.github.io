@@ -32,6 +32,7 @@ export const metadata: Metadata = {
     images: [shareImage],
   },
   robots: { index: true, follow: true },
+  icons: { icon: "/favicon.ico" },
   verification: {
     google: "J9uDTeg3iujyef0pzqJ7s7xDlmizshJEn0767--L3nA",
   },

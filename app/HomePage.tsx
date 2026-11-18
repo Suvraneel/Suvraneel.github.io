@@ -19,6 +19,7 @@ import {
 import { spaceBoards, tasaOrbiter } from "@font";
 import * as gtag from "@lib/gtag";
 import { isDialogOpen, isDrawerOpen, stepFrom } from "@lib/pageTransition";
+import { intrinsicSize } from "@lib/imageSize";
 import { PORTRAIT_COLUMN_MEDIA } from "@lib/portrait";
 import { needsTiltPermission, requestTilt, subscribeTiltState } from "@lib/tilt";
 
@@ -80,7 +81,8 @@ const flipOwnsRig = () => {
 
 const Home = () => {
   const { navigate } = usePageTransition();
-  const { isReady, sceneViewport, sceneFailed, preloaderActive, getRig, setFlip, setHeroShown } = useDashboardScene();
+  const { isReady, sceneViewport, sceneFailed, posterFailed, preloaderActive, getRig, setFlip, setHeroShown } =
+    useDashboardScene();
   const transition = useTransitionState();
   const scrollIntent = useRef(0);
   const lastWheelAt = useRef(0);
@@ -123,11 +125,12 @@ const Home = () => {
   const [wasNarrow, setWasNarrow] = useState(
     () => homeSeenNarrow || (typeof window !== "undefined" && window.innerWidth <= SPLINE_MIN_WIDTH)
   );
-  // Wide screens show the 3D dashboard instead of this hero. A phone widened
-  // past SPLINE_MIN_WIDTH, or a scene that failed, keeps the hero on screen
-  // until the scene is ready, so Home is never empty. Arriving from another
-  // page while the scene loads keeps the dashboard's own backdrop, as before.
-  const heroLive = sceneViewport && !isReady && !preloaderActive && (wasNarrow || sceneFailed);
+  // Wide screens show the 3D dashboard instead of this hero, or its still where
+  // the scene can't run (no GPU, a failed load); while the still loads, the
+  // dashboard's black backdrop holds, never this hero. A phone widened past
+  // SPLINE_MIN_WIDTH, or a scene that failed with no still either, keeps the hero
+  // on screen until the scene is ready, so Home is never empty.
+  const heroLive = sceneViewport && !isReady && !preloaderActive && (wasNarrow || (sceneFailed && posterFailed));
   // Held through a flight into or out of Home: the scene turning ready mid-flight
   // would otherwise swap the hero out while the sheet is still moving. It swaps
   // once the page has settled, as it does at rest.
@@ -319,6 +322,7 @@ const Home = () => {
             <img
               src={HERO_PHOTO}
               alt="Black-and-white portrait of Suvraneel Bhuin"
+              {...intrinsicSize(HERO_PHOTO)}
               loading="eager"
               fetchPriority="high"
               className="absolute inset-0 h-full w-full object-cover object-[60%_0%] grayscale"
@@ -417,7 +421,7 @@ const Home = () => {
           <PillButton
             href="/docs/Suvraneel_Bhuin_Resume.pdf"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="h-[54px] w-full px-3"
             onClick={() =>
               gtag.event({ action: "resume_download_opened", category: "portfolio_engagement", label: "home", value: 1 })

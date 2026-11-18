@@ -633,7 +633,11 @@ export default function SkillsPage() {
                             {area.index}
                           </span>
                         </span>
-                        <span className="min-w-0 text-lg font-medium">{area.label}</span>
+                        <span
+                          className={`min-w-0 text-lg font-medium transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none ${active ? "" : "group-hover:translate-x-1.5"}`}
+                        >
+                          {area.label}
+                        </span>
                         <span
                           className={`ml-auto inline-flex shrink-0 font-mono text-[0.62rem] uppercase tracking-[0.12em] transition-opacity duration-300 ${active ? "opacity-70" : "opacity-0 group-hover:opacity-45"}`}
                         >
