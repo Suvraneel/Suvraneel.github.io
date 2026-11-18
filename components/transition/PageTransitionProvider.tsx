@@ -468,8 +468,13 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
         fastForward();
       }
 
-      const from = pathnameRef.current;
-      if (!isPagePath(to) || !isPagePath(from) || to === from) return false;
+      const current = pathnameRef.current;
+      // The 404 page is off the sequence: a link out of it lowers the page it
+      // opens over it, as a step back to that page would.
+      const offSequence = !isPagePath(current) && options.source === "link";
+      if (!isPagePath(to) || (!isPagePath(current) && !offSequence) || to === current) return false;
+      // A page from here on: off the sequence it is only ever the layer being left.
+      const from = current as PagePath;
       if (options.source === "pop" || options.source === "link") dismissModalDialogs();
 
       const currentScene = sceneRef.current;
@@ -500,7 +505,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
         reduced: prefersReducedMotion(),
         uaTransition: Boolean(options.uaTransition),
       });
-      const direction = directionOf(from, to);
+      const direction = offSequence ? -1 : directionOf(from, to);
       const homeVisualIsScene = currentScene.sceneViewport && (from === "/" || to === "/");
       // Home ↔ About with the portrait's column showing: the avatar opens into
       // the portrait, or closes back into it. A copy still handing over from
@@ -1020,24 +1025,25 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       ) {
         return;
       }
+      // HTML links, and SVG ones (the links on Home's dashboard still).
       const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
-      if (!(anchor instanceof HTMLAnchorElement)) return;
-      if ((anchor.target && anchor.target !== "_self") || anchor.hasAttribute("download")) return;
+      const href =
+        anchor instanceof HTMLAnchorElement ? anchor.href : anchor instanceof SVGAElement ? anchor.href.baseVal : null;
+      if (!anchor || href === null) return;
+      const target = anchor.getAttribute("target");
+      if ((target && target !== "_self") || anchor.hasAttribute("download")) return;
 
-      const url = new URL(anchor.href, window.location.href);
+      const url = new URL(href, window.location.href);
       if (url.origin !== window.location.origin || url.search || url.hash) return;
       if (!isPagePath(url.pathname)) return;
-      // Off the sequence (the 404 page) there is no lift, and a client-side
-      // route change would leave the old layer's exit unreleased: load the page.
-      if (!isPagePath(pathnameRef.current)) {
-        event.preventDefault();
-        window.location.assign(url.href);
-        return;
-      }
       if (url.pathname === pathnameRef.current && !isTransitionLocked()) return;
 
       event.preventDefault();
-      if (isTransitionLocked() || !navigate(url.pathname, { source: "link" })) markClickDropped(event);
+      if (isTransitionLocked() || !navigate(url.pathname, { source: "link" })) {
+        // Off the sequence (the 404 page), a lift that can't start loads the page instead.
+        if (!isPagePath(pathnameRef.current) && !isTransitionLocked()) window.location.assign(url.href);
+        else markClickDropped(event);
+      }
     };
 
     window.addEventListener("click", onClick, true);

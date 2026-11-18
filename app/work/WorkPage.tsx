@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { motion, useMotionValue, useScroll, useSpring, useTransform, type MotionValue } from "motion/react";
 import type { Application } from "@splinetool/runtime";
-import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { preload } from "react-dom";
 import ChronoCard from "@components/ChronoCard";
 import FrameSequence from "@components/FrameSequence";
@@ -16,6 +16,7 @@ import { spaceBoards, tasaOrbiter } from "@font";
 import { isUnrendered, layoutTop, whenPlaced } from "@components/transition/arrival";
 import { getTransition } from "@components/transition/transitionStore";
 import { REVEAL_EASE, useReveal } from "@hooks/useReveal";
+import { hasHardwareRenderer } from "@lib/gpu";
 import { prefersReducedMotion } from "@lib/pageTransition";
 import { renderOnDemand, scrubSplineScroll } from "@lib/splineScroll";
 
@@ -255,7 +256,7 @@ const Work = () => {
   // the page's HTML instead (a <link rel=preload> in the server HTML's head). Not
   // in the root layout: on Projects it took bandwidth from the thumbnails, which
   // are that page's LCP.
-  preload("/images/seed-46867.webp", { as: "image" });
+  preload("/images/seed-46867.webp", { as: "image", fetchPriority: "high" });
   const mainRef = useRef<HTMLElement>(null);
   const entriesRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll({ container: mainRef });
@@ -267,6 +268,19 @@ const Work = () => {
   // Its column is display:none below md; an invisible canvas would still load
   // a Spline runtime. Mounted again later, the plant syncs on load (scrubPlant).
   const plantShown = useSyncExternalStore(subscribePlantQuery, isPlantShown, isPlantShownOnServer);
+  // Without a GPU the scene can't run (lib/gpu.ts): the column gets the phones' recorded
+  // frames instead, scrubbed by the same progress, so the plant still grows with the page.
+  const [plantRecorded, setPlantRecorded] = useState(false);
+  useEffect(() => {
+    if (!plantShown) return;
+    let live = true;
+    void hasHardwareRenderer().then((hardware) => {
+      if (live) setPlantRecorded(!hardware);
+    });
+    return () => {
+      live = false;
+    };
+  }, [plantShown]);
   // Full under the intro; dimmed once the entries scroll over it, so they read first.
   const phonePlantOpacity = useTransform(scrollY, [0, PHONE_PLANT_DIM_BY], [1, PHONE_PLANT_DIM]);
   const headerRef = useRef<HTMLElement>(null);
@@ -385,11 +399,35 @@ const Work = () => {
                   its height), so the glow fades out on its own, under the glass rail and the text. */}
               <div className="pointer-events-none absolute inset-y-0 left-[calc(50%-max(50%,32.5vh))] w-[max(100%,65vh)]">
                 {/* The scene's floor glow until its first frame is in, so the column never starts black. */}
-                <div ref={glowRef} aria-hidden="true" className="absolute inset-0" style={{ backgroundImage: PLANT_GLOW }} />
-                {plantShown && (
-                  <div ref={sceneRef} className="absolute inset-0 opacity-0">
-                    <SplineObj scene={"/spline/scene-plantNEW.splinecode"} onLoad={scrubPlant} />
+                <div
+                  ref={glowRef}
+                  aria-hidden="true"
+                  className={`absolute inset-0 ${plantRecorded ? "hidden" : ""}`}
+                  style={{ backgroundImage: PLANT_GLOW }}
+                />
+                {plantShown && plantRecorded ? (
+                  // The frames are the scene's middle, 400 x 360 of a 720px-tall view: the
+                  // scene keeps its height, so they take half the column's, centred across
+                  // and set where the live scene draws its pot (matched against a GPU capture).
+                  <div
+                    className="absolute left-1/2 top-[30.5%] h-1/2 -translate-x-1/2"
+                    style={{ aspectRatio: `${PLANT_FRAME_ASPECT}` }}
+                  >
+                    <FrameSequence
+                      frame={plantFrame}
+                      count={PLANT_FRAME_COUNT}
+                      progress={plantProgress}
+                      media={PLANT_QUERY}
+                      aspect={PLANT_FRAME_ASPECT}
+                      className="phone-plant absolute inset-0 h-full w-full"
+                    />
                   </div>
+                ) : (
+                  plantShown && (
+                    <div ref={sceneRef} className="absolute inset-0 opacity-0">
+                      <SplineObj scene={"/spline/scene-plantNEW.splinecode"} onLoad={scrubPlant} />
+                    </div>
+                  )
                 )}
               </div>
             </div>

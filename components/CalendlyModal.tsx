@@ -105,7 +105,7 @@ export default function CalendlyModal({
             <a
               href={SCHEDULER_URL}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-white/20 text-sm text-white/75 transition-[color,border-color] duration-300 hover:border-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent sm:w-auto sm:px-4"
             >
               <span className="max-sm:sr-only">Open in Calendly</span>

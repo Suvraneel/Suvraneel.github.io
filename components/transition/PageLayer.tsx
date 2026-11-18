@@ -179,6 +179,8 @@ export default function PageStage({ children }: { children: ReactNode }) {
 
   return (
     <div
+      // The skip link's target (SkipLink focuses the settled page's <main> inside it).
+      id="content"
       data-stage=""
       className="min-h-full w-full"
       // Clip the lowered page underneath so it never extends the document.

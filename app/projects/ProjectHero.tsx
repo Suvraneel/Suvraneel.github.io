@@ -34,6 +34,8 @@ export default function ProjectHero({
         ? settlexFallback.variable
         : sheetahText.variable;
 
+  // The {" "} between the copy's lines: they are blocks, so the spaces change nothing on
+  // screen, but text read off the page (the tile's name check, find-in-page) keeps its words apart.
   return (
     <div aria-hidden="true" className={`project-hero project-hero--${brand} ${fonts}`}>
       <video
@@ -54,10 +56,10 @@ export default function ProjectHero({
         <div className="project-hero-copy">
           <span className="project-hero-headline">
             Company brain <span>that evolves with every action</span>
-          </span>
+          </span>{" "}
           <span className="project-hero-sub">
             Scoped to your permissions. <span>Approval-gated before every write.</span>
-          </span>
+          </span>{" "}
         </div>
       ) : brand === "sheetah" ? (
         <div className="project-hero-copy">
@@ -66,29 +68,29 @@ export default function ProjectHero({
             <span>
               <i>×</i> <b>SQL</b>
             </span>
-          </span>
+          </span>{" "}
           <span className="project-hero-sub">
             <span>
               <b>10M-row</b> grid
-            </span>
+            </span>{" "}
             <span>
               <b>60 fps</b> scroll
-            </span>
+            </span>{" "}
             <span>
               <b>Zero</b> uploads
             </span>
-          </span>
+          </span>{" "}
         </div>
       ) : (
         <div className="project-hero-copy">
           <span className="project-hero-eyebrow">
             <i />
             Multi-chain testnets
-          </span>
+          </span>{" "}
           <span className="project-hero-headline">
             The Clearing Layer <span>for Crypto</span>
-          </span>
-          <span className="project-hero-sub">Settles only the net delta, cutting bridging costs by up to 90%.</span>
+          </span>{" "}
+          <span className="project-hero-sub">Settles only the net delta, cutting bridging costs by up to 90%.</span>{" "}
         </div>
       )}
     </div>

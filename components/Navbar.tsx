@@ -49,6 +49,17 @@ const railOffset = (path: string | null) => {
   return index < 0 ? null : `translate3d(0px, ${index * RAIL_ROW_PX}px, 0px)`;
 };
 
+/**
+ * The item the rail marks: the current page, except while a reduced-motion
+ * fade runs, which holds on the page being left until it settles. The
+ * indicator sits on it, and its label stays out while the rail is closed.
+ */
+function useRailHere() {
+  const pathname = usePathname();
+  const transition = useTransitionState();
+  return isInFlight(transition) && transition.kind === "fade" ? transition.from : pathname;
+}
+
 const pageScroller = (path: string) =>
   path === "/work" ? document.querySelector<HTMLElement>(`[data-page="/work"] main`) : null;
 
@@ -132,6 +143,7 @@ export default function Navbar() {
   const reduceMotion = useReducedMotion();
   const isPlaying = useMusicPlaying();
   const progress = useRailProgress(reduceMotion);
+  const here = useRailHere();
   const [playTickSfx, { stop: stopTick }] = useSfx("tick");
   const [playPress] = useSfx("press");
   const [playConfirm] = useSfx("confirm");
@@ -169,6 +181,7 @@ export default function Navbar() {
             key={item.name}
             item={item}
             active={pathname === item.href}
+            marked={here === item.href}
             reduceMotion={reduceMotion}
             onTick={playTick}
             onStopTick={stopTick}
@@ -197,11 +210,8 @@ export default function Navbar() {
  * jumps once the fade settles.
  */
 function RailIndicator({ progress }: { progress: MotionValue<number> }) {
-  const pathname = usePathname();
-  const transition = useTransitionState();
   const indicatorRef = useRef<HTMLSpanElement>(null);
-  const fading = isInFlight(transition) && transition.kind === "fade";
-  const offset = railOffset(fading ? transition.from : pathname);
+  const offset = railOffset(useRailHere());
 
   useEffect(
     () =>
@@ -236,6 +246,7 @@ function RailIndicator({ progress }: { progress: MotionValue<number> }) {
 function RailLink({
   item,
   active,
+  marked,
   reduceMotion,
   onTick,
   onStopTick,
@@ -243,6 +254,8 @@ function RailLink({
 }: {
   item: RailItem;
   active: boolean;
+  /** The rail marks this item (useRailHere): its label stays out while the rail is closed. */
+  marked: boolean;
   reduceMotion: boolean | null;
   onTick: () => void;
   onStopTick: () => void;
@@ -255,7 +268,7 @@ function RailLink({
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      className={`rail-link group ${active ? "rail-link-active" : ""}`}
+      className={`rail-link group ${active ? "rail-link-active" : ""} ${marked ? "rail-link-here" : ""}`}
       // As the music button: a click leaves no focus to reopen the rail later.
       onMouseDown={(event) => event.preventDefault()}
       onMouseEnter={() => {

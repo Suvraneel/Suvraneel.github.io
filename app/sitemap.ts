@@ -19,7 +19,7 @@ const routes = [
   },
   { path: "/about", sources: ["app/about", "public/images/Suvraneel_DP.jpeg"] },
   { path: "/work", sources: ["app/work", "data/workData.ts", "components/ChronoCard.tsx"] },
-  { path: "/projects", sources: ["app/projects", "data/projectsDat.ts", "components/ProjectModal.tsx"] },
+  { path: "/projects", sources: ["app/projects", "data/projectsDat.ts", "components/ProjectModal.tsx", "components/projectTile.ts"] },
   { path: "/skills", sources: ["app/skills"] },
   { path: "/contact", sources: ["app/contact"] },
 ] as const;

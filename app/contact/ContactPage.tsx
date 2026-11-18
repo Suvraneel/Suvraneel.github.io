@@ -436,7 +436,7 @@ export default function ContactPage() {
               <Link
                 href="https://suvraneel.bio.link"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="group flex min-h-14 items-center justify-between gap-4 border-b border-white/10 py-3 text-sm font-normal text-white/60 transition-colors duration-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
               >
                 <span className="link-draw">More ways to connect</span>
@@ -654,7 +654,7 @@ function SendShortcut() {
   return (
     <span
       aria-hidden="true"
-      className="hidden items-center gap-1 whitespace-nowrap text-xs font-normal text-white/40 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-focus-within:text-white/65 [@media(hover:hover)_and_(pointer:fine)]:flex"
+      className="hidden items-center gap-1 whitespace-nowrap text-xs font-normal text-white/55 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-focus-within:text-white/65 [@media(hover:hover)_and_(pointer:fine)]:flex"
     >
       <kbd className={key}>{modifier}</kbd>
       <kbd className={key}>↵</kbd>

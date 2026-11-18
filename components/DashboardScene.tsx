@@ -1,15 +1,17 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import SplineObj, { subscribeRuntimeDisposals } from "@components/SplineObject";
+import SkipLink from "@components/SkipLink";
 import StairsPreloader, { PRELOADER_FAILSAFE_MS, type PreloaderStatus } from "@components/StairsPreloader";
 import type { AvatarPlacement } from "@components/transition/avatarPortrait";
 import { isInFlight, useTransitionState } from "@components/transition/transitionStore";
 import { SHEET_SHADOW } from "@lib/pageTransition";
 import { hasHardwareRenderer } from "@lib/gpu";
+import { POSTER_BOX, POSTER_H, POSTER_SOURCES, POSTER_SPOTS, POSTER_W } from "@lib/dashboardPoster";
 import { renderOnDemand, requestSceneFrame } from "@lib/splineScroll";
 // WAAPI only: no motion value is left behind to write the transform back after it is cleared.
 import { animate } from "motion/mini";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion, useSpring } from "motion/react";
 import { usePathname } from "next/navigation";
 import {
   createContext,
@@ -53,6 +55,10 @@ type DashboardSceneContextValue = {
   sceneViewport: boolean;
   /** The scene failed to load or start. */
   sceneFailed: boolean;
+  /** The scene's still (lib/dashboardPoster) stands in for it on screen: no GPU, or a failed or slow load. */
+  posterShown: boolean;
+  /** The still could not load either: Home's static hero is all there is. */
+  posterFailed: boolean;
   /** The first-visit stairs preloader is covering the screen. */
   preloaderActive: boolean;
   /** The fixed full-screen scene wrapper; page transitions lift it with the Home sheet. */
@@ -89,6 +95,8 @@ const DashboardSceneContext = createContext<DashboardSceneContextValue>({
   isReady: false,
   sceneViewport: false,
   sceneFailed: false,
+  posterShown: false,
+  posterFailed: false,
   preloaderActive: false,
   containerRef: { current: null },
   getRig: () => null,
@@ -111,6 +119,11 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   const [hasSceneError, setSceneError] = useState(false);
   // Spline reported a failed load (hasSceneError alone may just mean "slow").
   const [sceneLoadFailed, setSceneLoadFailed] = useState(false);
+  // No GPU to run the scene on (lib/gpu.ts): the still stands in for it from the start.
+  const [noHardware, setNoHardware] = useState(false);
+  // The still (DashboardFallback) has loaded, or failed to.
+  const [posterLoaded, setPosterLoaded] = useState(false);
+  const [posterFailed, setPosterFailed] = useState(false);
   const [isSplineViewport, setSplineViewport] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   // Home's static hero is on screen (HomePage's heroOnScreen, reported here).
@@ -156,6 +169,14 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
   // the effects below decide whether this visit gets the preloader at all.
   const [hydrated, setHydrated] = useState(false);
   const needsScene = shouldMountDashboard && !sceneUrl;
+  // Off the first visit, an unready scene shows its still as its backdrop (never
+  // bare black). The canvas sits fully opaque underneath and the still fades
+  // away once Spline has painted its first frames.
+  const showFallback = shouldMountDashboard && (hasSceneError || !isInitialLoad);
+  // The still is on screen in the scene's place.
+  const posterShown = showFallback && posterLoaded && !isReady;
+  // With no scene coming (no GPU, a failed load) or a slow one, a loaded still is as good as ready.
+  const shownReady = isReady || (hasSceneError && posterLoaded);
   const containerRef = useRef<HTMLDivElement | null>(null);
   // The wrapper inside containerRef: page transitions own containerRef's transform.
   const sceneRef = useRef<HTMLDivElement | null>(null);
@@ -191,10 +212,10 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
       const hardware = await hasHardwareRenderer();
       if (controller.signal.aborted) return;
       // Without a GPU the scene would hold the main thread for seconds a frame
-      // (lib/gpu.ts): skip the download and open onto the static fallback.
+      // (lib/gpu.ts): skip the download and open onto its still.
       if (!hardware) {
+        setNoHardware(true);
         setSceneError(true);
-        setSceneLoadFailed(true);
         return;
       }
       // Warm the lazy Spline runtime chunk in parallel with the scene download.
@@ -220,19 +241,23 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
       setInitialLoad(false);
       return;
     }
-    if (!isReady) return;
+    if (!shownReady) return;
 
     const timeoutId = window.setTimeout(() => setInitialLoad(false), READY_HOLD_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [isReady, isSplineViewport, shouldMountDashboard]);
+  }, [shownReady, isSplineViewport, shouldMountDashboard]);
 
   // Not ready by FALLBACK_AFTER_MS: say so for a moment, then open onto the static
   // dashboard, which the scene replaces whenever it does arrive.
+  // Without a GPU, or after a failed load, there is nothing left to wait for but the still:
+  // the preloader fills as it arrives and holds as for the scene (only a still that fails
+  // too gets the notice).
   useEffect(() => {
-    if (!isInitialLoad || !hasSceneError || isReady) return;
+    if (!isInitialLoad || !hasSceneError || shownReady) return;
+    if ((noHardware || sceneLoadFailed) && !posterFailed) return;
     const timeoutId = window.setTimeout(() => setInitialLoad(false), SLOW_NOTICE_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [hasSceneError, isInitialLoad, isReady]);
+  }, [hasSceneError, isInitialLoad, shownReady, noHardware, sceneLoadFailed, posterFailed]);
 
   useEffect(() => {
     if (!isInitialLoad) return;
@@ -367,18 +392,22 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
 
   // Weighted so the end means "the scene is drawing", not just "bytes arrived":
   // download 0-70%, scene handed to Spline 72%, loaded 85%, first frames 100%.
-  const preloaderProgress = isReady
+  const preloaderProgress = shownReady
     ? 1
-    : app
+    : noHardware || sceneLoadFailed
+      ? 0.6
+      : app
       ? 0.85
       : sceneUrl
         ? 0.72
         : (downloadProgress ?? 0.02) * 0.7;
   // The scene error timer fires on a slow load too; the preloader says which, then opens onto the fallback.
-  const preloaderStatus: PreloaderStatus = isReady
+  const preloaderStatus: PreloaderStatus = shownReady
     ? "ready"
-    : sceneLoadFailed
-      ? "failed"
+    : noHardware || sceneLoadFailed
+      ? posterFailed
+        ? "failed"
+        : "loading"
       : hasSceneError
         ? "slow"
         : "loading";
@@ -390,6 +419,8 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
       isReady,
       sceneViewport: isSplineViewport,
       sceneFailed: hasSceneError,
+      posterShown,
+      posterFailed,
       preloaderActive,
       containerRef,
       getRig,
@@ -405,6 +436,8 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
       app,
       getRig,
       hasSceneError,
+      posterShown,
+      posterFailed,
       isReady,
       isSplineViewport,
       measureAvatar,
@@ -415,13 +448,10 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
     ]
   );
 
-  // Off the first visit, an unready scene shows the static dashboard as its
-  // backdrop (never bare black). The canvas sits fully opaque underneath and
-  // the fallback fades away once Spline has painted its first frames.
-  const showFallback = shouldMountDashboard && (hasSceneError || !isInitialLoad);
-
   return (
     <DashboardSceneContext.Provider value={value}>
+      {/* First in the document, ahead of the scene's still and its links. */}
+      <SkipLink inert={preloaderActive} />
       <div
         ref={containerRef}
         className={`fixed inset-0 z-0 ${isVisible ? "visible" : "invisible pointer-events-none"}`}
@@ -482,13 +512,21 @@ export const DashboardSceneProvider = ({ children }: { children: ReactNode }) =>
             />
           </div>
         )}
-        {showFallback && (
+        {showFallback && isSplineViewport && (
           <div
             className={`pointer-events-none absolute inset-0 hidden transition-opacity duration-700 ease-out min-[551px]:block ${
               isReady ? "opacity-0" : "opacity-100"
             }`}
           >
-            <DashboardFallback />
+            <DashboardFallback
+              live={isVisible && !isReady && !preloaderActive}
+              reduceMotion={reduceMotion}
+              onLoad={() => {
+                setPosterLoaded(true);
+                setReadyAt((current) => current ?? performance.now());
+              }}
+              onError={() => setPosterFailed(true)}
+            />
           </div>
         )}
       </div>
@@ -916,13 +954,115 @@ function projectAvatar(app: any, rig: any, rotation?: number): AvatarPlacement |
 }
 
 
-function DashboardFallback() {
+/**
+ * The scene's still (lib/dashboardPoster), placed where the scene draws, with
+ * the scene's links on top. While it stands in for the live scene (`live`) it
+ * keeps the scene's two motions: the camera leaning toward the pointer, and a
+ * slow idle float; both are off under reduced motion, as the scene's are.
+ */
+function DashboardFallback({
+  live,
+  reduceMotion,
+  onLoad,
+  onError,
+}: {
+  live: boolean;
+  reduceMotion: boolean;
+  onLoad: () => void;
+  onError: () => void;
+}) {
+  const motionOff = useReducedMotion() || reduceMotion;
+  const tiltX = useSpring(0, { stiffness: 60, damping: 18 });
+  const tiltY = useSpring(0, { stiffness: 60, damping: 18 });
+  const imageRef = useRef<HTMLImageElement>(null);
+  const reported = useRef(false);
+
+  // A cached still can finish before hydration attaches onLoad.
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!image || reported.current || !image.complete) return;
+    reported.current = true;
+    if (image.naturalWidth > 0) onLoad();
+    else onError();
+  }, [onLoad, onError]);
+
+  useEffect(() => {
+    if (!live || motionOff) {
+      tiltX.set(0);
+      tiltY.set(0);
+      return;
+    }
+    const onMove = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse") return;
+      tiltY.set((event.clientX / window.innerWidth - 0.5) * 3);
+      tiltX.set((0.5 - event.clientY / window.innerHeight) * 2);
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => window.removeEventListener("pointermove", onMove);
+  }, [live, motionOff, tiltX, tiltY]);
+
   return (
-    <div className="absolute inset-0 overflow-hidden bg-black" aria-hidden="true">
-      <div className="absolute inset-0 opacity-[0.1] [background-image:linear-gradient(rgb(var(--accent)/0.8)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--accent)/0.8)_1px,transparent_1px)] [background-size:4rem_4rem]" />
-      <div className="absolute left-[18%] top-[20%] h-[26rem] w-[26rem] rounded-full border border-accent/25 bg-[#0b2730]/30 blur-[1px]" />
-      <div className="absolute right-[14%] top-[14%] h-[18rem] w-[18rem] rounded-full border border-white/10 bg-white/[0.025]" />
-      <div className="absolute bottom-[18%] right-[25%] h-28 w-28 rotate-45 border border-accent/30 bg-accent/[0.04]" />
+    <div className="absolute inset-0 overflow-hidden bg-black [perspective:1600px]">
+      <motion.div
+        className="absolute top-0 h-full"
+        style={{ left: POSTER_BOX.left, width: POSTER_BOX.width, rotateX: tiltX, rotateY: tiltY }}
+      >
+        <div className={`absolute inset-0 ${live && !motionOff ? "dashboard-poster-float" : ""}`}>
+          <picture>
+            <source type="image/avif" srcSet={POSTER_SOURCES.avif} sizes={POSTER_SOURCES.sizes} />
+            <source type="image/webp" srcSet={POSTER_SOURCES.webp} sizes={POSTER_SOURCES.sizes} />
+            <img
+              ref={imageRef}
+              src={POSTER_SOURCES.fallback}
+              width={POSTER_W}
+              height={POSTER_H}
+              alt=""
+              decoding="async"
+              fetchPriority="high"
+              draggable={false}
+              onLoad={() => {
+                if (reported.current) return;
+                reported.current = true;
+                onLoad();
+              }}
+              onError={() => {
+                if (reported.current) return;
+                reported.current = true;
+                onError();
+              }}
+              className="absolute inset-0 h-full w-full select-none"
+            />
+          </picture>
+          {/* The scene's own links, where it draws them. Only while the still stands in for the scene. */}
+          {live && (
+          <svg
+            viewBox={`0 0 ${POSTER_W} ${POSTER_H}`}
+            className="absolute inset-0 h-full w-full"
+            aria-label="Dashboard links"
+            role="group"
+          >
+            {POSTER_SPOTS.map((spot) => {
+              const external = spot.href.startsWith("http");
+              return (
+                <a
+                  key={spot.href}
+                  href={spot.href}
+                  aria-label={spot.label}
+                  className="dashboard-poster-spot"
+                  {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                >
+                  {"points" in spot ? (
+                    <polygon points={spot.points} />
+                  ) : (
+                    <circle cx={spot.cx} cy={spot.cy} r={spot.r} />
+                  )}
+                </a>
+              );
+            })}
+          </svg>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }

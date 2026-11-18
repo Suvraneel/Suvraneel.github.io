@@ -5,6 +5,7 @@ import { type MouseEvent, ReactNode, type RefObject, useEffect, useRef, useState
 import { tasaOrbiter } from "@font";
 import { useMagnetic } from "@hooks/useMagnetic";
 import { hasFastWebGL2 } from "@lib/gpu";
+import { markFloodSide } from "@lib/floodSide";
 import { isPlainAnchor } from "@lib/linkKind";
 
 // Shader speeds: calm at rest, livelier on hover/focus, a short burst on click.
@@ -263,7 +264,7 @@ export default function LiquidMetalButton({
   const sizeClassName = circleBelowSm
     ? "h-[44px] w-[44px] min-h-[44px] px-0 sm:h-auto sm:w-auto sm:min-h-12 sm:px-5"
     : "min-h-12 px-5";
-  const sharedClassName = `group relative isolate inline-flex ${sizeClassName} min-w-0 items-center justify-center gap-3 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[#111] text-sm font-normal text-white/90 shadow-[0_3px_12px_rgba(0,0,0,0.3)] transition-[border-color,color,transform,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-white/45 hover:text-white hover:shadow-[0_6px_20px_rgba(255,255,255,0.1)] focus-visible:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent active:translate-y-px active:scale-[0.98] active:duration-150 disabled:cursor-wait disabled:opacity-70 motion-reduce:transition-none ${tasaOrbiter.className} ${className}`;
+  const sharedClassName = `metal-button group relative isolate inline-flex ${sizeClassName} min-w-0 items-center justify-center gap-3 overflow-hidden whitespace-nowrap rounded-full border border-white/20 bg-[#111] text-sm font-normal text-white/90 shadow-[0_3px_12px_rgba(0,0,0,0.3)] transition-[border-color,color,transform,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-white/45 hover:text-white hover:shadow-[0_6px_20px_rgba(255,255,255,0.1)] focus-visible:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent active:translate-y-px active:scale-[0.98] active:duration-150 disabled:cursor-wait disabled:opacity-70 motion-reduce:transition-none ${tasaOrbiter.className} ${className}`;
 
   const surface = (
     <>
@@ -273,6 +274,9 @@ export default function LiquidMetalButton({
       {/* Inner pill: inset 3px leaves an even 3px metal band. On press it sinks with
           an inset shadow, like a physical key. */}
       <span aria-hidden="true" className="pointer-events-none absolute inset-[3px] z-10 rounded-full bg-gradient-to-b from-[#202020] to-black shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)] transition-shadow duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] group-active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.4),inset_0_1px_2px_rgba(0,0,0,0.3)] motion-reduce:transition-none" />
+      {/* Under a pointer, brushed steel floods the inner pill from the side it entered
+          (PillButton's white flood, in this button's material); the chrome band stays as it is. */}
+      <span aria-hidden="true" className="metal-flood" />
       {ripples.map((ripple) => (
         <span
           key={ripple.id}
@@ -288,6 +292,8 @@ export default function LiquidMetalButton({
   const handlers = {
     onMouseEnter: handleMouseEnter,
     onMouseLeave: handleMouseLeave,
+    onPointerEnter: markFloodSide,
+    onPointerLeave: markFloodSide,
     onFocus: settleSpeed,
     onBlur: settleSpeed,
     onClick: handleClick,

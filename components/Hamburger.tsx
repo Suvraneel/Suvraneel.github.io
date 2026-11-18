@@ -354,7 +354,7 @@ const Hamburger = () => {
                   <a
                     href="/docs/Suvraneel_Bhuin_Resume.pdf"
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="flex w-full items-center gap-4 rounded-2xl border border-white/10 px-4 py-3 text-white transition hover:border-white/15 hover:bg-white/[0.04] hover:text-accent focus-visible:border-white/15 focus-visible:bg-white/[0.04] focus-visible:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     onMouseEnter={() => {
                       stopTick();

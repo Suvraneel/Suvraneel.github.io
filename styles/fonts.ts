@@ -4,7 +4,7 @@ import localFont from 'next/font/local'
 // (globals.css, "Space Boards Digits"), so it must sit right after it in the stack:
 // next/font's metric-adjusted Arial fallback would otherwise supply them first.
 const spaceBoards = localFont({
-  src: './fonts/Spaceboards.otf',
+  src: './fonts/Spaceboards.woff2',
   variable: '--font-spaceBoards',
   adjustFontFallback: false,
   fallback: ['Space Boards Digits', 'Arial', 'sans-serif'],

@@ -27,7 +27,8 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import LiftHeading from "@components/LiftHeading";
-import ProjectModal, {
+import type { ProjectModalHandle } from "@components/ProjectModal";
+import {
   dimmedBy,
   isOnScreen,
   THUMBNAIL_BACKDROP_CLASS,
@@ -35,8 +36,7 @@ import ProjectModal, {
   THUMBNAIL_MOUNT_CLASS,
   THUMBNAIL_VEIL_CLASS,
   type ModalSource,
-  type ProjectModalHandle,
-} from "@components/ProjectModal";
+} from "@components/projectTile";
 import { ArrowRightIcon } from "@components/animate-ui/icons/arrow-right";
 import { layerPathOf, layoutTop, whenPlaced, whenSettled } from "@components/transition/arrival";
 import { getTransition, isInFlight } from "@components/transition/transitionStore";
@@ -47,6 +47,7 @@ import { spaceBoards, tasaOrbiter } from "@font";
 import { useLiftEntrance } from "@hooks/useLiftEntrance";
 import { useReveal } from "@hooks/useReveal";
 import { hasFastWebGL2 } from "@lib/gpu";
+import { intrinsicSize } from "@lib/imageSize";
 import { subscribeDeviceTilt } from "@lib/tilt";
 import { useSfx } from "@hooks/useSfx";
 import { dismissModalDialogs, isDrawerOpen, prefersReducedMotion } from "@lib/pageTransition";
@@ -69,6 +70,49 @@ type TileOpening = { time: number; source: ModalSource };
 // treats the push as one of its own and leaves the route alone, and the page
 // transitions see the same path and start nothing.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// The dialog's code is split from the page's, so a visit that never opens a
+// project never parses it. It is fetched once the page has settled and gone
+// idle, or at the first pointer or focus in the gallery, whichever is first,
+// so a press almost always finds it here. One that doesn't opens the moment
+// it arrives, with the same checks as any open the page makes later (the
+// dialog is still wanted), rendered at once (openAtOnce) as those are. No
+// React.lazy: a lazy component suspends on its first render even once its
+// code is in, so a flushSync open would draw nothing.
+// ---------------------------------------------------------------------------
+
+type ProjectModalComponent = typeof import("@components/ProjectModal").default;
+/** The dialog, once its code is in; null until then. */
+let ProjectModal: ProjectModalComponent | null = null;
+let modalLoad: Promise<void> | null = null;
+/** Fetches the dialog's code, once (a failed fetch is tried again on the next ask). */
+const loadProjectModal = () =>
+  (modalLoad ??= import("@components/ProjectModal").then(
+    (module) => {
+      ProjectModal = module.default;
+    },
+    (error: unknown) => {
+      modalLoad = null;
+      throw error;
+    },
+  ));
+const warmProjectModal = () => void loadProjectModal().catch(() => {});
+/** After a lift has landed (1100 ms) and the page has settled, as Contact warms its sounds. */
+const MODAL_WARM_AFTER_MS = 1600;
+/** Runs `then` once the dialog's code is in (never inside the caller, even when it already is); returns its cancel. */
+const whenModalLoaded = (then: () => void) => {
+  let cancelled = false;
+  loadProjectModal().then(
+    () => {
+      if (!cancelled) then();
+    },
+    () => {},
+  );
+  return () => {
+    cancelled = true;
+  };
+};
 
 const PROJECTS_PATH = "/projects";
 const PROJECT_STATE_KEY = "project";
@@ -271,6 +315,30 @@ export default function ProjectsPage() {
     };
   }, []);
 
+  // The dialog's code, fetched a beat after the page has landed, when the
+  // main thread is idle: clear of the lift and of the first paint's images
+  // (see loadProjectModal). A press or a hover fetches it sooner.
+  useEffect(() => {
+    const container = gallery.current;
+    if (!container) return;
+    let cancel = () => {};
+    const stop = whenSettled(container, () => {
+      const timer = window.setTimeout(() => {
+        if (!("requestIdleCallback" in window)) {
+          warmProjectModal();
+          return;
+        }
+        const idle = window.requestIdleCallback(warmProjectModal, { timeout: 2000 });
+        cancel = () => window.cancelIdleCallback(idle);
+      }, MODAL_WARM_AFTER_MS);
+      cancel = () => window.clearTimeout(timer);
+    });
+    return () => {
+      stop();
+      cancel();
+    };
+  }, []);
+
   const registerTile = useCallback((id: string, describe: () => TileOpening | null) => {
     tiles.current.set(id, describe);
     return () => {
@@ -351,6 +419,19 @@ export default function ProjectsPage() {
       });
       return;
     }
+    // The dialog's code isn't in yet: the press opens the moment it is, from
+    // the tile as it stands then, if nothing else was asked for meanwhile (a
+    // later press takes its place; the drawer, or a page leaving, wins).
+    if (!ProjectModal) {
+      landingPress.current = whenModalLoaded(() => {
+        landingPress.current = null;
+        const t = getTransition();
+        if (present.current || isDrawerOpen() || window.location.pathname !== PROJECTS_PATH || (isInFlight(t) && t.from === PROJECTS_PATH)) return;
+        const opening = tiles.current.get(project.id)?.();
+        openAtOnce(() => openProject(project, opening?.time ?? time, opening?.source ?? source, returnTo));
+      });
+      return;
+    }
     showProject(project, time, source, returnTo);
     playOpen();
     // Not while Close's step back off the last project's entry is still on
@@ -400,6 +481,16 @@ export default function ProjectsPage() {
   // Forward onto a project's entry: it opens again, from its tile if that is
   // on screen (where Back left it), else in place.
   const reopenProject = (project: Project) => {
+    // The dialog's code isn't in yet (a step soon after a load): it opens the
+    // moment it is, if the entry still names the project and nothing else was
+    // asked for meanwhile.
+    if (!ProjectModal) {
+      whenModalLoaded(() => {
+        const stillNamed = window.location.pathname === PROJECTS_PATH && projectIdOf(window.history.state) === project.id;
+        if (stillNamed && !present.current && !isDrawerOpen() && !isInFlight(getTransition())) openAtOnce(() => reopenProject(project));
+      });
+      return;
+    }
     const opening = tiles.current.get(project.id)?.() ?? null;
     showProject(project, opening?.time ?? 0, opening?.source ?? null, opening?.source.tile ?? null);
     playOpen();
@@ -420,9 +511,10 @@ export default function ProjectsPage() {
     const first = describe?.();
     if (!describe || !first || present.current || isCancelled()) return;
     if (!first.source.onScreen) first.source.tile.scrollIntoView({ block: "center", behavior: "instant" });
-    await stillDecoded(first.source);
+    // The dialog's code comes in alongside (a failed fetch leaves the project closed).
+    await Promise.all([stillDecoded(first.source), loadProjectModal().catch(() => {})]);
     const opening = describe();
-    if (isCancelled() || present.current || !opening) return;
+    if (isCancelled() || present.current || !opening || !ProjectModal) return;
     // The page is live while the still decodes (up to STILL_WAIT_MS). A link
     // followed or a step taken meanwhile is taking the page away, though the
     // address and isPresent only move once its route commits: nothing opens
@@ -571,7 +663,12 @@ export default function ProjectsPage() {
   }, [selectedProject]);
 
   return (
-    <main className="nav-gap min-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[#07090d] text-white">
+    <main
+      className="nav-gap min-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[#07090d] text-white"
+      // A press or focus anywhere on the page fetches the dialog's code, if the idle warm-up hasn't.
+      onPointerDown={warmProjectModal}
+      onFocus={warmProjectModal}
+    >
       <div className="mx-auto max-w-[1500px] px-5 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-10 sm:pb-24 sm:pt-14 lg:px-14 lg:pt-16">
         <header className="max-w-3xl">
           <LiftHeading className={`text-display leading-[0.95] tracking-[-0.045em] ${spaceBoards.className}`}>
@@ -600,7 +697,11 @@ export default function ProjectsPage() {
                   holdDepth={dialogPresent}
                   register={registerTile}
                   onOpen={(time, source) => openProject(project, time, source)}
-                  onHoverStart={playTick}
+                  onHoverStart={() => {
+                    // A pointer on a tile is the surest sign a press is coming.
+                    warmProjectModal();
+                    playTick();
+                  }}
                   onHoverEnd={stopTick}
                 />
               </div>
@@ -617,7 +718,7 @@ export default function ProjectsPage() {
       </div>
 
       <AnimatePresence onExitComplete={onDialogGone}>
-        {selectedProject && (
+        {selectedProject && ProjectModal && (
           <ProjectModal
             ref={modal}
             key={`${("id" in selectedProject && selectedProject.id) || selectedProject.name}:${opens}`}
@@ -1062,8 +1163,10 @@ function ProjectTile({
       ref={tileRef}
       type="button"
       aria-haspopup="dialog"
-      aria-label={`Open ${project.name}`}
-      aria-describedby={posterText && showsThumbnail ? posterTextId : undefined}
+      // A flagship's hero copy is on screen (ProjectHero), so its name says it, then the
+      // project's: a name must hold the words a sighted visitor reads (WCAG 2.5.3).
+      aria-label={hero && posterText ? `${posterText} ${project.name}` : `Open ${project.name}`}
+      aria-describedby={posterText && showsThumbnail && !hero ? posterTextId : undefined}
       // A designed poster's two-line name sets smaller on short tiles (see globals.css).
       data-long-name={posterText && showsThumbnail && project.name.length > LONG_NAME_CHARS ? "" : undefined}
       className="project-tile group relative h-full min-h-0 w-full overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#10141c] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
@@ -1095,7 +1198,7 @@ function ProjectTile({
           {/* Depth layers (useMediaDepth): the backdrop sits furthest back, the crisp copy moves at the full rate. */}
           <motion.div className="absolute inset-0" style={depth.back}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className={THUMBNAIL_BACKDROP_CLASS} src={thumbnail} alt="" aria-hidden="true" data-thumbnail-backdrop {...lazy} />
+            <img className={THUMBNAIL_BACKDROP_CLASS} src={thumbnail} alt="" aria-hidden="true" data-thumbnail-backdrop {...intrinsicSize(thumbnail)} {...lazy} />
           </motion.div>
           <div className={THUMBNAIL_VEIL_CLASS} />
           <motion.div className="absolute inset-0 z-10" style={depth.front}>
@@ -1117,6 +1220,7 @@ function ProjectTile({
                   className="block h-full w-full"
                   src={thumbnail}
                   alt=""
+                  {...intrinsicSize(thumbnail)}
                   {...lazy}
                   onError={() => setThumbnailFailed(true)}
                   style={THUMBNAIL_EDGE_STYLE}
@@ -1129,9 +1233,10 @@ function ProjectTile({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   ref={stillImage}
-                  className="absolute inset-0 m-auto max-h-full max-w-full opacity-95 transition duration-500 ease-out group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
+                  className="absolute inset-0 m-auto h-auto max-h-full w-auto max-w-full opacity-95 transition duration-500 ease-out group-hover:scale-[1.015] group-hover:opacity-100 motion-reduce:transition-none"
                   src={thumbnail}
                   alt=""
+                  {...intrinsicSize(thumbnail)}
                   {...lazy}
                   onError={() => setThumbnailFailed(true)}
                   style={THUMBNAIL_EDGE_STYLE}
@@ -1178,9 +1283,10 @@ function ProjectTile({
         className="pointer-events-none absolute left-0 top-0 z-[5] -ml-56 -mt-56 size-[28rem] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.09),transparent_62%)]"
         style={{ x: tilt.sheenX, y: tilt.sheenY, opacity: tilt.sheenOpacity }}
       />
-      {/* The poster's words as text: its pixels say them, but only this reaches screen readers, search and find-in-page. */}
+      {/* The poster's words as text: its pixels say them, but only this reaches screen readers (as the
+          tile's description), search and find-in-page. Hidden from the name, which is "Open <name>". */}
       {posterText && showsThumbnail && (
-        <span id={posterTextId} className="sr-only">
+        <span id={posterTextId} aria-hidden="true" className="sr-only">
           {posterText}
         </span>
       )}
@@ -1195,7 +1301,7 @@ function ProjectTile({
           {/* The project's own mark, centred on the name's first line and lifting with it. */}
           {logo && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt="" className="mt-[0.06em] h-[0.82em] w-auto max-w-[2.1em] shrink-0 object-contain" />
+            <img src={logo} alt="" {...intrinsicSize(logo)} className="mt-[0.06em] h-[0.82em] w-auto max-w-[2.1em] shrink-0 object-contain" />
           )}
           <span className="min-w-0">
             {titleLines
@@ -1272,7 +1378,7 @@ function ThumbLoopVideo({
         <source src={`${loop.src}.mp4`} type="video/mp4" />
       </video>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img ref={top} aria-hidden="true" className="pointer-events-none invisible absolute" style={box(loop.topRect)} src={loop.top} alt="" />
+      <img ref={top} aria-hidden="true" className="pointer-events-none invisible absolute" style={box(loop.topRect)} src={loop.top} alt="" {...intrinsicSize(loop.top)} />
     </>
   );
 }
@@ -1369,7 +1475,7 @@ function EarlierProjects({
                     <span data-row-thumb className="relative h-12 w-[85px] shrink-0 overflow-hidden rounded-lg bg-[#060606]">
                       {thumbnail && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />
+                        <img src={thumbnail} alt="" loading="lazy" {...intrinsicSize(thumbnail)} className="h-full w-full object-cover" />
                       )}
                     </span>
                     <span aria-hidden="true" className="min-w-0 flex-1">
